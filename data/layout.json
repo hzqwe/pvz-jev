@@ -1,0 +1,27 @@
+{
+  "base_w": 2560,
+  "base_h": 1600,
+  "client_w": 2560,
+  "client_h": 1600,
+  "grid_left": 386,
+  "grid_top": 232,
+  "cell_w": 199,
+  "cell_h": 267,
+  "card_first_x": 189,
+  "card_y": 18,
+  "card_w": 119,
+  "card_h": 172,
+  "card_stride": 121,
+  "card_rows": 1,
+  "card_per_row": 16,
+  "sun_display": [
+    18,
+    52,
+    90,
+    32
+  ],
+  "pause_resume_xy": [
+    1261,
+    1195
+  ]
+}

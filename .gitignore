@@ -1,0 +1,27 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 运行产物（截图 / 决策日志 / 复盘报告），全部可再生产 ----
+out/
+
+# ---- 第三方参考源码 ----
+# refs/ 里是 pvztoolkit (GPL-3.0) 与 PVZ_Helper 的源码副本，
+# 只用来核对内存偏移，不是本项目的工作成果，因此不入库。
+# 需要时请从上游获取：
+#   https://github.com/lmintlcx/pvztoolkit
+#   https://github.com/zhumxiang/PVZ_Helper
+refs/
+
+# ---- 本地快照备份 ----
+_backups/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini

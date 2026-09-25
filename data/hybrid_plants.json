@@ -1,0 +1,193 @@
+{
+  "_meta": {
+    "version": 1,
+    "source": "用户 2026-09-25 提供的游戏内图鉴截图（14 张植物详情页）+ 卡槽栏截图",
+    "note": [
+      "cost 优先取卡槽栏上显示的价格（当前对局的真实值），图鉴页的『花费』记在 almanac_cost。",
+      "已知不一致：向日葵女王卡面 600 / 图鉴 500；豌豆射手卡面 125 / 原版 100。",
+      "cooldown_s 来自图鉴『冷却速度』，用于绑定校验：cd_total(tick) 应约等于 cooldown_s * 100。",
+      "tags 是给 policy.py 用的机器可读标签，effect_en 是给 Jev 看的英文效果说明。"
+    ]
+  },
+  "plants": {
+    "向日葵女王": {
+      "en": "Sunflower Queen",
+      "cost": 600,
+      "almanac_cost": 500,
+      "role": "producer",
+      "tags": ["producer", "tracking", "burn_aura"],
+      "hp": 1000,
+      "cooldown_s": 30.0,
+      "damage": "40 x 6 every 3s (full-screen homing)",
+      "effect_en": "Sun engine that also fights. Produces 150 sun every 25s, burns zombies in the 3x3 area around itself for 40 damage/s, and fires homing fireballs at any lane.",
+      "effects": ["每25秒生产150阳光", "灼烧周围3×3的僵尸，造成40/s伤害", "全屏追踪火球"]
+    },
+    "冰瓜香蒲": {
+      "en": "Ice Melon Cattail",
+      "cost": 500,
+      "role": "shooter",
+      "tags": ["shooter", "tracking", "slow"],
+      "hp": 300,
+      "cooldown_s": 30.0,
+      "damage": "80, or 100 x 2 every 1.5s",
+      "effect_en": "Full-screen homing shooter that can hit any lane. Every hit slows the target, and 40% of its shots are a deep-freeze melon.",
+      "effects": ["全屏追踪", "范围减速", "40%概率发射极寒冰瓜"]
+    },
+    "狂野机枪射手": {
+      "en": "Wild Gatling Pea",
+      "cost": 500,
+      "role": "shooter",
+      "tags": ["shooter", "spread"],
+      "hp": 300,
+      "cooldown_s": 30.0,
+      "damage": "20 x 4 x 5 every 2s",
+      "effect_en": "Heavy lane shooter. Fires a five-way spread of 20x4 shrapnel peas down its own lane every 2s; the spread means it still lands hits even when the lane is crowded.",
+      "effects": ["前方一行索敌", "五角度散射弹道"]
+    },
+    "阳光炸弹": {
+      "en": "Sun Bomb",
+      "cost": 200,
+      "role": "instant",
+      "tags": ["instant", "sun_on_kill", "aoe_circle"],
+      "hp": 300,
+      "cooldown_s": 50.0,
+      "damage": "1800",
+      "effect_en": "One-shot bomb. 1800 damage in a 1.5-cell circle around itself, and every zombie it destroys is converted into sun instead of just dying.",
+      "effects": ["自身为中心周围1.5格的圆", "将僵尸转化为阳光"]
+    },
+    "樱桃辣椒": {
+      "en": "Cherry Chili",
+      "cost": 275,
+      "role": "instant",
+      "tags": ["instant", "splash3"],
+      "hp": 300,
+      "cooldown_s": 100.0,
+      "damage": "1800",
+      "effect_en": "One-shot bomb covering its own lane plus the two adjacent lanes, 1800 damage each. Also melts ice trails and cancels freeze slowdown. Long 100s cooldown, so it is a real commitment.",
+      "effects": ["自身所在一整行和相邻两行", "摧毁冰道，抵消冰减速"]
+    },
+    "雪花寒冰菇": {
+      "en": "Snowflake Ice-shroom",
+      "cost": 250,
+      "role": "instant",
+      "tags": ["instant", "global_freeze", "global_damage"],
+      "hp": 4000,
+      "cooldown_s": 80.0,
+      "damage": "20 x 100 / s",
+      "effect_en": "Board-wide panic button. Rains ice on every zombie for 8s (20x100/s), then freezes the whole board for 3s and slows everything for another 15s. 4000 hp, so it can be planted out in the open.",
+      "effects": ["全屏所有僵尸", "天降冰弹持续8秒", "之后冻结全场3秒并减速15秒"]
+    },
+    "高冰果": {
+      "en": "Tall Ice Fruit",
+      "cost": 500,
+      "role": "wall",
+      "tags": ["wall", "shooter", "slow", "reflect", "freeze_on_death"],
+      "hp": 8000,
+      "cooldown_s": 30.0,
+      "damage": "20 x 8 every 1.5s (attack), 1 per frame (reflect)",
+      "effect_en": "8000 hp blocker that also shoots down its lane (20x8 every 1.5s). Attack and reflect both slow; reflect can freeze. Survives 8 hammer/crush hits. On death it releases an ice-shroom freeze. Price rises by 100 for every one already on the board.",
+      "effects": ["可抵御8次锤击/碾压，每次扣血1000", "受到外部寒冰菇效果回复1000血量", "破损/亡语：释放寒冰菇效果", "至尊金卡：场上每有一株该植物，价格增加100"],
+      "cost_scaling_per_instance": 100
+    },
+    "雷果子": {
+      "en": "Thunder Fruit",
+      "cost": 400,
+      "role": "wall",
+      "tags": ["wall", "shooter", "reflect", "stun", "death_boom"],
+      "hp": 4000,
+      "cooldown_s": 30.0,
+      "damage": "60 every 1.5s (double vs armour), 80/s reflect",
+      "effect_en": "4000 hp blocker with ranged lightning: 60 damage every 1.5s, doubled against armour, with a 25% chance to stun for 1s. Immune to lethal damage - instead it loses 800 hp and explodes for 800. Zombies biting it take 80/s reflect damage.",
+      "effects": ["对防具双倍伤害", "25%概率使僵尸僵直1秒", "免疫致命伤害，改为失去800血并爆炸反弹800", "反伤对啃咬自己的僵尸80/s"]
+    },
+    "回收高坚果": {
+      "en": "Recyclable Tall-nut",
+      "cost": 125,
+      "role": "wall",
+      "tags": ["wall", "wall_regen", "anti_jump"],
+      "hp": 8000,
+      "cooldown_s": 50.0,
+      "damage": "none",
+      "effect_en": "Cheap 8000 hp blocker that also stops jumper zombies. Unlike normal walls it can be reclaimed: shovelling it costs 800 hp and returns it to your hand as a card with whatever hp it had left.",
+      "effects": ["能够抵挡僵尸跳跃", "每次铲除时扣除800血，若此时血量大于0，则变为卡片（保留当前血量）"]
+    },
+    "Cupid魅惑菇射手": {
+      "en": "Cupid Hypno-shroom Shooter",
+      "cost": 520,
+      "role": "support",
+      "tags": ["charm", "shooter", "temporary"],
+      "hp": 1000,
+      "cooldown_s": 150.0,
+      "damage": "charm bullets, 3 every 2s",
+      "effect_en": "Temporary charmer: lives 15s only, firing 3 charm bullets every 2s. A charmed zombie fights for you. Heavy armour absorbs one bullet; the zombie-catcher vehicle instead takes 1800 damage. Does nothing to stun-immune helmets. 150s cooldown, so it is a one-per-wave trump card.",
+      "effects": ["每2秒发射三枚魅惑子弹", "二类防具会抵消一次击中", "冰车巨人改为造成1800伤害", "对免控头盔无效", "在场15秒后会消失"]
+    },
+    "玉米卷香蒲": {
+      "en": "Corn Cattail",
+      "cost": 350,
+      "role": "shooter",
+      "tags": ["shooter", "tracking", "stun"],
+      "hp": 300,
+      "cooldown_s": 30.0,
+      "damage": "(20+40) x 2, or (40+40) x 2 every 1.5s",
+      "effect_en": "Full-screen homing shooter that fires four tracking projectiles (corn, cattail, cabbage, butter) at any lane, with a chance to fire butter that stuns.",
+      "effects": ["全屏追踪", "有概率发射黄油定身"]
+    },
+    "冰冻坚果": {
+      "en": "Ice Wall-nut",
+      "cost": 150,
+      "role": "wall",
+      "tags": ["wall", "shooter", "slow", "reflect", "freeze_on_death"],
+      "hp": 300,
+      "cooldown_s": 30.0,
+      "damage": "20 x 2 every 1.5s, 20/s reflect",
+      "effect_en": "Cheap blocker that also shoots two ice peas every 1.5s. Whatever bites it is slowed and takes 20/s reflect. On death it freezes everything in a 3x3 area for 3s and slows for 20s. Can be evolved into Tall Ice Fruit.",
+      "effects": ["每1.5秒发射2枚寒冰子弹", "对啃咬的僵尸造成减速和每秒20反伤", "亡语：冻结3×3范围内所有僵尸3秒和20秒减速"]
+    },
+    "阳光向日葵": {
+      "en": "Sun Sunflower",
+      "cost": 100,
+      "role": "producer",
+      "tags": ["producer", "grows"],
+      "hp": 300,
+      "cooldown_s": 7.5,
+      "damage": "none",
+      "effect_en": "Cheap sun engine and the backbone of the economy. Pays 40 sun between 3 and 12.5s after planting, then 40 sun every 25s; after 120s it grows up and pays 75 sun every 25s.",
+      "effects": ["种下后3-12.5秒生产40阳光", "随后每25秒生产40阳光", "120秒后长大，长大后每25秒生产75阳光"]
+    },
+    "寒光菇": {
+      "en": "Frost-shroom",
+      "cost": 200,
+      "role": "instant",
+      "tags": ["instant", "global_freeze", "sun_on_kill"],
+      "hp": 300,
+      "cooldown_s": 80.0,
+      "damage": "20",
+      "effect_en": "One-shot global freeze: releases an ice-shroom effect over the whole board, and produces 15 sun for every zombie it freezes. Doubles as an economy card when the board is crowded.",
+      "effects": ["全屏", "一次性植物，释放寒冰菇效果", "每冻结一个僵尸生产15阳光"]
+    },
+    "睡莲": {
+      "en": "Lily Pad",
+      "cost": 25,
+      "role": "platform",
+      "tags": ["platform"],
+      "hp": 300,
+      "cooldown_s": 7.5,
+      "damage": "none",
+      "effect_en": "Platform plant. Must be placed first on a water tile before anything else can go there.",
+      "effects": ["水面种植平台"]
+    },
+    "豌豆射手": {
+      "en": "Peashooter",
+      "cost": 125,
+      "almanac_cost": 100,
+      "role": "shooter",
+      "tags": ["shooter"],
+      "hp": 300,
+      "cooldown_s": 7.5,
+      "damage": "20 every 1.4s",
+      "effect_en": "The cheapest attacker in this deck. 20 damage every 1.4s straight down its own lane, and only a 7.5s cooldown so it can be spammed.",
+      "effects": ["前方一行直线射击"]
+    }
+  }
+}
