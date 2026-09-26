@@ -1140,7 +1140,11 @@ class PvZJevAgent:
             #
             #     ⚠️ 不看 `board.paused`(0x164) —— 实测时钟正常推进时它也读 1，
             #     完全不可靠；时钟推进已由 `_responsive` 判定。
+            #     ⚠️ 手上拿着东西（种子/铲子）时**绝不**收阳光：阳光点击落在
+            #        草坪上，会把种子随手种掉/把铲子拍在某个植物上 —— 事务
+            #        失败路径都会复位光标，这里是最后一道闸（综合审查补）。
             if (self._responsive
+                    and not board.holding
                     and now - self._last_sun >= self.cfg.collect_sun_every_s):
                 self._last_sun = now
                 shot = grab(self.win)

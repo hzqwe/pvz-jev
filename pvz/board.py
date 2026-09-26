@@ -397,7 +397,18 @@ class BoardReader:
         st.mowers = self._read_mowers(board, st.rows) if st.ui == O.UI_PLAYING else {}
         self._read_cursor(board, st)
         if st.ui == O.UI_PLAYING:
-            self._read_spawn(board, st)
+            # 出怪表一次要扫 1000 项，而一轮决策里 read() 会被调用 5~7 次 ——
+            # 0.5s 内直接复用上次读数（波次信息秒级不变，没必要重复扫）。
+            now = time.monotonic()
+            if now - getattr(self, '_spawn_ts', 0.0) > 0.5:
+                self._spawn_ts = now
+                self._read_spawn(board, st)
+                self._spawn_fields = (st.spawn_total, st.spawn_spawned,
+                                      st.spawn_upcoming, st.spawn_upcoming_kinds,
+                                      st.spawnable_types)
+            elif getattr(self, '_spawn_fields', None) is not None:
+                (st.spawn_total, st.spawn_spawned, st.spawn_upcoming,
+                 st.spawn_upcoming_kinds, st.spawnable_types) = self._spawn_fields
 
         st.ok = st.ui == O.UI_PLAYING
         if not st.ok:
@@ -562,8 +573,14 @@ class BoardReader:
             return []
         count = pm.i32(bank + O.S_COUNT)
         if count is None or not (0 < count <= 20):
-            self.notes.append(f"种子栏格数异常: {count}")
-            count = 10
+            # 回退用**上次读到的有效格数**，而不是拍脑袋的 10 —— 杂交版一局
+            # 15~16 张卡，瞬时读失败时按 10 会让第 11 张起的卡整轮隐形，
+            # 决策层拿着残缺手牌做判断（综合审查 2026-09-26 修正）。
+            self.notes.append(f"种子栏格数异常: {count}（沿用上次有效值 "
+                              f"{getattr(self, '_last_slot_count', None)}）")
+            count = getattr(self, '_last_slot_count', None) or 10
+        else:
+            self._last_slot_count = count
         out: list[SeedSlot] = []
         for i in range(count):
             a = bank + i * O.SLOT_STRUCT
@@ -596,6 +613,37 @@ class BoardReader:
                     and w is not None and h is not None and 10<=w<=150 and 10<=h<=150):
                 result.append(DroppedSeed(i,tid,x,y,w,h))
         return result
+
+    def read_coins_raw(self) -> list[dict]:
+        """全量 coin 池扫描（诊断/探测用，只读）：返回所有活体的 type/坐标/尺寸。
+
+        `_read_dropped_seeds` 只挑 type==16 的种子卡；这里**不过滤** —— 用来
+        观察天降阳光等是否也在 coin 池里（在的话收阳光可从像素扫描升级为
+        内存驱动：精确、零假阳性）。tools/look_drops.py 会打印 type 分布。
+        """
+        pm = self.pm
+        board = self.board_ptr()
+        if pm is None or not board:
+            return []
+        base = pm.u32(board + O.OFF_COINS)
+        cap = pm.i32(board + O.OFF_COINS_CAP)
+        if not base or cap is None or not 0 <= cap <= 1024:
+            return []
+        lawn = self.lawn_app_ptr()
+        out: list[dict] = []
+        for i in range(cap):
+            a = base + i * O.COIN_STRUCT
+            if not self._slot_is_live(a, lawn, board):
+                continue
+            if pm.u8(a + 0x38) != 0 or pm.u8(a + 0x50) != 0:
+                continue
+            t = pm.i32(a + 0x58)
+            x, y = pm.f32(a + 0x24), pm.f32(a + 0x28)
+            w, h = pm.i32(a + 0x10), pm.i32(a + 0x14)
+            if t is None or x is None or y is None or w is None or h is None:
+                continue
+            out.append({"index": i, "type": t, "x": x, "y": y, "w": w, "h": h})
+        return out
 
     def _read_cursor(self, board: int, st: "BoardState") -> None:
         """读"手上拿着什么"。

@@ -32,6 +32,16 @@ def dump(reader: BoardReader, layout: Layout) -> None:
     if not st.ok:
         print(f"[等待] {st.reason or '未进入对局'}")
         return
+    # 全量 coin 扫描：确认这版游戏里**阳光掉落是否也在 coin 池**（type≠16）。
+    # 若在，收阳光可以从"截图像素找黄色"升级成"读内存点击坐标"——精确、
+    # 零假阳性，SunTracker 整个可以退役。跑一局普通对局即可观察 type 分布。
+    coins = reader.read_coins_raw()
+    if coins:
+        kinds: dict[int, int] = {}
+        for c in coins:
+            kinds[c["type"]] = kinds.get(c["type"], 0) + 1
+        print(f"[{time.strftime('%H:%M:%S')}] coin 池 {len(coins)} 个，type 分布: {kinds}"
+              f"（16=种子卡；其余 type 若与天降阳光同步出现，即为阳光）")
     if not st.dropped_seeds:
         print(f"[{time.strftime('%H:%M:%S')}] 场上没有掉落卡（植物={len(st.plants)}）")
         return

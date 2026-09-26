@@ -244,6 +244,25 @@ def detect(recs: list[dict]) -> list[dict]:
             f"{len(offslot)} 次点击拿起了别的卡（光标证据）",
             "卡条坐标偏移信号：重跑 tools/measure_layout.py 并肉眼复核 card_center")
 
+    # 8) 铲掉换阳光：返还校验（用户技巧 2026-09-26：铲植物应返还阳光）
+    salvs = [rec for rec in recs
+             if _g(rec, "executed", "kind") == "salvaged"
+             and _g(rec, "executed", "completed") is True]
+    if salvs:
+        no_refund = []
+        for rec in salvs:
+            steps = _g(rec, "executed", "steps") or []
+            last = steps[-1] if steps else {}
+            before, after = last.get("sun_before"), last.get("sun_after")
+            if before is not None and after is not None and after <= before:
+                no_refund.append(f"{rec.get('iso', '?')} 铲前{before}/铲后{after}")
+        if no_refund:
+            add("high", "铲掉换阳光没有返还阳光",
+                f"{len(no_refund)}/{len(salvs)} 次 salvage 后阳光没有增加："
+                + "；".join(no_refund[:4]),
+                "先确认这版游戏铲植物是否真的返阳光（铲掉一棵满血植物对照）；"
+                "若返还属实，检查 salvage 事务是否铲到了别的目标（看 steps 的 cell）")
+
     return findings
 
 
