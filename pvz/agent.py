@@ -558,6 +558,11 @@ class PvZJevAgent:
             "iso": time.strftime("%Y-%m-%d %H:%M:%S"),
             "board_text": render_text(board, self.book),
             "state": state,
+            # coin 池全量快照（2026-09-26）：用于离线确认"天降阳光 = 哪个
+            # type"—— 和 recent_sun_hits 的像素位置对上即可定号，之后收阳光
+            # 可升级为内存驱动。read_coins_raw 只读、每决策周期一次。
+            "coins": self.reader.read_coins_raw(),
+            "recent_sun_hits": list(getattr(self, '_last_sun_hits', [])),
             "candidates": [
                 {"cid": c.cid, "kind": c.kind, "row": c.row, "col": c.col,
                  "slot": c.slot, "type_id": c.type_id, "score": round(c.score, 1),
@@ -1188,6 +1193,7 @@ class PvZJevAgent:
                     sun0 = board.sun
                     hits = collect_suns(shot, self.layout, self.clicker, max_click=5,
                                         banned=self.sun_tracker.banned_keys())
+                    self._last_sun_hits = [(x, y) for x, y, *_ in hits]
                     if hits:
                         time.sleep(0.35)
                         sun1 = self.reader.read().sun
