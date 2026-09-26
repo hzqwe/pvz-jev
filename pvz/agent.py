@@ -835,6 +835,15 @@ class PvZJevAgent:
                         f"点击坐标偏移，与价格无关，未记成本；建议重跑 tools/measure_layout.py")
                 if self.cfg.verbose:
                     print(f"  ⚠️ {note}")
+            elif sun0 is not None and sun0 >= 3 * (self.book.cost(cand.type_id) or 1):
+                # ★ 分诊补充（2026-09-26 夜战）：阳光远超模型价（≥3倍）却被拒
+                #   —— 真实价格不可能贵到 3 倍（动态涨价已建模），这是"点歪了"
+                #   的另一种形态（光标没碰到任何卡）。记下界会把 25 的荷叶
+                #   棘轮成 2276（实测），90 秒买不起任何荷叶。
+                note = (f"阳光 {sun0} 远超模型价却被拒 —— 判定点偏/点击未命中，"
+                        f"不记成本下界；建议重跑 tools/measure_layout.py")
+                if self.cfg.verbose:
+                    print(f"  ⚠️ {note}")
             else:
                 self.book.note_unaffordable(cand.type_id, sun0 or 0)
                 note = "点卡被拒（阳光不够），已记下成本下界"

@@ -244,7 +244,9 @@
         "reflect_dps": 80,
         "lethal_hit_hp_loss": 800,
         "lethal_hit_burst": 800,
-        "notes": "Reflect only while bitten. Lethal-hit mitigation loses 800 HP; not invulnerable."
+        "notes": "Reflect only while bitten. Lethal-hit mitigation loses 800 HP; not invulnerable.",
+        "price_increment": 100,
+        "price_source": "User almanac 2026-09-26: +100 per extra copy on field (23:24 实测 415/440/595 阳光连续被拒证实)"
       },
       "combat_source": "user_almanac_2026-09-26"
     },

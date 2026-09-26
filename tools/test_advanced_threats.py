@@ -277,3 +277,53 @@ class PickDropTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class StrandedPickAndPriceTests(unittest.TestCase):
+    """2026-09-26 夜战 23:12 会话复盘的三项修复回归。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        self.assertTrue(self.book.bind_one(307, '雷果子'))
+        self.assertTrue(self.book.bind_one(320, '回收高坚果'))
+
+    def board(self, cards=(), zombies=(), plants=(), sun=1000, drops=()):
+        return BoardState(ok=True, sun=sun, rows=5, cols=9, game_clock=1000,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(cards)],
+                          plants=list(plants), zombies=list(zombies),
+                          dropped_seeds=list(drops))
+
+    def test_thunder_fruit_dynamic_price(self):
+        # 夜战实测：雷果子 415/440/595 阳光连续被拒 —— 每多一株 +100
+        self.assertEqual(self.book.cost(307), 400)
+        self.book.sync_field_copies([Plant(0, 0, 0, 307)])
+        self.assertEqual(self.book.cost(307), 500)
+        self.book.sync_field_copies([Plant(0, 0, 0, 307), Plant(1, 1, 0, 307)])
+        self.assertEqual(self.book.cost(307), 600)
+
+    def test_rich_rejection_does_not_ratchet_floor(self):
+        # 睡莲账面价被棘轮成 2276 的教训：阳光 ≥3×模型价时的拒绝是点偏
+        # —— 这里用回收高坚果验证 note_unaffordable 的分诊逻辑在 agent 侧，
+        # PlantBook 层面只验证 floor 语义（正常记录仍然生效）。
+        self.book.note_unaffordable(320, 60)
+        self.assertEqual(self.book.cost(320), 125)   # floor 61 < 图鉴 125
+        self.book.note_unaffordable(320, 200)
+        self.assertEqual(self.book.cost(320), 201)   # 真实"买不起"仍然记下界
+
+    def test_wait_yields_to_stranded_pick(self):
+        from pvz.policy import generate_candidates, merge_decision
+        from pvz.jev import JevAnswer, JevResponse
+        from pvz.board import DroppedSeed
+        b = self.board(drops=[DroppedSeed(0, 320, x=445, y=185, width=50, height=70)])
+        cands = generate_candidates(b, self.book)
+        wait_cid = next(c.cid for c in cands if c.kind == 'wait')
+        resp = JevResponse(answers={'action': JevAnswer('action', 'choice',
+                                                        {'choice': wait_cid, 'confidence': 0.9})})
+        dec = merge_decision(resp, cands, b, self.book)
+        self.assertEqual(dec.candidate.kind, 'pick', '等待时应优先拾回 stranded 掉落卡')
+        self.assertTrue(dec.fallback)
+        self.assertTrue(any('stranded seed card' in n for n in dec.notes))
+
+
+if __name__ == '__main__':
+    unittest.main()

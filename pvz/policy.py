@@ -995,6 +995,15 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                     'Lane(s) ' + str(sorted(r + 1 for r in soft_rows)) +
                     ' have zombies but zero defenders and no ready mower; waiting is not allowed.')
 
+    # ★ 草坪上有 stranded 掉落卡（被中断的回收）且模型在等待 → 先拾回：
+    #   那是已经付过钱的墙（夜战实测 7300 血躺在草坪上），捡回来纯赚。
+    #   只覆盖"等待"；模型的主动动作和危急救场都保持优先。
+    pick_c = next((c for c in plants if c.kind == 'pick'), None)
+    if pick_c is not None and chosen.kind == 'wait':
+        chosen = pick_c
+        d.fallback = True
+        d.notes.append('A stranded seed card lies on the lawn; recover it before anything else.')
+
     if chosen.kind == 'wait' and plan and plan['missing_sun'] == 0:
         upgrade = next((c for c in plants if c.type_id == plan['type_id'] or c.supports_type == plan['type_id']), None)
         if upgrade:
