@@ -11,7 +11,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from .board import BoardReader, BoardState
+from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
 from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current
@@ -161,7 +161,9 @@ class PvZJevAgent:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", "STOP"
         )
         # 最近落点失败的格子 -> 时间戳。见 execute() 末尾的说明。
-        self._bad_cells: dict[tuple[int, int], float] = {}
+        self._bad_cells: dict[tuple[int, int, int], float] = {}
+        self._geometry_error = None
+        self._terrain_context = None
         self._bad_cell_ttl = 45.0
 
     # -- 卡槽绑定 -------------------------------------------------------
@@ -436,6 +438,11 @@ class PvZJevAgent:
 
     # -- 单次决策 -------------------------------------------------------
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
+        context = (board.pid,board.board,board.scene,board.rows)
+        if context != self._terrain_context:
+            self._bad_cells.clear()
+            self._geometry_error = None
+            self._terrain_context = context
         state = build_state(board, self.book)
         cands = generate_candidates(board, self.book)
         # 过滤掉"刚试过、落不下去"的格子（见 execute() 里 _bad_cells 的说明）。
@@ -447,10 +454,9 @@ class PvZJevAgent:
         if self._bad_cells:
             keep = [
                 c for c in cands
-                if c.kind != "plant" or (c.row, c.col) not in self._bad_cells
+                if c.kind != "plant" or (c.type_id, c.row, c.col) not in self._bad_cells
             ]
-            if any(c.kind == "plant" for c in keep):
-                cands = keep
+            cands = keep
         questions = build_questions(cands, board, self.book)
         resp = self.jev.ask(state, questions)
         if not resp.ok:
@@ -583,7 +589,7 @@ class PvZJevAgent:
         #    ⚠️ 位置很关键：必须在**任何注入之前** —— 包括下面 `cancel_seed`
         #    那一下右键。只要时钟没走，就连一条鼠标消息都不往游戏里塞。
         chk = self.reader.read()
-        if ((chk.pid, chk.board, chk.level) != (board.pid, board.board, board.level)
+        if ((chk.pid, chk.board, chk.level, chk.scene, chk.rows) != (board.pid, board.board, board.level, board.scene, board.rows)
                 or not action_is_current(cand, chk, self.book)):
             record["executed"] = {"kind": "stale_action", "note": "战场或卡槽已变化，重新决策后再操作"}
             return
@@ -601,6 +607,16 @@ class PvZJevAgent:
                       f"→ 放弃本次动作（游戏可能正在切屏）")
             return
 
+        self.layout.configure_board(chk)
+        geometry = (chk.scene,chk.rows,self.layout.client_w,self.layout.client_h,
+                    self.layout.grid_left,self.layout.grid_top,self.layout.cell_w,self.layout.row_height())
+        x,y = self.layout.cell_center(cand.row,cand.col)
+        if self._geometry_error == geometry or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
+            record['executed'] = {'kind':'blocked_geometry','note':'落点越界或已发现种歪；重新校准并重启后再种植'}
+            return
+        if chk.scene not in (None,0,1,2,3) and not (chk.rows == 6 and len(chk.row_types) == 6):
+            record['executed'] = {'kind':'unsupported_layout','scene':chk.scene,'note':'未知地图几何，暂不猜测坐标'}
+            return
         if cand.kind == "shovel":
             self._execute_shovel(cand, record, board)
             return
@@ -634,9 +650,7 @@ class PvZJevAgent:
         self.clicker.click_card(cand.slot, self.layout, f"pick card {cand.slot}")
         time.sleep(0.3)
         mid = self.reader.read()
-        picked = bool(mid.holding) and (
-            mid.held_slot == cand.slot or mid.held_type == cand.type_id
-        )
+        picked = bool(mid.holding) and mid.held_cursor == 1 and mid.held_slot == cand.slot and mid.held_type == cand.type_id
 
         if not picked:
             # 卡没拿起来。三种原因，**绝不能一律当成"植物太贵"**：
@@ -702,16 +716,22 @@ class PvZJevAgent:
         time.sleep(0.7)
         after = self.reader.read()
         target = (cand.row, cand.col)
-        placed = target in after.occupancy()
+        placed, misplaced = placement_delta(mid,after,cand.type_id,cand.row,cand.col)
+        if misplaced and not placed:
+            self._geometry_error = geometry
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。
         # 所以这里量的才是真实成本；顺便把"点卡不扣阳光"这件事变成证据留档。
         spent = None
-        if sun0 is not None and after.sun is not None and after.sun < sun0:
+        if placed and sun0 is not None and after.sun is not None and after.sun < sun0:
             spent = sun0 - after.sun
             self.book.set_real_cost(cand.type_id, spent)
         record["executed"] = {
             "kind": "click",
             "placed": placed,
+            "actual_other_cells": misplaced,
+            "grid_xy": [x,y],
+            "scene": chk.scene,
+            "rows": chk.rows,
             "real_cost": spent,
             "sun_before": sun0,
             "sun_after": after.sun,
@@ -722,7 +742,7 @@ class PvZJevAgent:
         }
         if placed:
             self.stats.executed += 1
-            self._bad_cells.pop(target, None)
+            self._bad_cells.pop((cand.type_id,*target), None)
         else:
             self.stats.failed_actions += 1
             # ⚠️ 记住这个落点，短时间内不再选它（见 decide() 里的过滤）。
@@ -730,7 +750,7 @@ class PvZJevAgent:
             #    （r2c3）—— 因为那一轮战场没变化，候选生成器每次都给出同一个"最优"，
             #    于是反复"点卡->落空->取消"，白烧阳光、还挤掉了别的有效动作。
             #    代码侧确定性兜底比指望 Jev 换选项可靠得多。
-            self._bad_cells[target] = time.time()
+            self._bad_cells[(cand.type_id,*target)] = time.time()
             # 落点没生效时种子可能还举在手上（实测：位置非法时游戏拒绝落点、
             # 但阳光不扣、种子继续跟随光标），必须显式取消，否则下一次
             # "收阳光"的点击会把它随手种到某个阳光的位置上。
@@ -789,16 +809,17 @@ class PvZJevAgent:
         self._action_times.append(time.time())
         time.sleep(0.7)
         after = self.reader.read()
-        removed = target not in after.occupancy()
+        removed = after.ok and not any(p.type_id == cand.type_id
+            for p in after.occupancy().get(target,[]))
         if after.holding:
             # 铲完光标通常回到空手；若还举着（点了个不可铲目标），右键复位
             self.clicker.cancel_seed("post-shovel reset")
         if removed:
             self.stats.executed += 1
-            self._bad_cells.pop(target, None)
+            self._bad_cells.pop((cand.type_id,*target), None)
         else:
             self.stats.failed_actions += 1
-            self._bad_cells[target] = time.time()
+            self._bad_cells[(cand.type_id,*target)] = time.time()
         record["executed"] = {
             "kind": "shovel",
             "removed": removed,

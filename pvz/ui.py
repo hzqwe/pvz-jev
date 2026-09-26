@@ -65,6 +65,16 @@ class Layout:
     # 和 pause_resume_xy 一样按 scale() 缩放，分辨率变了也不会错位。
     shovel_xy: tuple[int, int] = (2220, 95)
 
+    board_rows: int = 5
+    pool_cell_h: float | None = None  # Optional separately measured pool row spacing.
+
+    def configure_board(self, board):
+        self.board_rows = board.rows
+
+    def row_height(self):
+        # Original logical grid: grass 100, pool 85 pixels. Keep measured scaling.
+        return (self.pool_cell_h if self.pool_cell_h is not None else self.cell_h * 0.85) if self.board_rows == 6 else self.cell_h
+
     # -- 载入 / 保存 -----------------------------------------------------
     @classmethod
     def load(cls, path: str = LAYOUT_FILE, client_size: tuple[int, int] | None = None) -> "Layout":
@@ -102,7 +112,7 @@ class Layout:
     def cell_center(self, row: int, col: int) -> tuple[int, int]:
         sx, sy = self.scale()
         x = self.grid_left + col * self.cell_w + self.cell_w / 2
-        y = self.grid_top + row * self.cell_h + self.cell_h / 2
+        y = self.grid_top + (row + 0.5) * self.row_height()
         return int(x * sx), int(y * sy)
 
     def card_center(self, index: int) -> tuple[int, int]:
@@ -127,7 +137,7 @@ class Layout:
             int(self.grid_left * sx),
             int(self.grid_top * sy),
             int((self.grid_left + cols * self.cell_w) * sx),
-            int((self.grid_top + rows * self.cell_h) * sy),
+            int((self.grid_top + rows * self.row_height()) * sy),
         )
 
     def pause_resume(self) -> tuple[int, int] | None:

@@ -66,6 +66,7 @@ class Candidate:
     tags: tuple[str, ...] = ()
     emergency: bool = False
     covers: tuple[int, ...] = ()
+    supports_type: int | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def describe(self, book: PlantBook) -> str:
@@ -129,7 +130,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     hot = sorted(range(board.rows), key=lambda r: -facts[r]["priority"])
     quiet = sorted(range(board.rows), key=lambda r: facts[r]["priority"])
-    occ, sun = board.occupancy(), board.sun or 0
+    occ, sun = board.top_occupancy(book), board.sun or 0
     emergency = any(f["threat_level"] == "critical" for f in facts)
     total = sum(f["zombie_count"] for f in facts)
     # 平静期（场上没僵尸且家底够）：照常预置防线，别干等
@@ -180,6 +181,19 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 僵尸走近（high）或危急时不打折——贴脸的必须拦。
             # 注意放在能力加成（upgrade_value）之后，否则压不住总分。
             value = 65 + (value - 65) * 0.12
+        if not board.can_plant(row,col,slot.type_id,book):
+            if board.is_water(row) and (row,col) not in board.occupancy():
+                pad = next((s for s in board.slots if s.ready
+                            and book.has_tag(s.type_id,T_PLATFORM)
+                            and book.cost(s.type_id) is not None
+                            and sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
+                if pad is not None:
+                    candidates.append(Candidate('', 'plant', row, col, pad.index, pad.type_id,
+                        value * 0.2 if calm else value,
+                        f'First place Lily Pad to support {book.en(slot.type_id)} at this water cell; '
+                        'the pad itself does not attack or block. Re-read before planting on top.',
+                        book.tags(pad.type_id), rescue, tuple(covers), supports_type=slot.type_id))
+            return
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value * 0.2 if calm else value,
                                     reason, tags, rescue, tuple(covers)))
@@ -615,7 +629,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             d.notes.append('Immediate house threat overrides waiting or unrelated spending.')
     plan = saving_plan(board, book)
     if chosen.kind == 'wait' and plan and plan['missing_sun'] == 0:
-        upgrade = next((c for c in plants if c.type_id == plan['type_id']), None)
+        upgrade = next((c for c in plants if c.type_id == plan['type_id'] or c.supports_type == plan['type_id']), None)
         if upgrade:
             chosen = upgrade
             d.fallback = True
@@ -637,7 +651,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                 missing_fire = T_SHOOTER in c.tags and not any(
                     book.has_tag(p.type_id,T_SHOOTER) for p in board.plants_in_lane(c.row))
                 missing_wall = T_WALL in c.tags and not facts[c.row]['blocking_walls']
-                if economy or missing_fire or missing_wall:
+                if economy or missing_fire or missing_wall or c.supports_type is not None:
                     chosen = c
                     d.fallback = True
                     d.notes.append('Safe development fills a missing formation role while keeping a sun reserve.')

@@ -123,6 +123,8 @@ class BoardState:
     held_slot: int = -1
     held_type: int = -1
     notes: list[str] = field(default_factory=list)
+    # Validated memory terrain: 1=land, 2=water. Empty means scene fallback.
+    row_types: dict[int, int] = field(default_factory=dict)
     # Missing key means unknown; False means a validated row has no ready mower.
     mowers: dict[int, bool] = field(default_factory=dict)
 
@@ -136,6 +138,29 @@ class BoardState:
         for p in self.plants:
             g.setdefault(p.cell, []).append(p)
         return g
+
+    def is_water(self, row: int) -> bool:
+        if row in self.row_types:
+            return self.row_types[row] == 2
+        return self.scene in (2, 3) and row in (2, 3)
+
+    def top_occupancy(self, book):
+        return {cell: ps for cell, stack in self.occupancy().items()
+                if (ps := [p for p in stack if not book.has_tag(p.type_id, 'platform')])}
+
+    def has_platform(self, row, col, book):
+        return any(book.has_tag(p.type_id, 'platform')
+                   for p in self.occupancy().get((row,col), []))
+
+    def can_plant(self, row, col, type_id, book):
+        if not (0 <= row < self.rows and 0 <= col < self.cols):
+            return False
+        stack = self.occupancy().get((row,col), [])
+        if book.has_tag(type_id,'platform'):
+            return self.is_water(row) and not stack
+        if (row,col) in self.top_occupancy(book):
+            return False
+        return not self.is_water(row) or self.has_platform(row,col,book)
 
     def empty_cells(self) -> list[tuple[int, int]]:
         occ = self.occupancy()
@@ -316,6 +341,13 @@ class BoardReader:
         st.paused = pm.u8(board + O.OFF_GAME_PAUSED)
         st.rows = O.SCENE_ROWS.get(st.scene if st.scene is not None else 0, O.LAWN_ROWS)
 
+        raw_rows = [pm.i32(board + O.OFF_ROW_TYPE + r*4) for r in range(6)]
+        # Reject partially invalid snapshots; never infer water from arbitrary scene IDs.
+        if st.scene not in (0,1,4) and all(v in (1,2) for v in raw_rows):
+            st.rows = 6
+            st.row_types = dict(enumerate(raw_rows))
+        elif all(v in (1,2) for v in raw_rows[:st.rows]):
+            st.row_types = dict(enumerate(raw_rows[:st.rows]))
         st.plants = self._read_plants(board)
         st.zombies = self._read_zombies(board)
         st.slots = self._read_slots(board)
@@ -559,3 +591,11 @@ class BoardReader:
                 }
             )
         return out
+
+
+def placement_delta(before, after, type_id, row, col):
+    """Require a new matching plant, not just an occupied cell (e.g. an old pad)."""
+    old = {(p.index,p.type_id,p.row,p.col) for p in before.plants}
+    new = [p for p in after.plants if p.type_id == type_id
+           and (p.index,p.type_id,p.row,p.col) not in old]
+    return any(p.cell == (row,col) for p in new), [p.cell for p in new if p.cell != (row,col)]

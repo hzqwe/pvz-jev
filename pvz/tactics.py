@@ -86,8 +86,18 @@ def rear_cols(board, book, row, producer=False):
     wall = min((p.col for p in ps if book.has_tag(p.type_id, T_WALL)), default=board.cols)
     nx = min((z.x for z in board.zombies_in_lane(row) if z.x is not None), default=9999)
     hi = min(3 if producer else 5, wall - 1)
-    occ = board.occupancy()
-    return [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx]
+    occ = board.top_occupancy(book)
+    cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx]
+    if board.is_water(row):
+        pads = [c for c in cols if board.has_platform(row,c,book)]
+        # Reuse a paid platform before planning another one.
+        if pads:
+            return pads
+        if not any(s.ready and book.has_tag(s.type_id,'platform')
+                   and book.cost(s.type_id) is not None
+                   and book.cost(s.type_id) <= (board.sun or 0) for s in board.slots):
+            return []
+    return cols
 
 
 def lane_facts(board, row, book=None):

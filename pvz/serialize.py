@@ -82,6 +82,8 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         lanes.append(
             {
                 "lane": r + 1,
+                "terrain": "water: Lily Pad required below ordinary plants" if board.is_water(r) else "land",
+                "available_platform_columns": [COL_LABEL[c] for c in range(board.cols) if board.has_platform(r,c,book) and (r,c) not in board.top_occupancy(book)],
                 "defenders": [
                     {
                         "plant": book.name(p.type_id),
