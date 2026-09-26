@@ -511,6 +511,47 @@ class PvZJevAgent:
                         self._snow_cells[(r, c)] = now + melt
         board.snow_cells = dict(self._snow_cells)
 
+    @staticmethod
+    def learn_crush_events(prev: BoardState, cur: BoardState, book: PlantBook) -> list[str]:
+        """实战学习"谁是压扁僵尸"（2026-09-27 基线对照审计的产物）。
+
+        背景：禁普通墙进撞车路的规则依赖 type id 的静态猜测——猜错了的
+        后果是"该路拒绝种任何墙"（基线版本从不拒绝，最坏也只是墙被压），
+        方向性风险比基线大。这里用行为证据自我纠偏：
+
+          植物在上一拍还在、且血量 >700（一个决策周期内不可能被啃完）、
+          这一拍消失了，同时一只 type T 的僵尸正好推进到该格 —— T 会压扁。
+          观察 ≥1 次即把 T 写进 book.runtime_crush，与静态特征表并行生效。
+
+        反向（僵尸贴着植物啃、血量渐减 = 非压扁）刻意不做否决：啃食中的
+        植物被第二只冰车压掉的情形会污染样本，宁多勿漏。
+        """
+        notes: list[str] = []
+        if prev is None or cur is None or not cur.ok or not prev.ok:
+            return notes
+        if (cur.pid, cur.board, cur.level) != (prev.pid, prev.board, prev.level):
+            return notes
+        cur_cells = {(p.row, p.col, p.type_id) for p in cur.plants}
+        for p in prev.plants:
+            if (p.row, p.col, p.type_id) in cur_cells:
+                continue
+            if p.hp is None or p.hp <= 700:
+                continue      # 低血消失 = 被啃死的，不是压扁
+            culprit = None
+            for z in cur.zombies_in_lane(p.row):
+                if z.x is None or z.friendly:
+                    continue
+                if cell_x(p.col) - 20 <= z.x <= cell_x(p.col) + 60:
+                    culprit = z
+                    break
+            if culprit is None or book.zombie_flag(culprit.type_id, 'crush'):
+                continue
+            book.runtime_crush.add(culprit.type_id)
+            notes.append(f"Learned: zombie_type_{culprit.type_id} CRUSHES plants "
+                         f"(a {book.en(p.type_id)} vanished instantly under it) — "
+                         "crush-resistant walls only.")
+        return notes
+
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
         # 动态涨价按场上株数生效（图鉴 price_increment；见 PlantBook.cost）
         self.book.sync_field_copies(board.plants)
@@ -518,6 +559,10 @@ class PvZJevAgent:
         board.clock_advancing = self._responsive
         self._track_zombie_station(board)
         self._track_snow_cells(board)
+        # 实战学习压扁僵尸（对照基线审计的产物，见 learn_crush_events）
+        crush_notes = self.learn_crush_events(getattr(self, '_prev_decision_board', None),
+                                              board, self.book)
+        self._prev_decision_board = board
         context = (board.pid,board.board,board.scene,board.rows)
         restarted = (self._last_decision_clock is not None and board.game_clock is not None
                      and board.game_clock < self._last_decision_clock)
@@ -563,6 +608,7 @@ class PvZJevAgent:
             # 可升级为内存驱动。read_coins_raw 只读、每决策周期一次。
             "coins": self.reader.read_coins_raw(),
             "recent_sun_hits": list(getattr(self, '_last_sun_hits', [])),
+            "learned_crush": crush_notes,
             "candidates": [
                 {"cid": c.cid, "kind": c.kind, "row": c.row, "col": c.col,
                  "slot": c.slot, "type_id": c.type_id, "score": round(c.score, 1),

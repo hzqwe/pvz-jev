@@ -369,3 +369,43 @@ class PremiumEconomyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CrushLearningTests(unittest.TestCase):
+    """基线对照审计的产物：禁普通墙进撞车路依赖 id 猜测 —— 现在用
+    '植物瞬移消失'的实战证据自我学习/纠偏。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+
+    def board(self, plants=(), zombies=()):
+        b = BoardState(ok=True, sun=1000, rows=5, cols=9, game_clock=1000,
+                       plants=list(plants), zombies=list(zombies))
+        return b
+
+    def test_instant_vanish_learns_crush(self):
+        from pvz.agent import PvZJevAgent
+        prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=3000)])
+        cur = self.board(zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
+        # 上一拍的豌豆（3000 血，不可能一个周期被啃完）消失了，
+        # 一只 9 号僵尸正好推进到该格 —— 9 号会压扁。
+        notes = PvZJevAgent.learn_crush_events(prev, cur, self.book)
+        self.assertTrue(notes)
+        self.assertTrue(self.book.zombie_flag(9, 'crush'))
+        self.assertIn(9, self.book.runtime_crush)
+
+    def test_low_hp_vanish_is_eating_not_crush(self):
+        from pvz.agent import PvZJevAgent
+        prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=200)])
+        cur = self.board(zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
+        notes = PvZJevAgent.learn_crush_events(prev, cur, self.book)
+        self.assertFalse(notes)
+        self.assertFalse(self.book.zombie_flag(9, 'crush'), '低血消失=被啃，不学 crush')
+
+    def test_surviving_plant_learns_nothing(self):
+        from pvz.agent import PvZJevAgent
+        prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=3000)])
+        cur = self.board(plants=[Plant(0, 0, 2, PEA, hp=2900)],
+                         zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
+        self.assertFalse(PvZJevAgent.learn_crush_events(prev, cur, self.book))
+        self.assertFalse(self.book.zombie_flag(9, 'crush'))
