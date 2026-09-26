@@ -188,11 +188,16 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                             and book.cost(s.type_id) is not None
                             and sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
                 if pad is not None:
+                    # 荷叶是"施工前置"，不是救场牌：光秃秃的荷叶既不攻击也不阻挡
+                    # （实战 2026-09-26：危急水路种了裸荷叶，眼睁睁看僵尸进门）。
+                    # 永远不进 emergency 池，分值封顶 45——危急水路的救场应该由
+                    # 炸弹/垫背承担，荷叶只是给下一轮的防御铺地基。
                     candidates.append(Candidate('', 'plant', row, col, pad.index, pad.type_id,
-                        value * 0.2 if calm else value,
+                        min(value * 0.2 if calm else value, 45),
                         f'First place Lily Pad to support {book.en(slot.type_id)} at this water cell; '
-                        'the pad itself does not attack or block. Re-read before planting on top.',
-                        book.tags(pad.type_id), rescue, tuple(covers), supports_type=slot.type_id))
+                        'the pad itself does not attack or block (setup, NOT a rescue). '
+                        'Re-read before planting on top.',
+                        book.tags(pad.type_id), False, tuple(covers), supports_type=slot.type_id))
             return
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value * 0.2 if calm else value,
@@ -367,7 +372,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 continue
             for r in sorted(quiet, key=lambda r: (min(rear_cols(board,book,r,producer=True), default=99), facts[r]["priority"], r)):
                 cols = rear_cols(board,book,r,producer=True)
-                if not cols or facts[r]['threat_level'] in ('critical','high'):
+                if not cols or facts[r]['threat_level'] == 'critical':
+                    continue
+                # 经济重建（实战 2026-09-26 教训）：产阳光被打到 4 株以下、
+                # 全路 high 时，旧规则会因"高压路不种向日葵"而完全断掉经济
+                # —— 螺旋死亡。high 路只要**有墙护着**（rear_cols 本来就只给
+                # 墙后空位、且僵尸未走过），就允许补种向日葵恢复产能。
+                if (facts[r]['threat_level'] == 'high'
+                        and not facts[r]['blocking_walls']):
                     continue
                 add(slot,r,cols[0],85 if producers < ECON_TARGET else 25,
                     f'Safe rear economy; {producers} producers currently alive.')

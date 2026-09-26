@@ -59,3 +59,25 @@ class PoolTests(unittest.TestCase):
         b.scene=20;b.row_types={0:1,1:1,2:2,3:2,4:1,5:1}
         self.assertTrue(b.is_water(2))
         self.assertTrue(any(c.type_id==PAD for c in generate_candidates(b,self.book)))
+    def test_bare_pad_is_never_a_rescue(self):
+        # 实战 2026-09-26：危急水路种了裸荷叶（25 阳光不攻击不阻挡），
+        # 眼睁睁看僵尸进门。荷叶前置候选永远不进 emergency 池、分值封顶 45。
+        b=self.pool([PAD,PEA],zombies=[Zombie(0,2,0,x=110)],sun=365)
+        cs=generate_candidates(b,self.book)
+        pads=[c for c in cs if c.type_id==PAD]
+        self.assertTrue(pads)
+        self.assertTrue(all(not c.emergency for c in pads))
+        self.assertTrue(all(c.score<=45 for c in pads))
+
+    def test_producer_recovery_behind_walls_in_high_lane(self):
+        # 实战 2026-09-26：产阳光被打到 4 株以下、全路 high 时经济断供螺旋死亡。
+        # high 路只要有墙护着，就允许补种向日葵。
+        # 场景：1/3/4/5 路危急（不可种），0 路僵尸在 250（high）但有墙在 col2。
+        ps=[Plant(0,0,2,WALL),Plant(1,1,0,SUN),Plant(2,2,0,SUN)]
+        zs=[Zombie(0,0,0,x=250)]+[Zombie(i,i,0,x=150) for i in range(1,6)]
+        # 带一张可用墙卡 -> 垫背分支不触发，向日葵才能走正常经济路径
+        b=self.pool([SUN,WALL],ps,zs,sun=650)
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==SUN]
+        self.assertTrue(any(c.row==0 for c in cs), '有墙保护的高压路必须允许重建经济')
+        self.assertFalse(any(c.row in (1,3,4,5) for c in cs), '危急路不补经济')
