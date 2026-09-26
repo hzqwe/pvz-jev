@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+import json
+import os
+
 from .board import BoardState
 from .plants import PlantBook
 from .tactics import lane_facts, saving_plan
@@ -21,6 +24,27 @@ SCENE_NAMES = {
 }
 
 COL_LABEL = "ABCDEFGHI"
+
+# -- 作战教条（2026-09-26 新增，纯信息层）--------------------------------
+# data/plant_playbook.json 存放 14 株登记植物的使用教条、全局原则和敌人应对
+# （来源：用户图鉴照片 + 官方 Wiki pvzhe.wiki + 社区攻略定性共识）。
+# 这里只负责把它**按需**注入给 Jev：usage 只发当前这局卡槽里有的植物，
+# 原则/敌人说明是固定几行。不参与任何评分，读取失败就静默缺席 ——
+# 决策层的启发式一分都不改，这是"让模型更懂，而不是让代码更聪明"。
+_PLAYBOOK_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "plant_playbook.json")
+_PLAYBOOK: dict | None = None
+
+
+def load_playbook() -> dict:
+    global _PLAYBOOK
+    if _PLAYBOOK is None:
+        try:
+            with open(_PLAYBOOK_FILE, "r", encoding="utf-8") as fh:
+                _PLAYBOOK = json.load(fh)
+        except (OSError, ValueError):
+            _PLAYBOOK = {}
+    return _PLAYBOOK
 
 
 def _closeness(x: float | None) -> str:
@@ -84,10 +108,14 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         )
 
     seeds = []
+    playbook = load_playbook()
+    usage_all = playbook.get("usage_en") or {}
     for s in board.slots:
         if s.type_id < 0:
             continue
         info = book.describe(s.type_id)
+        # usage 只发本局卡槽里有的植物：教条跟着牌走，不白占 token。
+        usage = usage_all.get(info["name"])
         seeds.append(
             {
                 "slot": s.index,
@@ -97,6 +125,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 "cost": info["cost"],
                 "effect": info["effect"],
                 "combat": info["combat"],
+                "usage": usage or "",
                 "hp": info["hp"],
                 "almanac_cooldown_s": info["cooldown_s"],
                 "ready": s.ready,
@@ -117,6 +146,10 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         },
         "lanes": lanes,
         "seed_cards": seeds,
+        "doctrine": {
+            "principles": playbook.get("principles_en") or [],
+            "enemy_notes": playbook.get("enemy_notes_en") or [],
+        },
         "saving_plan": saving_plan(board, book),
         "assessment_note": "Pressure/support are heuristic estimates, not measured DPS or time-to-kill. Mower null means unknown.",
         "empty_cell_count": len(board.empty_cells()),

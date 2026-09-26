@@ -115,10 +115,15 @@ class PlantKnowledgeTests(unittest.TestCase):
         b=self.board([],[Zombie(0,0,0,x=250)],[wall])   # x=250 已啃到 col2 的墙
         sh=[c for c in generate_candidates(b,self.book) if c.kind=='shovel']
         self.assertTrue(sh)
-        self.assertFalse(sh[0].emergency)   # x=250 是 high 不是 critical
-        crit=self.board([],[Zombie(0,0,0,x=110)],[wall])
-        sh2=[c for c in generate_candidates(crit,self.book) if c.kind=='shovel']
+        self.assertFalse(sh[0].emergency)   # 没在被啃、x=250 也只是 high
+        # 正在被啃且只比回收线高 200 血（=2 秒 @100/s 啃速）：窗口将关，判紧急
+        biting=Plant(0,0,2,320,hp=1000,recently_eaten=True)
+        b2=self.board([],[Zombie(0,0,0,x=250)],[biting])
+        sh2=[c for c in generate_candidates(b2,self.book) if c.kind=='shovel']
         self.assertTrue(sh2 and sh2[0].emergency)
+        crit=self.board([],[Zombie(0,0,0,x=110)],[wall])
+        sh3=[c for c in generate_candidates(crit,self.book) if c.kind=='shovel']
+        self.assertTrue(sh3 and sh3[0].emergency)
         self.assertIn('Reclaim it',sh[0].why)
         self.assertIn('Shovel up',sh[0].describe(self.book))
         self.assertEqual(sh[0].hp,1500)
@@ -153,3 +158,12 @@ class PlantKnowledgeTests(unittest.TestCase):
         info=build_state(b,self.book)['lanes'][0]['defenders'][0]
         self.assertEqual(info['hp'],1500)
         self.assertTrue(info['recently_eaten'])
+
+    def test_playbook_reaches_the_model(self):
+        self.book.bind_one(320,'回收高坚果')
+        b=self.board([320],[Zombie(0,0,0,x=700)])
+        st=build_state(b,self.book)
+        info=st['seed_cards'][0]
+        self.assertIn('reusable',info['usage'])
+        self.assertTrue(st['doctrine']['principles'])
+        self.assertTrue(st['doctrine']['enemy_notes'])

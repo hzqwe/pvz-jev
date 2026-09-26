@@ -324,13 +324,20 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 没僵尸在啃它、路线也不告急 → 慢慢等它挡，铲它是送 800 血。
             continue
         urgent = f["threat_level"] == "critical"
+        # 回收窗口即将关闭也算紧急：僵尸啃食 100/s，一个决策周期约 3 秒。
+        # 若这面墙正在被啃、且血量只比回收线高不到 ~3 秒的量，等下一轮就来不及了
+        # —— 和"近屋救场"同一逻辑：确定性判据，不指望模型自己算时间。
+        if p.recently_eaten and (hp - RECLAIM_MIN_HP) <= 300:
+            urgent = True
         candidates.append(Candidate(
             '', 'shovel', p.row, p.col, -1, p.type_id,
             (150 if urgent else 60) + f["priority"] * 0.5,
             (f'Reclaim it before zombies finish it: shoveling costs 800 hp, the returned '
              f'card keeps the remaining {hp - 800}; once its hp drops to 800 or below it '
              f'can never be reclaimed again and is simply lost. '
-             f'Replant it where it helps more once ready.'),
+             + ('It is being bitten right now and the reclaim window closes within seconds. '
+                if p.recently_eaten else '')
+             + 'Replant it where it helps more once ready.'),
             book.tags(p.type_id), urgent, (p.row,), hp,
         ))
 
