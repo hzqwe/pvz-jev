@@ -149,3 +149,33 @@ class WallFrontPreferenceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MemorySunTests(unittest.TestCase):
+    """coin 池内存驱动收阳光（2026-09-27，00:11 会话日志离线确认）。"""
+
+    def test_memory_positions_filter_and_convert(self):
+        from pvz.ui import Layout, memory_sun_positions
+        lay = Layout()
+        lay.client_w, lay.client_h = lay.base_w, lay.base_h
+        coins = [
+            {"index": 0, "type": 6, "x": 400, "y": 250, "w": 50, "h": 60},   # 落地阳光
+            {"index": 1, "type": 1, "x": 650, "y": 150, "w": 50, "h": 60},   # 飞行阳光
+            {"index": 2, "type": 4, "x": 60, "y": 60, "w": 50, "h": 30},     # 阳光计数器
+            {"index": 3, "type": 16, "x": 300, "y": 300, "w": 50, "h": 60},  # 种子卡
+            {"index": 4, "type": 2, "x": 700, "y": 400, "w": 50, "h": 60},   # 未知杂物
+        ]
+        out = memory_sun_positions(coins, lay)
+        self.assertEqual([t for _, _, t in out], [6, 1])   # 只留阳光、按 x 升序
+        cx, cy, _ = out[0]
+        ref = lay.cell_center(2, 4)                        # 逻辑(400,250)≈R3E 附近
+        self.assertAlmostEqual(cx, ref[0], delta=40)       # x 与格中心一致
+        self.assertAlmostEqual(cy, ref[1], delta=60)       # y 公式带固定偏移，容忍半格
+
+    def test_off_lawn_coins_are_dropped(self):
+        from pvz.ui import Layout, memory_sun_positions
+        lay = Layout()
+        lay.client_w, lay.client_h = lay.base_w, lay.base_h
+        out = memory_sun_positions(
+            [{"type": 6, "x": -300, "y": 250, "w": 50, "h": 60}], lay)
+        self.assertEqual(out, [])

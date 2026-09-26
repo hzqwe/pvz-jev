@@ -12,6 +12,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, asdict, field
+from types import SimpleNamespace
 
 from .win32 import Screen, WindowInfo, capture_window, post_click, post_rclick, sendinput_click, post_key
 
@@ -242,6 +243,31 @@ class Clicker:
 
 
 # ---------------------------------------------------------------- 阳光
+# coin 池里的阳光 type（2026-09-27 用 00:11 会话日志离线确认）：
+#   type 6 = 落地可点的阳光（51 次与像素命中重合、被点后 7/7 从池中消失）
+#   type 1 = 飞行中的阳光（位置逐拍漂移，点它同样有效）
+#   排除：16=种子卡、4=x<140 的阳光计数器显示、2/3/5/18=其他杂物（未点击验证）
+SUN_COIN_TYPES = (1, 6)
+
+
+def memory_sun_positions(coins: list[dict], layout: "Layout") -> list[tuple[int, int, int]]:
+    """把 coin 池原始读数换算成草坪上的阳光点击坐标（客户区像素）。
+
+    换算公式与 dropped_seed_center 相同（同结构同坐标系），已被 51 次命中
+    重合验证。只返回阳光区（草坪矩形）内的结果；按 x 升序（近屋先收）。"""
+    lx0, ly0, lx1, ly1 = layout.lawn_rect()
+    out = []
+    for c in coins:
+        if c.get("type") not in SUN_COIN_TYPES:
+            continue
+        seed = SimpleNamespace(x=c["x"], y=c["y"], width=c["w"], height=c["h"])
+        x, y = layout.dropped_seed_center(seed)
+        if lx0 - 20 <= x <= lx1 + 20 and ly0 - 20 <= y <= ly1 + 20:
+            out.append((x, y, c["type"]))
+    out.sort(key=lambda t: t[0])
+    return out
+
+
 class SunTracker:
     """阳光收集的**回读验证与假阳性抑制**。
 

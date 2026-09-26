@@ -18,7 +18,7 @@ from .policy import Decision, build_questions, generate_candidates, merge_decisi
 from .serialize import COL_LABEL, build_state, render_text
 from .tactics import cell_x
 from .transactions import run_transaction
-from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab
+from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab, memory_sun_positions
 from .win32 import (
     capture_window,
     cycle_window,
@@ -1184,20 +1184,42 @@ class PvZJevAgent:
                     and not board.holding
                     and now - self._last_sun >= self.cfg.collect_sun_every_s):
                 self._last_sun = now
-                shot = grab(self.win)
-                if shot is not None:
-                    # ★★ 回读验证（2026-09-26）：阳光只会因点击而增加，
-                    #    点完 0.35s 再读一次差值，把"点了但没涨"的位置计入
-                    #    SunTracker —— 持久黄色假阳性（女王/向日葵贴图）3 轮后
-                    #    被抑制，不再每轮吃满点击额度（实测 535 次点击阳光没涨）。
-                    sun0 = board.sun
-                    hits = collect_suns(shot, self.layout, self.clicker, max_click=5,
-                                        banned=self.sun_tracker.banned_keys())
-                    self._last_sun_hits = [(x, y) for x, y, *_ in hits]
-                    if hits:
-                        time.sleep(0.35)
-                        sun1 = self.reader.read().sun
-                        gained = (sun1 - sun0) if (sun0 is not None and sun1 is not None) else None
+                sun0 = board.sun
+                hits = []
+                # ★★ 首选**内存驱动**（2026-09-27）：coin 池直接给出每颗阳光
+                #    的精确坐标（type 1/6，离线日志已确认）—— 零假阳性、不受
+                #    遮挡影响，点击即中。coin 池读不出来时退回像素扫描。
+                try:
+                    mem_suns = memory_sun_positions(self.reader.read_coins_raw(),
+                                                    self.layout)
+                except Exception:  # noqa: BLE001 —— 读池失败必须退回像素路径
+                    mem_suns = []
+                if mem_suns:
+                    for x, y, t in mem_suns[:6]:
+                        self.clicker.click_client(x, y, f"collect sun (mem type{t})")
+                        hits.append((x, y))
+                    if self.cfg.verbose and len(mem_suns) > 6:
+                        print(f"  ☀️ 草坪上还有 {len(mem_suns) - 6} 颗阳光本轮未点（额度 6）")
+                else:
+                    shot = grab(self.win)
+                    if shot is not None:
+                        # 像素回退路径：截图像素找黄色 + SunTracker 反假阳性
+                        # （2026-09-26 实测 535 次点击阳光没涨的教训）。
+                        hits = collect_suns(shot, self.layout, self.clicker,
+                                            max_click=5,
+                                            banned=self.sun_tracker.banned_keys())
+                self._last_sun_hits = [(x, y) for x, y, *_ in hits]
+                if hits:
+                    time.sleep(0.35)
+                    sun1 = self.reader.read().sun
+                    gained = (sun1 - sun0) if (sun0 is not None and sun1 is not None) else None
+                    if mem_suns:
+                        # 内存路径坐标是精确的，不用 SunTracker；0 增长只记录
+                        # （点击消息可能在下一帧才处理）。
+                        self.stats.suns_collected += len(hits)
+                        if self.cfg.verbose and gained is not None and gained <= 0:
+                            print(f"  ☀️ 内存收阳光 {len(hits)} 颗暂未涨（消息可能延迟）")
+                    else:
                         self.sun_tracker.feedback(hits, gained)
                         self.stats.suns_collected += len(hits)
                         if self.cfg.verbose and gained is not None and gained <= 0:
