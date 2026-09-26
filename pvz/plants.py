@@ -309,12 +309,21 @@ class PlantBook:
         125 阳光，实际要 275 —— 于是"买得起"的判断是错的，点卡被游戏拒绝，
         表现为 **阳光没扣、植物没种上**，极容易被误判成"点击注入失效"。
         可靠来源只有一个：点卡之后阳光掉了多少。
+
+        ⚠️ 但实测值不能照单全收：测量窗口（点卡->回读 0.7s）可能混入同帧的
+        其他阳光变动，历史上污染出过 35/75 的向日葵、600 的女王。图鉴照片是
+        权威基线——实测价偏离基线 >40% 一律**拒收**（保留图鉴值）并打
+        cost_mismatch 标记供复盘。±40% 的容忍度足够容纳至尊金卡 +100/株
+        这类合法涨价（500 -> 600 = +20%）。
         """
         if cost <= 0:
             return
+        ent = self.kb_by_id.get(type_id)
+        if ent and ent.cost is not None and abs(cost - ent.cost) > ent.cost * 0.4:
+            self.cost_mismatch[type_id] = (ent.cost, cost)
+            return
         self.real_cost[type_id] = cost
         # 顺带校验绑定：如果实测价格和知识库差太多，八成是把卡绑错了
-        ent = self.kb_by_id.get(type_id)
         if ent and ent.cost is not None and cost != ent.cost:
             self.cost_mismatch[type_id] = (ent.cost, cost)
 

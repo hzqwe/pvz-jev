@@ -279,3 +279,13 @@ class PlantKnowledgeTests(unittest.TestCase):
         cs=[c for c in generate_candidates(b,self.book)
             if c.kind=='plant' and c.type_id==SUN]
         self.assertTrue(cs)
+
+    def test_cost_learning_rejects_polluted_measurements(self):
+        # 实战教训：测量窗口混入其他阳光变动，污染出过 35/75 的向日葵。
+        # 图鉴是权威基线：偏离 >40% 拒收，±40% 内（如至尊金卡 +100/株）放行。
+        base=self.book.cost(SUN)                      # 阳光向日葵 图鉴 100
+        self.book.set_real_cost(SUN, 35)
+        self.assertEqual(self.book.cost(SUN), base)   # 污染值被拒收
+        self.assertIn(SUN, self.book.cost_mismatch)
+        self.book.set_real_cost(SUN, 130)             # +30% 合法波动
+        self.assertEqual(self.book.cost(SUN), 130)
