@@ -25,7 +25,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window
 
 MAX_CANDIDATES = 24
 MAX_PER_TYPE = 2          # 同一张卡最多出几条落点候选（见 generate_candidates 末尾）
@@ -135,6 +135,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 平静期（场上没僵尸且家底够）：照常预置防线，别干等
     # —— 用户实测反馈：僵尸没出来就什么都不种不行，要保持战场整齐。
     calm = total == 0 and sun >= 500
+    develop = sun >= 1000 and all(f["threat_level"] not in ("high", "critical") for f in facts)
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
     plan = saving_plan(board, book)
     candidates = []
@@ -146,10 +147,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     if not any(T_WALL in book.tags(s.type_id) and s.ready
                and (book.cost(s.type_id) or 10**9) <= sun for s in board.slots):
         for f in facts:
-            if f['threat_level'] != 'critical' or f['nearest_zombie_x'] is None:
+            if f['threat_level'] not in ('high','critical') or f['nearest_zombie_x'] is None:
                 continue
             r = f['lane'] - 1
-            c0 = max(0, min(board.cols - 1, int(f['nearest_zombie_x'] // 80)))
+            c0 = max(0, min(board.cols - 1, int((f['nearest_zombie_x'] - 40) // 80)))
             cell = next((c for c in (c0, c0 - 1, c0 - 2) if c >= 0 and (r, c) not in occ), None)
             if cell is not None:
                 stall_lanes.append((r, cell))
@@ -180,7 +181,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 注意放在能力加成（upgrade_value）之后，否则压不住总分。
             value = 65 + (value - 65) * 0.12
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
-                                    min(value, 26) if calm else value,
+                                    value * 0.2 if calm else value,
                                     reason, tags, rescue, tuple(covers)))
 
     for slot in board.slots:
@@ -195,22 +196,36 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # A reservation also constrains repeated cheap purchases. Emergency cancels it.
         if plan and tid != plan['type_id'] and sun - cost < plan['cost']:
             continue
-        if (producers < ECON_TARGET and not emergency and T_PRODUCER not in tags
+        close_intercept = T_WALL in tags and any(
+            f['nearest_zombie_x'] is not None and any(
+                0 <= f['nearest_zombie_x'] - cell_x(p.col) <= 160
+                and not book.has_tag(p.type_id,T_WALL)
+                for p in board.plants_in_lane(f['lane']-1)) for f in facts)
+        if (producers < ECON_TARGET and not emergency and not close_intercept and T_PRODUCER not in tags
                 and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
             # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
             continue
 
         # ---- 兜底垫背：危急路没墙可用，便宜卡垫在僵尸脚下拖时间 ----
-        if stall_lanes and cost is not None and cost <= 150 and T_WALL not in tags:
+        if (stall_lanes and cost <= 150 and T_WALL not in tags
+                and not any(t in tags for t in (T_INSTANT,T_GLOBAL_FREEZE,T_TEMPORARY))):
+            added_stall = False
             for r, cell in stall_lanes:
+                estimate = stall_window(board,book,r,tid,cell)
+                if estimate is None and facts[r]['threat_level'] != 'critical':
+                    continue
                 if (r, cell) in occ:
                     continue
                 add(slot,r,cell,120 + facts[r]['priority']*0.4,
                     'Sacrificial speed bump: no wall card is ready on this critical lane; '
-                    'stall the zombie with a cheap plant until a wall card is off cooldown.',
-                    [r])
-            continue
+                    'buy time for defence. '
+                    + (f'Estimated firing window: {estimate}; assumes 8 px/s walking and '
+                       '100 hp/s biting per nearby enemy, not live measurements.' if estimate else
+                       'Last-resort house rescue; no verified kill or cooldown timing.'), [r])
+                added_stall = True
+            if added_stall:
+                continue
 
         if T_GLOBAL_FREEZE in tags:
             if not emergency and total < 6:
@@ -281,7 +296,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if nx is None:
                     # 平静期预置：这路已有射手但没有墙 → 在射手前方预放一面墙，
                     # 下一波来的时候防线是完整的（保持各路阵型整齐）。
-                    if calm and facts[r]['shooter_support'] > 0 and not facts[r]['blocking_walls']:
+                    if (calm or develop) and facts[r]['shooter_support'] > 0 and not facts[r]['blocking_walls']:
                         spot = next((c for c in (4,5,3) if (r,c) not in occ), None)
                         if spot is not None:
                             add(slot,r,spot,24,
@@ -323,7 +338,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     extra += ' If it falls, its death ripple freezes/slows nearby zombies.'
                 if T_WALL_REGEN in tags:
                     bonus += 4
-                    extra += ' Reclaimable wall; low commitment (shovel action not implemented yet).'
+                    extra += ' Reclaimable wall; reclaim only while more than 800 hp remains.'
                 if T_REFLECT in tags and facts[r]['zombie_count']:
                     bonus += min(10.0, profile.get('reflect_dps', 0) * 0.1)
                     extra += ' Reflects damage while being bitten.'
@@ -336,7 +351,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if T_PRODUCER in tags and T_SHOOTER not in tags:
             if producers >= max(6, board.rows*2):
                 continue
-            for r in quiet:
+            for r in sorted(quiet, key=lambda r: (min(rear_cols(board,book,r,producer=True), default=99), facts[r]["priority"], r)):
                 cols = rear_cols(board,book,r,producer=True)
                 if not cols or facts[r]['threat_level'] in ('critical','high'):
                     continue
@@ -351,14 +366,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 平静期（没僵尸）：照常补火力，但只补还没有射手的路，保持阵型整齐。
             for r in (quiet if tracking else
                       (list(range(board.rows)) if calm else hot)):
-                if not tracking and not facts[r]['zombie_count'] and not calm:
+                if not tracking and not facts[r]['zombie_count'] and not (calm or develop):
                     continue
-                if calm and any(book.has_tag(p.type_id, T_SHOOTER)
+                if not (plan and tid == plan['type_id']) and (calm or (develop and not facts[r]['zombie_count'])) and any(book.has_tag(p.type_id, T_SHOOTER)
                                 for p in board.plants_in_lane(r)):
                     continue
                 cols = rear_cols(board,book,r)
                 if not cols:
                     continue
+                if T_TORCH in tags and plan and tid == plan['type_id'] and not total:
+                    cols = [c for c in cols if c in (1,2)]
+                    if not cols:
+                        continue
                 nx_r = facts[r]['nearest_zombie_x']
                 if rng is not None:
                     # 短射程植物（喷菇系≈4格等）：种下了就必须够得着最近僵尸，
@@ -530,7 +549,8 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "Should we deliberately spend nothing this cycle and keep saving sun? "
                 "Answer yes only if planting right now would be wasteful, premature, or "
                 "would leave the sun reserve too low for an imminent emergency. Honor saving_plan "
-                "when safe. Never hold if a listed rescue can address a near-house threat."
+                "when safe. A quiet board still needs economy and missing-lane defence; do not hoard "
+                "surplus sun indefinitely. Never hold if a listed rescue can address a near-house threat."
             ),
             "criteria": {"true": "yes - hold and save the sun", "false": "no - spend sun now"},
         },
@@ -600,6 +620,28 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             chosen = upgrade
             d.fallback = True
             d.notes.append('Saving target is affordable and ready; complete the upgrade instead of waiting indefinitely.')
+    # Bounded development: fill missing economy/firepower/walls, never arbitrary spending.
+    # Reuse freshly validated candidates; reserve applies even when the model says wait.
+    if chosen.kind == 'wait' and not plan and plants:
+        facts = [lane_facts(board, r, book) for r in range(board.rows)]
+        if all(f['threat_level'] not in ('high', 'critical') for f in facts):
+            producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
+            for c in plants:
+                if c.kind != 'plant' or T_TEMPORARY in c.tags or T_INSTANT in c.tags:
+                    continue
+                cost = book.cost(c.type_id)
+                reserve = 100 if T_PRODUCER in c.tags and producers < ECON_TARGET else ECON_RESERVE
+                if cost is None or (board.sun or 0) - cost < reserve:
+                    continue
+                economy = T_PRODUCER in c.tags and producers < max(6, board.rows*2)
+                missing_fire = T_SHOOTER in c.tags and not any(
+                    book.has_tag(p.type_id,T_SHOOTER) for p in board.plants_in_lane(c.row))
+                missing_wall = T_WALL in c.tags and not facts[c.row]['blocking_walls']
+                if economy or missing_fire or missing_wall:
+                    chosen = c
+                    d.fallback = True
+                    d.notes.append('Safe development fills a missing formation role while keeping a sun reserve.')
+                    break
     d.candidate, d.action_id = chosen, chosen.cid
     d.hold = chosen.kind == 'wait'
     return d

@@ -1,5 +1,5 @@
 """Shared, deterministic tactical facts. Scores are heuristics, not predicted DPS."""
-from .plants import T_WALL, T_SHOOTER, T_TRACKING, T_PRODUCER, T_TEMPORARY
+from .plants import T_WALL, T_SHOOTER, T_TRACKING, T_PRODUCER, T_TEMPORARY, T_TORCH
 
 
 def cell_x(col):
@@ -137,6 +137,19 @@ def saving_plan(board, book):
     """Reserve for a usable upgrade, but release the reserve when defence is urgent."""
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
+    # Opening option: only wait a small price gap, with no enemies and a ready card.
+    # Runtime prices are authoritative (some versions charge 600 rather than 500).
+    if not board.zombies and producers < 4 and not any(
+            book.has_tag(p.type_id,T_TORCH) for p in board.plants):
+        for slot in board.slots:
+            cost = book.cost(slot.type_id)
+            if (slot.ready and book.has_tag(slot.type_id,T_TORCH)
+                    and cost is not None and (board.sun or 0) >= cost-100
+                    and any(any(c in (1,2) for c in rear_cols(board,book,r)) for r in range(board.rows))):
+                return dict(type_id=slot.type_id,slot=slot.index,plant=book.en(slot.type_id),
+                            cost=cost,missing_sun=max(0,cost-(board.sun or 0)),
+                            utility=upgrade_value(board,book,slot.type_id),
+                            reason='Opening economy and global firepower; ready Queen with a small savings gap.')
     if producers < 4 or not any(f['zombie_count'] for f in facts) or any(
             f['threat_level'] in ('critical', 'high') for f in facts):
         return None
@@ -166,3 +179,31 @@ def saving_plan(board, book):
                 missing_sun=max(0, cost - (board.sun or 0)),
                 utility=upgrade_value(board,book,tid),
                 reason='Choose the upgrade matching coverage, armor, control and economy needs; not simply the cheapest card.')
+
+
+def stall_window(board, book, row, type_id, col=None):
+    """Conservative planning estimates, NOT measured movement or cooldown seconds."""
+    enemies = board.zombies_in_lane(row)
+    known = [z for z in enemies if z.x is not None]
+    if not known:
+        return None
+    nearest = min(known,key=lambda z:z.x)
+    rear = [p for p in board.plants_in_lane(row)
+            if not p.asleep and cell_x(p.col) < nearest.x
+            and (col is None or p.col < col)
+            and book.has_tag(p.type_id,T_SHOOTER)]
+    dps = sum(attack_dps(book,p.type_id) for p in rear
+              if book.range_cells(p.type_id) is None
+              or nearest.x-cell_x(p.col) <= book.range_cells(p.type_id)*80)
+    hp = book.hp(type_id)
+    if not hp or not dps or nearest.hp is None:
+        return None
+    # Several nearby mouths shorten a disposable plant's useful life.
+    mouths = sum(abs(z.x-nearest.x) <= 80 for z in known)
+    delay = hp / (100 * max(1,mouths))
+    kill = (nearest.hp + (nearest.armor_hp or 0)) / dps
+    front = max(cell_x(p.col) for p in rear)
+    contact = max(0,nearest.x-front-40)/8
+    if contact < kill <= contact+delay:
+        return dict(delay=round(delay,1),kill=round(kill,1),contact=round(contact,1))
+    return None

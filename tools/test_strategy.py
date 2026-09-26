@@ -32,7 +32,7 @@ class StrategyTests(unittest.TestCase):
 
     def test_shooter_stays_behind_wall_when_rear_cell_occupied(self):
         b = self.board([PEA], [Zombie(0, 0, 0, x=650)],
-                       [Plant(0, 0, 2, WALL), Plant(1, 0, 1, SUN)])
+                       [Plant(0, 0, 2, WALL), Plant(1, 0, 1, SUN)], sun=900)
         cs = self.choices(b)
         self.assertTrue(cs)
         self.assertTrue(all(c.col < 2 for c in cs))

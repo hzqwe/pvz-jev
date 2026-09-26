@@ -205,7 +205,7 @@ class PlantKnowledgeTests(unittest.TestCase):
 
     def test_pea_prefers_behind_the_torch_queen(self):
         # 用户技巧：豌豆穿过向日葵女王获火焰增益 → 落点选女王身后。
-        b=self.board([PEA],[Zombie(0,0,0,x=650)],[Plant(0,0,2,QUEEN)])
+        b=self.board([PEA],[Zombie(0,0,0,x=650)],[Plant(0,0,2,QUEEN)],sun=900)
         cs=[c for c in generate_candidates(b,self.book)
             if c.kind=='plant' and c.type_id==PEA]
         self.assertTrue(cs)
@@ -227,7 +227,7 @@ class PlantKnowledgeTests(unittest.TestCase):
             if c.kind=='plant' and c.type_id==SUN and c.row==0]
         self.assertTrue(cs)
         stall=cs[0]
-        self.assertEqual(stall.col,1)              # 僵尸所在格
+        self.assertEqual(stall.col,0)              # 僵尸所在格
         self.assertTrue(stall.emergency)
         self.assertIn('speed bump',stall.why)
 
