@@ -167,3 +167,30 @@ class PlantKnowledgeTests(unittest.TestCase):
         self.assertIn('reusable',info['usage'])
         self.assertTrue(st['doctrine']['principles'])
         self.assertTrue(st['doctrine']['enemy_notes'])
+
+    def test_wall_hybrid_adds_front_layer_not_rear(self):
+        # 用户实测反馈：冰坚果被放到最后一排。已有墙时墙系混血应加在墙的前方。
+        self.book.bind_one(321,'高冰果')
+        b=self.board([321],[Zombie(0,0,0,x=650)],
+                     [Plant(0,0,2,320)])          # 回收高坚果墙在 col2
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==321]
+        self.assertTrue(cs)
+        self.assertTrue(all(c.col>2 for c in cs), f'应在墙前方(>2)，实际 {[c.col for c in cs]}')
+
+    def test_short_range_shooter_needs_reach(self):
+        # 用户实测反馈：激光大喷菇被放到最后一排打不着人。
+        self.book.kb_by_id[PEA].raw['combat']['range_cells']=4
+        far=self.board([PEA],[Zombie(0,0,0,x=750)])   # col≤5 全都够得着(480+320=800)
+        cs=[c for c in generate_candidates(far,self.book)
+            if c.kind=='plant' and c.type_id==PEA]
+        self.assertTrue(cs)
+        self.assertEqual(max(c.col for c in cs),5)    # 尽量靠前
+        self.book.kb_by_id[PEA].raw['combat']['range_cells']=2
+        near_ok=self.board([PEA],[Zombie(0,0,0,x=300)],[Plant(0,0,0,SUN)])
+        cs2=[c for c in generate_candidates(near_ok,self.book)
+             if c.kind=='plant' and c.type_id==PEA]
+        self.assertTrue(cs2 and all(c.col>=2 for c in cs2))  # 2格射程必须贴着僵尸
+        out=self.board([PEA],[Zombie(0,0,0,x=650)])
+        self.assertFalse([c for c in generate_candidates(out,self.book)
+                          if c.kind=='plant' and c.type_id==PEA])  # 全列都够不着→不出候选

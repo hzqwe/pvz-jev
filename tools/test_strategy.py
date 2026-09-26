@@ -126,13 +126,15 @@ class StrategyTests(unittest.TestCase):
         self.assertEqual(record['executed']['kind'], 'stale_action')
         self.assertEqual(agent.clicker.mock_calls, [])
 
-    def test_hybrid_wall_can_reinforce_weak_firepower_behind_existing_wall(self):
+    def test_hybrid_wall_adds_layer_in_front_of_existing_wall(self):
+        # 2026-09-26 行为变更（用户实测反馈）：墙系混血的价值在被啃（反伤/亡语），
+        # 已有墙时应加在墙的**前方**形成纵深，而不是退到墙后当射手。
         z = Zombie(0,0,0,x=600)
         z.hp, z.armor_hp = 270, 3000
         b = self.board([WALL], [z], [Plant(0,0,4,3)])
         cs = self.choices(b)
         self.assertTrue(cs)
-        self.assertTrue(all(c.col < 4 for c in cs))
+        self.assertTrue(all(c.col > 4 for c in cs))
 
     def test_sleeping_upgrade_does_not_cancel_saving(self):
         ps = [Plant(r,r,0,SUN) for r in range(4)]

@@ -241,12 +241,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if nx is None:
                     continue
                 if facts[r]['blocking_walls'] and facts[r]['threat_level'] != 'critical':
-                    if T_SHOOTER in tags and facts[r]['pressure'] > 0:
-                        rear = rear_cols(board,book,r)
-                        if rear:
-                            add(slot,r,min(rear,key=lambda c:abs(c-2)),
-                                40+facts[r]['priority']*0.5,
-                                'Hybrid shooter reinforces behind the existing wall.',[r])
+                    # 墙系混血的价值全在"被啃"（反伤/免死/亡语冻结都只在贴身时生效），
+                    # 藏到后排当射手等于白给 —— 用户实测反馈：冰坚果总被放到最后一排。
+                    # 已有墙时改成在**最前那面墙的前方**再加一层（仍在僵尸来路一侧），
+                    # 形成双墙纵深；前面没空位就放弃本轮，不再退化成后排输出。
+                    front_wall = max((p.col for p in board.plants_in_lane(r)
+                                      if book.has_tag(p.type_id, T_WALL)), default=-1)
+                    ahead = [c for c in _free_cols(board,occ,r,front_wall+1,5)
+                             if cell_x(c) <= nx-10]
+                    if ahead:
+                        add(slot,r,max(ahead),55+facts[r]['priority']*0.6,
+                            'Extra wall layer in front of the existing wall; wall hybrids '
+                            'earn their value by being bitten (reflect/death effects).',[r])
                     continue
                 cols = [c for c in _free_cols(board,occ,r,0,5) if cell_x(c) <= nx-10]
                 if not cols:
@@ -287,14 +293,26 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             if not total:
                 continue
             tracking = T_TRACKING in tags
+            rng = book.range_cells(tid)
             for r in quiet if tracking else hot:
                 if not tracking and not facts[r]['zombie_count']:
                     continue
                 cols = rear_cols(board,book,r)
                 if not cols:
                     continue
-                # Prefer middle rear cells, preserving A/B for the economy.
-                col = min(cols,key=lambda c: abs(c-2))
+                nx_r = facts[r]['nearest_zombie_x']
+                if rng is not None:
+                    # 短射程植物（喷菇系≈4格等）：种下了就必须够得着最近僵尸，
+                    # 并尽量靠前贴住射程边缘 —— 放最后一排是纯浪费
+                    # （用户实测反馈：激光大喷菇被放到后排打不着人）。
+                    reach = [c for c in cols
+                             if nx_r is not None and nx_r <= cell_x(c) + rng*80]
+                    if not reach:
+                        continue
+                    col = max(reach)
+                else:
+                    # Prefer middle rear cells, preserving A/B for the economy.
+                    col = min(cols,key=lambda c: abs(c-2))
                 cover = list(range(board.rows)) if tracking else [r]
                 value = 35 + max(facts[x]['priority'] for x in cover)*0.5
                 value -= facts[r]['shooter_support']*8

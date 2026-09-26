@@ -71,6 +71,18 @@ T_BURN_AURA = "burn_aura"          # 灼烧周围 3x3
 T_GROWS = "grows"                  # 会成长（后期产能翻倍）
 T_PLATFORM = "platform"
 
+# 原版系短射程植物的射程估计（格，1 格 = 80 逻辑px）。
+# 杂交版大喷菇 = 前方四格（pvzhe.wiki/new.pvzhe.wiki 实测）；其余取原版公认值。
+# 用途：policy 生成落点时做"够不够得着最近僵尸"的校验。估计值宁可保守
+# （偏小），偏大会把植物放到够不着的位置。
+SHORT_RANGE_CELLS = {
+    8: 3,    # 小喷菇
+    10: 4,   # 大喷菇（杂交版实为前方四格）
+    13: 4,   # 胆小菇
+    24: 3,   # 海蘑菇
+    42: 3,   # 忧郁菇（自身 3x3，等效短射程）
+}
+
 # id: (名称, 成本, 角色) —— 原版固定编号
 BASE_PLANTS: dict[int, tuple[str, int, str]] = {
     0: ("豌豆射手 Peashooter", 100, SHOOTER),
@@ -372,6 +384,19 @@ class PlantBook:
         """Structured almanac facts; absent values remain unknown."""
         entry = self.kb_by_id.get(type_id)
         return dict(entry.raw.get('combat', {})) if entry else {}
+
+    def range_cells(self, type_id: int) -> int | None:
+        """攻击射程（格）。None = 整行/全屏，没有摆位限制。
+
+        知识库 combat.range_cells 优先；没登记的原版系植物查 SHORT_RANGE_CELLS。
+        这不是装饰数据：短射程植物（喷菇系≈4格）种在最后一排够不着僵尸，
+        policy 生成落点时必须做射程校验（2026-09-26 用户实测反馈）。
+        """
+        ent = self.kb_by_id.get(type_id)
+        v = (ent.raw.get('combat') or {}).get('range_cells') if ent else None
+        if v is None:
+            v = SHORT_RANGE_CELLS.get(type_id)
+        return v
 
     def is_known(self, type_id: int) -> bool:
         return type_id in self.table
