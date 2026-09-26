@@ -230,3 +230,27 @@ class PlantKnowledgeTests(unittest.TestCase):
         self.assertEqual(stall.col,1)              # 僵尸所在格
         self.assertTrue(stall.emergency)
         self.assertIn('speed bump',stall.why)
+
+    def test_economy_first_walls_cannot_outrank_sunflowers_early(self):
+        # 用户实测反馈：开局只会种冰坚果墙、不种向日葵。经济未成型（<4 产阳光）时：
+        # a) 远僵尸（low）路上墙压不过向日葵；b) 已有一面墙后不再追加；c) 危急路不受限。
+        far=self.board([WALL,SUN],[Zombie(0,0,0,x=720)],sun=650)
+        cs=generate_candidates(far,self.book)
+        wall=[c for c in cs if c.kind=='plant' and c.type_id==WALL]
+        suns=[c for c in cs if c.kind=='plant' and c.type_id==SUN]
+        self.assertTrue(wall and suns)
+        self.assertLess(max(c.score for c in wall), max(c.score for c in suns))
+        # 换成僵尸走近（high）时：墙恢复全分，压过向日葵——该拦就拦
+        near=self.board([WALL,SUN],[Zombie(0,0,0,x=300)],sun=650)
+        cs3=generate_candidates(near,self.book)
+        wall3=[c for c in cs3 if c.kind=='plant' and c.type_id==WALL]
+        suns3=[c for c in cs3 if c.kind=='plant' and c.type_id==SUN]
+        self.assertTrue(wall3 and suns3)
+        self.assertGreater(max(c.score for c in wall3), max(c.score for c in suns3))
+        # 危急路不受限：僵尸贴脸时墙照样是救场首选（即使已有墙）
+        crit=self.board([WALL,SUN],[Zombie(0,0,0,x=110)],[Plant(1,1,4,WALL)],sun=650)
+        cs2=generate_candidates(crit,self.book)
+        wall2=[c for c in cs2 if c.kind=='plant' and c.type_id==WALL]
+        suns2=[c for c in cs2 if c.kind=='plant' and c.type_id==SUN]
+        self.assertTrue(wall2)
+        self.assertGreater(max(c.score for c in wall2), max(c.score for c in suns2))

@@ -171,6 +171,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             if near:
                 value += 3 * min(near, 6)
                 reason += f' Burn aura reaches {min(near, 6)} nearby zombie(s).'
+        if (producers < ECON_TARGET and T_WALL in tags
+                and facts[row]['threat_level'] == 'low'):
+            # 经济优先（用户实测反馈：开局只会种冰坚果墙、不种向日葵）：
+            # 产阳光没成型时，远僵尸（low）路的墙整体按 0.12 折算 —— 压到
+            # 向日葵（85 分）之下，但保持各路之间的排序不被抹平。
+            # 僵尸走近（high）或危急时不打折——贴脸的必须拦。
+            # 注意放在能力加成（upgrade_value）之后，否则压不住总分。
+            value = 65 + (value - 65) * 0.12
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     min(value, 26) if calm else value,
                                     reason, tags, rescue, tuple(covers)))
@@ -188,7 +196,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if plan and tid != plan['type_id'] and sun - cost < plan['cost']:
             continue
         if (producers < ECON_TARGET and not emergency and T_PRODUCER not in tags
-                and cost > ECON_CHEAP and sun - cost < ECON_RESERVE):
+                and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
+            # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
+            # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
             continue
 
         # ---- 兜底垫背：危急路没墙可用，便宜卡垫在僵尸脚下拖时间 ----
@@ -317,7 +327,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if T_REFLECT in tags and facts[r]['zombie_count']:
                     bonus += min(10.0, profile.get('reflect_dps', 0) * 0.1)
                     extra += ' Reflects damage while being bitten.'
-                add(slot,r,col,65+facts[r]['priority']*0.8+bonus,
+                val = 65 + facts[r]['priority'] * 0.8 + bonus
+                add(slot,r,col,val,
                     'Intercept on the house side of the zombie; shield the surviving rear plants.'
                     + (' Placed onto the zombie to block it instantly.' if overlap else '')+extra,[r])
             continue
