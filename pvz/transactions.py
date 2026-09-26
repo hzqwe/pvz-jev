@@ -24,6 +24,9 @@ class PlantTransaction:
         raise TransactionStopped('Input not confirmed or game clock stopped')
     def cell_valid(self,tid,row,col):
         b=self.board
+        snow=getattr(b,'snow_cells',None) or {}
+        if snow.get((row,col),0)>time.time():
+            raise TransactionStopped('Destination is snow-covered (crushed by the ice-truck); unplantable until it melts')
         if not b.can_plant(row,col,tid,self.agent.book):
             raise TransactionStopped('Destination no longer plantable')
         nx=min((z.x for z in b.zombies_in_lane(row) if z.x is not None),default=9999)

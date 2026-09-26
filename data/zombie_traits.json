@@ -9,12 +9,7 @@
       "其余是按原版 id 推定的候选，实战里用决策日志的 zombie_type_N 对照确认后更新。",
       "确认方法：tools/look.py 或决策日志里看该类型出现时的行为（压扁=crush、",
       "驻停射击=ranged、啃得快=eat_dps 高），然后回填本文件并加 confirmed: true。"
-    ],
-    "defaults": {
-      "eat_dps": 100,
-      "speed_px_s": 8,
-      "source": "原版通用值（啃 100/s、走 8px/s 逻辑坐标）；无实测，仅作保守缺省"
-    }
+    ]
   },
   "types": {
     "5": {
@@ -51,5 +46,11 @@
       "tanky": true,
       "confirmed": false
     }
+  },
+  "defaults": {
+    "eat_dps": 100,
+    "speed_px_s": 8,
+    "source": "原版通用值（啃 100/s、走 8px/s 逻辑坐标）；无实测，仅作保守缺省；ice_trail_melt_s=撞车僵尸积雪融化秒数（未实测，可调）",
+    "ice_trail_melt_s": 30
   }
 }

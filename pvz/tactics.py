@@ -1,4 +1,6 @@
 """Shared, deterministic tactical facts. Scores are heuristics, not predicted DPS."""
+import time
+
 from .plants import T_WALL, T_SHOOTER, T_TRACKING, T_PRODUCER, T_TEMPORARY, T_TORCH
 
 
@@ -87,7 +89,8 @@ def rear_cols(board, book, row, producer=False):
     nx = min((z.x for z in board.zombies_in_lane(row) if z.x is not None), default=9999)
     hi = min(3 if producer else 5, wall - 1)
     occ = board.top_occupancy(book)
-    cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx]
+    cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx
+            and not board.snow_blocked(row, c)]   # 积雪格融化前不可种植
     if board.is_water(row):
         pads = [c for c in cols if board.has_platform(row,c,book)]
         # Reuse a paid platform before planning another one.
@@ -246,12 +249,16 @@ def stall_window(board, book, row, type_id, col=None):
 def relocation_target(board, book, source):
     """Choose a real destination before removing a reusable wall. E/F preferred."""
     options=[]
+    snow=getattr(board,'snow_cells',None) or {}
+    now=time.time()
     for r in range(board.rows):
         f=lane_facts(board,r,book)
         nx=f['nearest_zombie_x']
         for c in range(board.cols):
             if (r,c)==source.cell or (r,c) in board.top_occupancy(book):
                 continue
+            if snow.get((r,c),0)>now:
+                continue    # 积雪格融化前不能种植（撞车僵尸压过）
             if nx is not None and cell_x(c)>nx+30:
                 continue
             if nx is None or nx>=cell_x(4):

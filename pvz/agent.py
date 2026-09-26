@@ -481,12 +481,43 @@ class PvZJevAgent:
             if key not in alive:
                 self._zombie_track.pop(key, None)
 
+    def _track_snow_cells(self, board: BoardState) -> None:
+        """撞车僵尸压过的格子有积雪，融化前**不能种植**（用户 2026-09-26 补充）。
+
+        用 Crush 僵尸（zombie_traits.json crush=true）的位移轨迹标记被压格子：
+        它从 x_max 走到当前 x 之间扫过的格子都算。融化时长 unverified，默认
+        30s（zombie_traits.json 的 ice_trail_melt_s）。这也解释了部分
+        "空格却种不上去"的现象 —— 不是 agent 的错，policy 会主动避开这些格。
+        """
+        if not hasattr(self, "_snow_cells"):
+            self._snow_cells: dict[tuple[int, int], float] = {}
+        now = time.time()
+        self._snow_cells = {c: t for c, t in self._snow_cells.items() if t > now}
+        melt = float(self.book.zombie_traits["defaults"].get("ice_trail_melt_s") or 30)
+        for z in board.zombies:
+            if z.friendly or z.x is None or not self.book.zombie_flag(z.type_id, "crush"):
+                continue
+            hist = self._zombie_track.get((z.index, z.type_id)) or []
+            xs = [x for _, x in hist] + [z.x]
+            x_max, x_cur = max(xs), min(xs)      # 只向左推进：被压区间 = [x_cur, x_max]
+            if x_max - x_cur < 10:
+                continue
+            for r in range(board.rows):
+                if r != z.row:
+                    continue
+                for c in range(board.cols):
+                    edge_l, edge_r = cell_x(c) - 40, cell_x(c) + 40
+                    if edge_l <= x_max and edge_r >= x_cur:
+                        self._snow_cells[(r, c)] = now + melt
+        board.snow_cells = dict(self._snow_cells)
+
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
         # 动态涨价按场上株数生效（图鉴 price_increment；见 PlantBook.cost）
         self.book.sync_field_copies(board.plants)
         # 决策层的"活体"判据统一用时钟推进（0x164 paused 不可靠，见 note_clock）
         board.clock_advancing = self._responsive
         self._track_zombie_station(board)
+        self._track_snow_cells(board)
         context = (board.pid,board.board,board.scene,board.rows)
         restarted = (self._last_decision_clock is not None and board.game_clock is not None
                      and board.game_clock < self._last_decision_clock)

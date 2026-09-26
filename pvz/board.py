@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
+import time
 
 from . import offsets as O
 from .win32 import (
@@ -154,6 +155,11 @@ class BoardState:
     spawn_upcoming: int | None = None
     spawn_upcoming_kinds: dict[int, int] | None = None
     spawnable_types: list[int] | None = None
+    # 撞车僵尸压过的积雪格（用户 2026-09-26 补充）：积雪消失前**不能种植**。
+    # agent 按撞车僵尸轨迹标记，值是"积雪融化时刻"（time.time() 秒）；
+    # 融化时长 unverified，默认 30s（zombie_traits.json 的 ice_trail_melt_s）。
+    # None = 未观测。这也解释了部分"空格却种不上去"的现象——不是 agent 的错。
+    snow_cells: dict[tuple[int, int], float] | None = None
 
     @property
     def holding_shovel(self) -> bool:
@@ -200,6 +206,15 @@ class BoardState:
 
     def zombies_in_lane(self, row: int) -> list[Zombie]:
         return [z for z in self.zombies if z.row == row and not z.friendly]
+
+    def snow_blocked(self, row: int, col: int) -> bool:
+        """撞车僵尸压过的积雪格，融化前不能种植（用户 2026-09-26 补充）。
+
+        snow_cells 由 agent 按撞车僵尸轨迹写入（值=融化时刻）；None/过期=可种。
+        未观测（None 字段）一律按可种处理 —— 方向保守：少一个候选好过乱猜。"""
+        sc = self.snow_cells or {}
+        until = sc.get((row, col))
+        return until is not None and until > time.time()
 
     def plants_in_lane(self, row: int) -> list[Plant]:
         return [p for p in self.plants if p.row == row]

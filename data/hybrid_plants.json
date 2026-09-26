@@ -326,7 +326,8 @@
         "dps_upper": 106.66666666666667,
         "coverage": "tracking",
         "stun": true,
-        "notes": "Butter probability unspecified; do not assume guaranteed stun."
+        "notes": "Butter probability unspecified; do not assume guaranteed stun. User 2026-09-26: passing through the Sunflower Queen torch column boosts damage.",
+        "torch_compatible": true
       },
       "combat_source": "user_almanac_2026-09-26"
     },
