@@ -294,7 +294,12 @@ class PlantBook:
     def save_costs(self) -> None:
         if not self.real_cost:
             return
-        save_json(self.cost_file, {str(k): v for k, v in sorted(self.real_cost.items())})
+        # 保留文件里的 _meta 来源标注（图鉴照片校准记录），别让运行时学习抹掉它
+        meta = load_json(self.cost_file, {}).get("_meta")
+        out = {str(k): v for k, v in sorted(self.real_cost.items())}
+        if meta is not None:
+            out["_meta"] = meta
+        save_json(self.cost_file, out)
 
     def set_real_cost(self, type_id: int, cost: int) -> None:
         """记录实测到的真实成本。
