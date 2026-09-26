@@ -194,3 +194,39 @@ class PlantKnowledgeTests(unittest.TestCase):
         out=self.board([PEA],[Zombie(0,0,0,x=650)])
         self.assertFalse([c for c in generate_candidates(out,self.book)
                           if c.kind=='plant' and c.type_id==PEA])  # 全列都够不着→不出候选
+
+    def test_calm_board_still_prebuilds_defence(self):
+        # 用户实测反馈：没僵尸就什么都不种不行，要预置防线保持整齐。
+        b=self.board([PEA],[],[],sun=800)          # 场上无僵尸、阳光充足
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==PEA]
+        self.assertTrue(cs)                        # 仍有预置候选
+        self.assertTrue(all(c.score<=26 for c in cs))  # 但分值低，不抢救场资源
+
+    def test_pea_prefers_behind_the_torch_queen(self):
+        # 用户技巧：豌豆穿过向日葵女王获火焰增益 → 落点选女王身后。
+        b=self.board([PEA],[Zombie(0,0,0,x=650)],[Plant(0,0,2,QUEEN)])
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==PEA]
+        self.assertTrue(cs)
+        self.assertTrue(all(c.col<2 for c in cs), f'应在女王(col2)身后，实际 {[c.col for c in cs]}')
+
+    def test_wall_overlaps_zombie_about_to_eat(self):
+        # 用户技巧：僵尸距前排植物 <=2 格时，墙允许与僵尸重叠落子，立刻拦住。
+        self.book.bind_one(321,'高冰果')
+        b=self.board([321],[Zombie(0,0,0,x=290)],[Plant(0,0,2,SUN)])  # 刚啃穿 col2
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==321]
+        self.assertTrue(cs)
+        self.assertIn(3,[c.col for c in cs])       # 直接种到僵尸所在格
+
+    def test_cheap_card_stalls_when_no_wall_ready(self):
+        # 用户策略（垫背）：危急路没有墙卡可用时，便宜植物垫在僵尸脚下拖时间。
+        b=self.board([SUN],[Zombie(0,0,0,x=110)],sun=300)
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==SUN and c.row==0]
+        self.assertTrue(cs)
+        stall=cs[0]
+        self.assertEqual(stall.col,1)              # 僵尸所在格
+        self.assertTrue(stall.emergency)
+        self.assertIn('speed bump',stall.why)

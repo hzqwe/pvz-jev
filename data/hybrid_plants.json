@@ -21,7 +21,8 @@
         "producer",
         "tracking",
         "burn_aura",
-        "shooter"
+        "shooter",
+        "torch"
       ],
       "hp": 1000,
       "cooldown_s": 30.0,
@@ -38,7 +39,8 @@
         "sun_per_25s": 150,
         "aura_dps": 40,
         "aura_radius_cells": 1,
-        "notes": "Aura only damages nearby 3x3 targets; homing fire covers the board."
+        "notes": "Torch column: peas passing through her get fire boost; 3x3 around her is immune to slow/freeze (v4.0 wiki; fire boost confirmed by user 2026-09-26). Aura only damages nearby 3x3 targets; homing fire covers the board.",
+        "torch": true
       },
       "combat_source": "user_almanac_2026-09-26"
     },

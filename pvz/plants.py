@@ -69,6 +69,7 @@ T_FREEZE_ON_DEATH = "freeze_on_death"  # 亡语释放寒冰菇效果
 T_DEATH_BOOM = "death_boom"        # 免死 + 爆炸
 T_BURN_AURA = "burn_aura"          # 灼烧周围 3x3
 T_GROWS = "grows"                  # 会成长（后期产能翻倍）
+T_TORCH = "torch"                  # 火炬柱：豌豆穿过它获火焰增益（向日葵女王）
 T_PLATFORM = "platform"
 
 # 原版系短射程植物的射程估计（格，1 格 = 80 逻辑px）。

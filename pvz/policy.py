@@ -22,7 +22,7 @@ from .plants import (
     PlantBook, PLATFORM, SUPPORT,
     T_PLATFORM, T_CHARM, T_TRACKING, T_SPLASH3, T_GLOBAL_FREEZE,
     T_SUN_ON_KILL, T_INSTANT, T_PRODUCER, T_SHOOTER, T_WALL, T_WALL_REGEN,
-    T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH,
+    T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
 from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value
@@ -132,9 +132,27 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     occ, sun = board.occupancy(), board.sun or 0
     emergency = any(f["threat_level"] == "critical" for f in facts)
     total = sum(f["zombie_count"] for f in facts)
+    # 平静期（场上没僵尸且家底够）：照常预置防线，别干等
+    # —— 用户实测反馈：僵尸没出来就什么都不种不行，要保持战场整齐。
+    calm = total == 0 and sun >= 500
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
     plan = saving_plan(board, book)
     candidates = []
+
+    # -- 兜底垫背（用户策略，2026-09-26）----------------------------------
+    # 危急路上没有墙卡可用（都在冷却/买不起）时，用便宜植物垫在僵尸脚下拖时间，
+    # 等墙卡冷却好转再正常拦截。落子允许与僵尸同格（游戏允许在无植物的空格种植）。
+    stall_lanes = []
+    if not any(T_WALL in book.tags(s.type_id) and s.ready
+               and (book.cost(s.type_id) or 10**9) <= sun for s in board.slots):
+        for f in facts:
+            if f['threat_level'] != 'critical' or f['nearest_zombie_x'] is None:
+                continue
+            r = f['lane'] - 1
+            c0 = max(0, min(board.cols - 1, int(f['nearest_zombie_x'] // 80)))
+            cell = next((c for c in (c0, c0 - 1, c0 - 2) if c >= 0 and (r, c) not in occ), None)
+            if cell is not None:
+                stall_lanes.append((r, cell))
 
     def add(slot, row, col, value, reason, covers=()):
         tags = book.tags(slot.type_id)
@@ -154,7 +172,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 value += 3 * min(near, 6)
                 reason += f' Burn aura reaches {min(near, 6)} nearby zombie(s).'
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
-                                    value, reason, tags, rescue, tuple(covers)))
+                                    min(value, 26) if calm else value,
+                                    reason, tags, rescue, tuple(covers)))
 
     for slot in board.slots:
         tid = slot.type_id
@@ -170,6 +189,17 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             continue
         if (producers < ECON_TARGET and not emergency and T_PRODUCER not in tags
                 and cost > ECON_CHEAP and sun - cost < ECON_RESERVE):
+            continue
+
+        # ---- 兜底垫背：危急路没墙可用，便宜卡垫在僵尸脚下拖时间 ----
+        if stall_lanes and cost is not None and cost <= 150 and T_WALL not in tags:
+            for r, cell in stall_lanes:
+                if (r, cell) in occ:
+                    continue
+                add(slot,r,cell,120 + facts[r]['priority']*0.4,
+                    'Sacrificial speed bump: no wall card is ready on this critical lane; '
+                    'stall the zombie with a cheap plant until a wall card is off cooldown.',
+                    [r])
             continue
 
         if T_GLOBAL_FREEZE in tags:
@@ -239,6 +269,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             for r in hot:
                 nx = facts[r]['nearest_zombie_x']
                 if nx is None:
+                    # 平静期预置：这路已有射手但没有墙 → 在射手前方预放一面墙，
+                    # 下一波来的时候防线是完整的（保持各路阵型整齐）。
+                    if calm and facts[r]['shooter_support'] > 0 and not facts[r]['blocking_walls']:
+                        spot = next((c for c in (4,5,3) if (r,c) not in occ), None)
+                        if spot is not None:
+                            add(slot,r,spot,24,
+                                'Pre-building: a wall in front of this quiet lane\'s shooters '
+                                'before the next wave arrives.',[r])
                     continue
                 if facts[r]['blocking_walls'] and facts[r]['threat_level'] != 'critical':
                     # 墙系混血的价值全在"被啃"（反伤/免死/亡语冻结都只在贴身时生效），
@@ -254,7 +292,13 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                             'Extra wall layer in front of the existing wall; wall hybrids '
                             'earn their value by being bitten (reflect/death effects).',[r])
                     continue
-                cols = [c for c in _free_cols(board,occ,r,0,5) if cell_x(c) <= nx-10]
+                # 用户技巧：僵尸马上要吃到前排植物（差距 <= 2 格）时，允许墙
+                # 直接种到僵尸所在格（重叠落子），立即拦住它、救下脆弱前排。
+                front_def = max((cell_x(p.col) for p in board.plants_in_lane(r)
+                                 if cell_x(p.col) <= nx + 40), default=None)
+                overlap = front_def is not None and nx - front_def <= 160
+                limit = nx + 40 if overlap else nx - 10
+                cols = [c for c in _free_cols(board,occ,r,0,5) if cell_x(c) <= limit]
                 if not cols:
                     continue
                 defenders = [p.col for p in board.plants_in_lane(r)
@@ -274,7 +318,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     bonus += min(10.0, profile.get('reflect_dps', 0) * 0.1)
                     extra += ' Reflects damage while being bitten.'
                 add(slot,r,col,65+facts[r]['priority']*0.8+bonus,
-                    'Intercept on the house side of the zombie; shield the surviving rear plants.'+extra,[r])
+                    'Intercept on the house side of the zombie; shield the surviving rear plants.'
+                    + (' Placed onto the zombie to block it instantly.' if overlap else '')+extra,[r])
             continue
 
         if T_PRODUCER in tags and T_SHOOTER not in tags:
@@ -290,12 +335,15 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             continue
 
         if T_SHOOTER in tags:
-            if not total:
-                continue
             tracking = T_TRACKING in tags
             rng = book.range_cells(tid)
-            for r in quiet if tracking else hot:
-                if not tracking and not facts[r]['zombie_count']:
+            # 平静期（没僵尸）：照常补火力，但只补还没有射手的路，保持阵型整齐。
+            for r in (quiet if tracking else
+                      (list(range(board.rows)) if calm else hot)):
+                if not tracking and not facts[r]['zombie_count'] and not calm:
+                    continue
+                if calm and any(book.has_tag(p.type_id, T_SHOOTER)
+                                for p in board.plants_in_lane(r)):
                     continue
                 cols = rear_cols(board,book,r)
                 if not cols:
@@ -311,14 +359,26 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                         continue
                     col = max(reach)
                 else:
-                    # Prefer middle rear cells, preserving A/B for the economy.
-                    col = min(cols,key=lambda c: abs(c-2))
+                    torch = max((p.col for p in board.plants_in_lane(r)
+                                 if book.has_tag(p.type_id, T_TORCH)), default=None)
+                    if not tracking and torch is not None:
+                        # 用户技巧：豌豆穿过向日葵女王（火炬柱）获火焰增益，
+                        # 落点优先选女王身后（更靠房子一侧）最近的空位。
+                        behind = [c for c in cols if c < torch]
+                        col = max(behind) if behind else min(cols,key=lambda c: abs(c-2))
+                    else:
+                        # Prefer middle rear cells, preserving A/B for the economy.
+                        col = min(cols,key=lambda c: abs(c-2))
                 cover = list(range(board.rows)) if tracking else [r]
                 value = 35 + max(facts[x]['priority'] for x in cover)*0.5
                 value -= facts[r]['shooter_support']*8
+                if calm:
+                    value = min(value, 24)
                 if plan and tid == plan['type_id']:
                     value += 100
-                add(slot,r,col,value,'Sustained fire from behind the wall; '+
+                why = ('Pre-building the line while the board is quiet; keeps the formation uniform.'
+                       if calm else 'Sustained fire from behind the wall; ')
+                add(slot,r,col,value,why+
                     ('covers all lanes.' if tracking else f'reinforces lane {r+1}.'),cover)
                 if tracking:
                     break
