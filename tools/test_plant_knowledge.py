@@ -254,3 +254,28 @@ class PlantKnowledgeTests(unittest.TestCase):
         suns2=[c for c in cs2 if c.kind=='plant' and c.type_id==SUN]
         self.assertTrue(wall2)
         self.assertGreater(max(c.score for c in wall2), max(c.score for c in suns2))
+
+    def test_opening_saves_for_queen_before_sunflowers(self):
+        # 用户打法：400 开局先等天上掉阳光攒女王，再持续铺向日葵。
+        b=self.board([SUN,QUEEN],[],[],sun=400)      # 无僵尸、clock=1000（宽限期内）
+        b.game_clock=500
+        cs=generate_candidates(b,self.book)
+        self.assertFalse([c for c in cs if c.kind=='plant' and c.type_id==SUN],
+                         '储蓄期不允许先铺向日葵')
+        plan=build_state(b,self.book)['saving_plan']
+        self.assertTrue(plan and plan['plant']=='Sunflower Queen')
+
+    def test_opening_queen_planted_when_affordable(self):
+        b=self.board([SUN,QUEEN],[],[],sun=650)
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==QUEEN]
+        self.assertTrue(cs and cs[0].col in (1,2))
+        d=merge_decision(None,generate_candidates(b,self.book),b,self.book)
+        self.assertEqual(d.candidate.type_id,QUEEN)   # 储蓄到账必须兑现
+
+    def test_queen_on_field_releases_sunflowers(self):
+        # 女王下场后（火炬在场），向日葵恢复正常铺设。
+        b=self.board([SUN],[Zombie(0,4,0,x=720)],[Plant(0,0,2,QUEEN)])
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==SUN]
+        self.assertTrue(cs)

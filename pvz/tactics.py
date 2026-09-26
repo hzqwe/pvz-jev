@@ -147,19 +147,25 @@ def saving_plan(board, book):
     """Reserve for a usable upgrade, but release the reserve when defence is urgent."""
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
-    # Opening option: only wait a small price gap, with no enemies and a ready card.
+    # Opening option（用户打法 2026-09-26：400 阳光开局先等天上掉阳光攒女王
+    # ——女王=产能+火力+火炬三合一，之后再持续铺向日葵）: 场上没僵尸、手里有
+    # 就绪女王时，**开局 30 秒内允许任意差价**（天上掉的阳光会补上）；超过 30 秒
+    # 仍差 >100 就放弃等待转正常运营——不能为女王把前期防线拖死。
     # Runtime prices are authoritative (some versions charge 600 rather than 500).
     if not board.zombies and producers < 4 and not any(
             book.has_tag(p.type_id,T_TORCH) for p in board.plants):
+        opening_grace = (board.game_clock or 0) < 3000
         for slot in board.slots:
             cost = book.cost(slot.type_id)
+            gap_ok = opening_grace or (board.sun or 0) >= cost-100
             if (slot.ready and book.has_tag(slot.type_id,T_TORCH)
-                    and cost is not None and (board.sun or 0) >= cost-100
+                    and cost is not None and gap_ok
                     and any(any(c in (1,2) for c in rear_cols(board,book,r)) for r in range(board.rows))):
                 return dict(type_id=slot.type_id,slot=slot.index,plant=book.en(slot.type_id),
                             cost=cost,missing_sun=max(0,cost-(board.sun or 0)),
                             utility=upgrade_value(board,book,slot.type_id),
-                            reason='Opening economy and global firepower; ready Queen with a small savings gap.')
+                            reason='Opening: save for the Sunflower Queen (producer + fighter + torch column); '
+                                   'sky-dropped sun closes the gap, then fill sunflowers behind her.')
     if producers < 4 or not any(f['zombie_count'] for f in facts) or any(
             f['threat_level'] in ('critical', 'high') for f in facts):
         return None

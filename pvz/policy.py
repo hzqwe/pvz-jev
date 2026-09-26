@@ -226,6 +226,23 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
             continue
 
+        # ---- 开局储蓄到账：女王（plan 目标）买得起就直接出高分候选 ----
+        # 正常路径给不出她（平静期压分/无僵尸不出射手候选），必须显式生成，
+        # 否则 merge 的"兑现升级"找不到候选、开局永远在等待。
+        if (plan and plan.get('slot') == slot.index
+                and (board.sun or 0) >= (plan.get('cost') or 10**9)):
+            for r in range(board.rows):
+                cols = [c for c in rear_cols(board, book, r)
+                        if c in (1, 2) and board.can_plant(r, c, tid, book)]
+                if cols:
+                    candidates.append(Candidate(
+                        '', 'plant', r, cols[0], slot.index, tid, 150,
+                        'Opening save matured: plant the Sunflower Queen now '
+                        '(producer + fighter + torch column); sunflowers follow behind her.',
+                        tags, False))
+                    break
+            continue
+
         # ---- 兜底垫背：危急路没墙可用，便宜卡垫在僵尸脚下拖时间 ----
         if (stall_lanes and cost <= 150 and T_WALL not in tags
                 and not any(t in tags for t in (T_INSTANT,T_GLOBAL_FREEZE,T_TEMPORARY))):
