@@ -626,16 +626,20 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         biters = [z for z in board.zombies_in_lane(p.row)
                   if z.x is not None and z.x <= cell_x(p.col) + 48]
         bite_dps = max([book.zombie_trait(z.type_id, 'eat_dps') or 100 for z in biters] or [100])
-        # a) 快被啃死：血量 <= 一个决策周期(约3s)的啃食量，且确实有嘴在啃
-        if (p.recently_eaten and p.hp is not None and biters
-                and p.hp <= bite_dps * 3):
+        # a) 快被啃死：有嘴贴身就认（recently_eaten 是个约 1s 的短倒计时位，
+        #    决策采样经常错过 —— 2026-09-26 夜战实测 44 次被啃只抓到 6 次），
+        #    血量 ≤ 最快啃食速度×4s 触发；≤×1.5s 升级 emergency（这轮不铲下轮
+        #    就没了，救场覆盖要能选中它）。
+        if biters and p.hp is not None and p.hp <= bite_dps * 4:
+            dying = p.hp <= bite_dps * 1.5
             candidates.append(Candidate(
                 '', 'shovel', p.row, p.col, -1, p.type_id,
-                120 + f["priority"] * 0.5,
-                (f'Salvage shovel: it is being eaten and only about {p.hp} hp is left '
+                (170 if dying else 120) + f["priority"] * 0.5,
+                (f'Salvage shovel: zombies are chewing it and only about {p.hp} hp is left '
                  f'(biters chew ~{bite_dps:.0f}/s here) - shoveling refunds sun instead '
                  'of letting zombies destroy it for nothing. Do this immediately.'),
-                book.tags(p.type_id), f["threat_level"] == "critical", (p.row,),
+                book.tags(p.type_id),
+                f["threat_level"] == "critical" or dying, (p.row,),
                 salvage=True, hp=p.hp,
             ))
         # b) 压扁前预铲：撞车僵尸两格内的前排不可防撞植物（还没被啃到）
@@ -820,6 +824,28 @@ def board_active(board) -> bool:
     执行层另有时钟闸兜底。
     """
     return board.clock_advancing is not False
+
+
+def adapt_stale_candidate(candidate, board, book, bad_cells=None):
+    """执行前发现原候选过期时，在同一路的**新快照**里找同类候选顶上。
+
+    为什么需要：决策到执行隔 1~6s，僵尸移动会让"同一个键"的候选消失
+    （墙的拦截列随僵尸前移、格子被占、卡冷却……）。第二局实测 36 次
+    stale_action 浪费了三分之一的决策周期 —— 模型选的意图是"用这张卡守
+    这条路"，落点允许代码按新战场适配：同卡、同路、合法，就执行新落点。
+    只对种植类候选适配；铲子候选的键失效=目标植物没了，适配没有意义。
+    """
+    if (candidate is None or candidate.kind != 'plant' or candidate.row < 0
+            or board is None or not board.ok or not board_active(board)):
+        return None
+    fresh = [c for c in generate_candidates(board, book)
+             if c.kind == 'plant' and c.type_id == candidate.type_id
+             and c.row == candidate.row
+             and not (bad_cells and (c.type_id, c.row, c.col) in bad_cells)]
+    if not fresh:
+        return None
+    fresh.sort(key=lambda c: (abs(c.col - candidate.col), -c.score))
+    return fresh[0]
 
 
 def escalate_emergency(candidate, board, book, bad_cells=None):

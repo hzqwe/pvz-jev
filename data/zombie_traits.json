@@ -8,23 +8,25 @@
       "但**杂交版可能就地替换 id**（植物层就发生过）。标记 confirmed 的才可信；",
       "其余是按原版 id 推定的候选，实战里用决策日志的 zombie_type_N 对照确认后更新。",
       "确认方法：tools/look.py 或决策日志里看该类型出现时的行为（压扁=crush、",
-      "驻停射击=ranged、啃得快=eat_dps 高），然后回填本文件并加 confirmed: true。"
+      "驻停射击=ranged、啃得快=eat_dps 高），然后回填本文件并加 confirmed: true。",
+      "2026-09-26 夜战回填：type 5=冰车读报（压扁植物）、type 7=橄榄球（armor 3000）已按实测确认。"
     ]
   },
   "types": {
     "5": {
-      "name_hint": "newspaper/读报（杂交版可能与冰车融合为『冰车读报僵尸』）",
+      "name_hint": "newspaper-truck / 冰车读报僵尸（2026-09-26 夜战实测：body 至 1350 + armor 500）",
+      "crush": true,
       "speed_px_s": 10,
-      "note": "读报僵尸被激怒后加速；用户报告融合型会直接压扁植物（crush 待确认）",
-      "confirmed": false
+      "confirmed": true,
+      "note": "用户 2026-09-26 确认会直接压扁植物；撞防撞墙（雷果子/高冰果）会爆胎"
     },
     "7": {
-      "name_hint": "football/橄榄球（用户报告的黑橄榄球更快，id 待确认）",
+      "name_hint": "football/橄榄球（2026-09-26 夜战实测 armor 3000，与图鉴橄榄球吻合）",
       "eat_dps": 150,
       "speed_px_s": 12,
       "tanky": true,
       "note": "用户 2026-09-26：黑橄榄球啃食和移动都比别的僵尸快",
-      "confirmed": false
+      "confirmed": true
     },
     "12": {
       "name_hint": "zomboni/冰车",

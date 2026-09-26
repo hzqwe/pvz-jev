@@ -251,8 +251,15 @@ def relocation_target(board, book, source):
     options=[]
     snow=getattr(board,'snow_cells',None) or {}
     now=time.time()
+    # 2026-09-26 夜战教训：非防撞墙绝不能搬进撞车路 —— 冰车读报会把它直接
+    # 压扁（回收高坚果 7000+ 血也是一压就没）。只有防撞墙（雷果子/高冰果）
+    # 才允许进撞车路当路障。
+    src_anti = bool(book.combat(source.type_id).get('crush_hits')
+                    or book.combat(source.type_id).get('lethal_hit_burst'))
     for r in range(board.rows):
         f=lane_facts(board,r,book)
+        if f['crush_zombies'] and not src_anti:
+            continue
         nx=f['nearest_zombie_x']
         for c in range(board.cols):
             if (r,c)==source.cell or (r,c) in board.top_occupancy(book):

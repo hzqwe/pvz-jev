@@ -109,12 +109,16 @@ class StrategyTests(unittest.TestCase):
         self.assertEqual({c.type_id for c in self.choices(b)}, {PEA, STRONG})
 
     def test_execute_does_not_click_stale_occupied_cell(self):
+        # 2026-09-26 修订：原目标格被占时优先"同卡同路适配"到新合法落点
+        # （adapt_stale_candidate）；只有当同路再无同类候选时才作废为
+        # stale_action —— 两种情况都绝不能点击已占用的格子。
         from pvz.agent import PvZJevAgent, AgentConfig, AgentStats
         b = self.board([PEA], [Zombie(0, 0, 0, x=650)])
         cs = generate_candidates(b, self.book)
         decision = merge_decision(None, cs, b, self.book)
         c = decision.candidate
-        fresh = self.board([PEA], b.zombies, [Plant(0,c.row,c.col,SUN)])
+        # 整行占满 -> 同路再无 PEA 候选 -> 只能作废
+        fresh = self.board([PEA], b.zombies, [Plant(0, 0, col, SUN) for col in range(9)])
         fresh.game_clock = 1100
         agent = PvZJevAgent.__new__(PvZJevAgent)
         agent.book, agent.cfg, agent.stats = self.book, AgentConfig(dry_run=False,verbose=False), AgentStats()

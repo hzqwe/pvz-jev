@@ -135,18 +135,76 @@ class AdvancedThreatTests(unittest.TestCase):
                           if c.kind == 'shovel'], '防撞植物不应被预铲')
 
     def test_fast_eater_shrinks_salvage_window(self):
-        # 黑橄榄球类（traits: eat_dps=150）：血量 350 撑不过 3s -> 应该铲
+        # 黑橄榄球类（traits: eat_dps=150）：血量 450 时快 eater 撑不过 4s -> 铲；
+        # 普通速度(100/s)下 450 血还能撑 >4s -> 不铲
         z = Zombie(0, 0, FAST_Z, x=280)
         b = self.board([PEA], [z],
-                       [Plant(0, 0, 3, PEA, hp=350, recently_eaten=True)], sun=50)
+                       [Plant(0, 0, 3, PEA, hp=450, recently_eaten=True)], sun=50)
         cs = [c for c in generate_candidates(b, self.book)
               if c.kind == 'shovel' and c.salvage]
-        self.assertTrue(cs, '快速啃食者面前 350 血(≤150*3)也应触发抢救')
+        self.assertTrue(cs, '快速啃食者面前 450 血(≤150*4)也应触发抢救')
         slow = self.board([PEA], [Zombie(0, 0, 0, x=280)],
-                          [Plant(0, 0, 3, PEA, hp=350, recently_eaten=True)], sun=50)
+                          [Plant(0, 0, 3, PEA, hp=450, recently_eaten=True)], sun=50)
         self.assertFalse([c for c in generate_candidates(slow, self.book)
                           if c.kind == 'shovel' and c.salvage],
-                         '普通啃食速度(100/s)下 350 血还能撑 >3s，不铲')
+                         '普通啃食速度(100/s)下 450 血还能撑 >4s，不铲')
+
+    def test_salvage_does_not_need_the_blinking_eaten_flag(self):
+        # recently_eaten 是约 1s 的短倒计时位，采样经常错过（夜战实测 44 次被啃
+        # 只抓到 6 次）：贴身+低血就必须触发，不能等那个标志位。
+        z = Zombie(0, 0, 0, x=280)
+        b = self.board([PEA], [z],
+                       [Plant(0, 0, 3, PEA, hp=300, recently_eaten=False)], sun=50)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'shovel' and c.salvage]
+        self.assertTrue(cs, '贴身+血量≤咬速×4 时即使没采样到 eaten 位也应触发')
+
+    def test_dying_salvage_escalates_to_emergency(self):
+        z = Zombie(0, 0, 0, x=280)
+        b = self.board([PEA], [z],
+                       [Plant(0, 0, 3, PEA, hp=120, recently_eaten=True)], sun=50)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'shovel' and c.salvage]
+        self.assertTrue(cs and cs[0].emergency, '≤咬速×1.5s 的抢救应升级 emergency')
+
+    def test_relocation_never_targets_crush_lane_with_plain_wall(self):
+        # 夜战教训：回收高坚果（非防撞）被搬进撞车路 = 白给（7000 血一压就没）。
+        # 撞车路必须从非防撞墙的换位目标里排除；防撞墙可以进（撞它爆胎）。
+        from pvz.tactics import relocation_target
+        src = Plant(0, 1, 2, 320, hp=7300)           # 回收高坚果在撞车路（lane 2）
+        b = self.board([], [Zombie(0, 1, 5, x=500)], [src], sun=1000)
+        dest = relocation_target(b, self.book, src)
+        if dest is not None:
+            self.assertNotEqual(dest[0], 1, '非防撞墙的换位目标不能是撞车路')
+        anti = Plant(0, 1, 2, 421, hp=7300)          # 高冰果（crush_hits）可以进
+        b2 = self.board([], [Zombie(0, 1, 5, x=500)], [anti], sun=1000)
+        dest2 = relocation_target(b2, self.book, anti)
+        self.assertIsNotNone(dest2, '防撞墙应有换位选择（含撞车路）')
+
+    def test_adapt_stale_candidate_to_fresh_column(self):
+        from pvz.policy import adapt_stale_candidate
+        # 原候选 PEA@r0c3，快照里 c3 被占、同路 c4 可种 -> 适配到 c4
+        b1 = self.board([PEA], [Zombie(0, 0, 0, x=500)])
+        cands = [c for c in generate_candidates(b1, self.book)
+                 if c.kind == 'plant' and c.type_id == PEA]
+        pending = cands[0]
+        b2 = self.board([PEA], [Zombie(0, 0, 0, x=440)],
+                        [Plant(0, 0, pending.col, PEA)])
+        fresh = generate_candidates(b2, self.book)
+        self.assertTrue(any(c.type_id == PEA and c.row == 0 for c in fresh))
+        adapted = adapt_stale_candidate(pending, b2, self.book)
+        self.assertIsNotNone(adapted)
+        self.assertEqual(adapted.type_id, PEA)
+        self.assertEqual(adapted.row, 0)
+        self.assertNotEqual(adapted.col, pending.col)
+
+    def test_adapt_returns_none_when_no_same_type_candidate(self):
+        from pvz.policy import adapt_stale_candidate
+        b1 = self.board([PEA], [Zombie(0, 0, 0, x=500)])
+        pending = next(c for c in generate_candidates(b1, self.book)
+                       if c.kind == 'plant' and c.type_id == PEA)
+        empty = self.board([PEA], [], [Plant(0, 0, 2, PEA), Plant(1, 0, 3, PEA)])
+        self.assertIsNone(adapt_stale_candidate(pending, empty, self.book))
 
     # -- 事务：salvage 走完整铲子链路 --------------------------------------
     def test_salvage_transaction_removes_plant(self):

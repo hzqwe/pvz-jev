@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
-from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, escalate_emergency
+from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, escalate_emergency, adapt_stale_candidate
 from .serialize import COL_LABEL, build_state, render_text
 from .tactics import cell_x
 from .transactions import run_transaction
@@ -528,6 +528,12 @@ class PvZJevAgent:
             self.book.min_cost_ts.clear()
             self._geometry_error = None
             self._terrain_context = context
+            if restarted:
+                # ★ 新一局：行为观测的短期状态全部作废 —— 上一局的僵尸驻停
+                #   记录和积雪格对新局毫无意义；带着它们开局会把新局当旧局处理
+                #   （用户 2026-09-26 报告"第二局像降智商"的嫌疑之一）。
+                self._zombie_track.clear()
+                self._snow_cells.clear()
         state = build_state(board, self.book)
         cands = generate_candidates(board, self.book)
         # 过滤掉"刚试过、落不下去"的格子（见 execute() 里 _bad_cells 的说明）。
@@ -674,10 +680,32 @@ class PvZJevAgent:
         #    ⚠️ 位置很关键：必须在**任何注入之前** —— 包括下面 `cancel_seed`
         #    那一下右键。只要时钟没走，就连一条鼠标消息都不往游戏里塞。
         chk = self.reader.read()
-        if ((chk.pid, chk.board, chk.level, chk.scene, chk.rows) != (board.pid, board.board, board.level, board.scene, board.rows)
-                or not action_is_current(cand, chk, self.book)):
-            record["executed"] = {"kind": "stale_action", "note": "战场或卡槽已变化，重新决策后再操作"}
-            return
+        context_same = ((chk.pid, chk.board, chk.level, chk.scene, chk.rows)
+                        == (board.pid, board.board, board.level, board.scene, board.rows))
+        if not context_same or not action_is_current(cand, chk, self.book):
+            # 过期候选先尝试**同卡同路适配**（第二局实测 36 次 stale 浪费了
+            # 三分之一决策周期 —— 僵尸移动让原落点失效，但"用这张卡守这条路"
+            # 的意图还在，落点交给代码按新快照重选）。
+            adapted = (adapt_stale_candidate(cand, chk, self.book,
+                                             getattr(self, '_bad_cells', None))
+                       if context_same else None)
+            if adapted is not None:
+                note = (f"Stale candidate adapted to the fresh board: "
+                        f"{self.book.en(adapted.type_id)} r{adapted.row + 1}"
+                        f"{COL_LABEL[adapted.col] if 0 <= adapted.col < len(COL_LABEL) else adapted.col}.")
+                dec.candidate = adapted
+                dec.action_id = adapted.cid
+                dec.fallback = True
+                dec.notes.append(note)
+                cand = adapted
+                record.setdefault("decision", {})["action_id"] = adapted.cid
+                record["decision"]["chosen"] = adapted.describe(self.book)
+                record["decision"]["fallback"] = True
+                if self.cfg.verbose:
+                    print(f"  ♻️ {note}")
+            else:
+                record["executed"] = {"kind": "stale_action", "note": "战场或卡槽已变化，重新决策后再操作"}
+                return
         if (chk.game_clock is None or board.game_clock is None
                 or chk.game_clock == board.game_clock):
             self.stats.input_ignored += 1
@@ -696,7 +724,7 @@ class PvZJevAgent:
         #    这几秒里可能已经 critical（僵尸每秒走 8px，一个周期就是 40~80px）。
         #    用刚读到的 chk 重算 lane_facts，出现危急路且原动作不是救场时，
         #    直接改交救场候选 —— 不让"过期威胁"骗过执行层。
-        esc = escalate_emergency(cand, chk, self.book, self._bad_cells)
+        esc = escalate_emergency(cand, chk, self.book, getattr(self, '_bad_cells', None))
         if esc is not None:
             note = (f"Execution-time re-eval: a lane just turned critical; "
                     f"switched to rescue ({self.book.en(esc.type_id)} r{esc.row + 1}"
