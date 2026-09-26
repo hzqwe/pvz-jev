@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 from .board import BoardState
 from .plants import (
@@ -91,6 +92,13 @@ class Candidate:
             return (
                 f"Shovel up \"{book.en(self.type_id)}\" at lane {self.row + 1}, column {col} "
                 f"({hp_txt}) and take it back as a seed card. Reason: {self.why}"
+            )
+        if self.kind == "pick":
+            col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
+            return (
+                f"Pick up the dropped \"{book.en(self.type_id)}\" seed card lying on the "
+                f"lawn at lane {self.row + 1}, column {col}, then replant it at a valid "
+                f"spot. Reason: {self.why}"
             )
         col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
         cost = book.cost(self.type_id)
@@ -698,6 +706,28 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 salvage=True, hp=behind.hp,
             ))
 
+    # -- 拾回掉落卡（2026-09-26 新增）--------------------------------------
+    # 回收事务被对局中断/回收后没拾起时，铲掉的墙会以卡片形式躺在草坪上。
+    # 没有这个候选它就一直丢在那（夜战实测两次 source_removed 后中断）。
+    # 前提：手是空的、卡是已登记植物、且有合法落点（撞车路/积雪/占用已由
+    # relocation_target 排除）——条件不满足就不出候选，宁可躺着也不空手乱点。
+    if not board.holding:
+        for d in board.dropped_seeds:
+            if d.type_id not in book.kb_by_id or book.has_tag(d.type_id, T_PLATFORM):
+                continue
+            row = max(0, min(board.rows - 1, int((d.y + d.height / 2 - 80) // 100)))
+            col = max(0, min(board.cols - 1, int((d.x + d.width / 2 - 40) // 80)))
+            pseudo = SimpleNamespace(cell=(row, col), type_id=d.type_id, row=row, col=col)
+            if relocation_target(board, book, pseudo) is None:
+                continue
+            candidates.append(Candidate(
+                '', 'pick', row, col, -1, d.type_id,
+                90, (f'A {book.en(d.type_id)} seed card is lying on the lawn at lane '
+                     f'{row+1}, column {col+1} (an interrupted recovery left it there). '
+                     'Pick it up and replant it at a valid spot.'),
+                book.tags(d.type_id), False, (row,),
+            ))
+
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
     selected, seen, counts = [], set(), {}
@@ -894,7 +924,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             valid.append(c)
     wait = next((c for c in valid if c.kind == 'wait'), Candidate('WAIT','wait'))
     # 铲子和种植是同一层"可执行动作"，一起参与择优与救场覆盖。
-    plants = sorted((c for c in valid if c.kind in ('plant', 'shovel')),
+    plants = sorted((c for c in valid if c.kind in ('plant', 'shovel', 'pick')),
                     key=lambda c:(not c.emergency,-c.score))
     best = plants[0] if plants else wait
     emergency = next((c for c in plants if c.emergency),None)

@@ -244,24 +244,31 @@ def detect(recs: list[dict]) -> list[dict]:
             f"{len(offslot)} 次点击拿起了别的卡（光标证据）",
             "卡条坐标偏移信号：重跑 tools/measure_layout.py 并肉眼复核 card_center")
 
-    # 8) 铲掉换阳光：返还校验（用户技巧 2026-09-26：铲植物应返还阳光）
+    # 8) 铲掉换阳光：返还校验（2026-09-26 夜战结论：返还**落在草坪上要拾取**，
+    #    即时读数为 0 是常态 —— 所以这里只报"阳光反而变少"的真异常）
     salvs = [rec for rec in recs
              if _g(rec, "executed", "kind") == "salvaged"
              and _g(rec, "executed", "completed") is True]
     if salvs:
-        no_refund = []
+        losses = []
         for rec in salvs:
             steps = _g(rec, "executed", "steps") or []
             last = steps[-1] if steps else {}
             before, after = last.get("sun_before"), last.get("sun_after")
-            if before is not None and after is not None and after <= before:
-                no_refund.append(f"{rec.get('iso', '?')} 铲前{before}/铲后{after}")
-        if no_refund:
-            add("high", "铲掉换阳光没有返还阳光",
-                f"{len(no_refund)}/{len(salvs)} 次 salvage 后阳光没有增加："
-                + "；".join(no_refund[:4]),
-                "先确认这版游戏铲植物是否真的返阳光（铲掉一棵满血植物对照）；"
-                "若返还属实，检查 salvage 事务是否铲到了别的目标（看 steps 的 cell）")
+            if before is not None and after is not None and after < before - 25:
+                losses.append(f"{rec.get('iso', '?')} 铲前{before}/铲后{after}")
+        if losses:
+            add("high", "salvage 后阳光反而变少（铲错目标或返还丢失）",
+                f"{len(losses)}/{len(salvs)} 次 salvage 阳光下降超 25："
+                + "；".join(losses[:4]),
+                "看 steps 的 cell 是否铲到了别的植物；若目标正确，检查返还掉落"
+                "是否被 SunTracker 抑制没能拾取（salvage 后应 forgive 该格）")
+        elif salvs:
+            add("medium", "salvage 已启用（返还为草坪拾取，即时读数≈0 属正常）",
+                f"{len(salvs)} 次 salvage，即时阳光差普遍为 0 —— 返还是草坪掉落物，"
+                "由收阳光流程拾取；确认下一两拍阳光有上涨即为健康",
+                "长期目标：若 coin 池验证阳光在内存中，可改为内存驱动拾取，"
+                "返还即时入账且零漏收")
 
     return findings
 

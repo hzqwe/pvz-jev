@@ -277,6 +277,19 @@ class SunTracker:
         self._banned_until = {k: t for k, t in self._banned_until.items() if t > now}
         return set(self._banned_until)
 
+    def forgive_cell(self, row: int, col: int, layout) -> None:
+        """解除某格周围 3x3 的假阳性抑制（2026-09-26）。
+
+        用途：铲掉换阳光的返还**落在草坪上要拾取**（夜战实测 9 次 salvage
+        5 次即时读数为 0），而该格之前很可能因"点到植物贴图没涨阳光"被
+        计入抑制 —— 不解除的话，返还的阳光会在抑制期内烂掉。"""
+        cx, cy = layout.cell_center(row, col)
+        k = self.key_of(cx, cy)
+        for dk in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1),
+                   (1, 1), (1, -1), (-1, 1), (-1, -1)):
+            self._miss.pop((k[0] + dk[0], k[1] + dk[1]), None)
+            self._banned_until.pop((k[0] + dk[0], k[1] + dk[1]), None)
+
     def feedback(self, hits: list[tuple[int, int]], gained: int | None,
                  per_sun: int = 25) -> None:
         if gained is None or not hits:

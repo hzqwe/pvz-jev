@@ -753,6 +753,17 @@ class PvZJevAgent:
         if cand.kind == "shovel":
             self._execute_shovel(cand, record, board)
             return
+        if cand.kind == "pick":
+            # 拾回草坪上的掉落卡（回收事务被中断的补救，2026-09-26）
+            result = run_transaction(self, board, pick=cand)
+            record["executed"] = result
+            if result['completed']:
+                self.stats.executed += 1
+                if self.cfg.verbose:
+                    print(f"  🃏 已拾回掉落卡 {self.book.en(cand.type_id)} 并重新种上")
+            else:
+                self.stats.failed_actions += 1
+            return
 
         # 1) 清空"手持种子"状态
         self.clicker.cancel_seed("pre-action reset")
@@ -878,6 +889,18 @@ class PvZJevAgent:
         after = self.reader.read()
         target = (cand.row, cand.col)
         placed, misplaced = placement_delta(mid,after,cand.type_id,cand.row,cand.col)
+        if not placed:
+            # ★★ 二次确认（2026-09-26 夜战 22:50:13 教训）：回收高坚果扣了 125
+            #    游戏里也种上了，但 placement_delta 没看见（对象槽 index 复用/
+            #    读取时序）—— 误记失败 + 目标格被误拉黑 45s + 成本没学进去。
+            #    目标格上出现同类植物即为种上，比 index 追踪更本质。
+            time.sleep(0.45)
+            after2 = self.reader.read()
+            if after2.ok and any(p.cell == target and p.type_id == cand.type_id
+                                 for p in after2.plants):
+                placed = True
+                after = after2
+                misplaced = False
         if misplaced and not placed:
             self._geometry_error = geometry
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。

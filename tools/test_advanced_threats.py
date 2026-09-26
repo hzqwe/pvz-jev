@@ -206,6 +206,59 @@ class AdvancedThreatTests(unittest.TestCase):
         empty = self.board([PEA], [], [Plant(0, 0, 2, PEA), Plant(1, 0, 3, PEA)])
         self.assertIsNone(adapt_stale_candidate(pending, empty, self.book))
 
+
+class PickDropTests(unittest.TestCase):
+    """拾回掉落卡（2026-09-26）：回收事务被中断后，卡躺在草坪上必须能捡回来。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        self.assertTrue(self.book.bind_one(320, '回收高坚果'))
+
+    def board(self, zombies=(), plants=(), sun=1000, drops=(), holding=False):
+        b = BoardState(ok=True, sun=sun, rows=5, cols=9, game_clock=1000,
+                       slots=[], plants=list(plants), zombies=list(zombies),
+                       dropped_seeds=list(drops), holding=holding)
+        return b
+
+    def test_pick_candidate_for_stranded_seed(self):
+        from pvz.board import DroppedSeed
+        b = self.board(drops=[DroppedSeed(0, 320, x=445, y=185, width=50, height=70)])
+        cs = [c for c in generate_candidates(b, self.book) if c.kind == 'pick']
+        self.assertTrue(cs, '草坪上有掉落卡应给出拾回候选')
+        self.assertEqual((cs[0].row, cs[0].col), (1, 5))
+        self.assertIn('lying on the lawn', cs[0].describe(self.book))
+
+    def test_no_pick_when_holding_or_no_destination(self):
+        from pvz.board import DroppedSeed
+        drop = [DroppedSeed(0, 320, x=445, y=185, width=50, height=70)]
+        self.assertFalse([c for c in generate_candidates(
+            self.board(drops=drop, holding=True), self.book) if c.kind == 'pick'],
+            '手上有东西时不出拾回候选')
+        # 五路全是撞车僵尸：非防撞卡无合法落点 -> 不出候选（宁躺不乱点）
+        crushes = [Zombie(i, i, 5, x=500) for i in range(5)]
+        self.assertFalse([c for c in generate_candidates(
+            self.board(zombies=crushes, drops=drop), self.book) if c.kind == 'pick'])
+
+    def test_pick_drop_transaction_replants(self):
+        from pvz.board import DroppedSeed
+        from pvz.transactions import run_transaction
+        from pvz.ui import Layout
+        from test_transactions import FakeGame
+        g = FakeGame()
+        g.state.plants = []
+        g.state.dropped_seeds = [DroppedSeed(0, 161, x=100, y=150, width=50, height=70)]
+        book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        self.assertTrue(book.bind_one(161, '回收高坚果'))
+        agent = FakeGameAgent(g, book)
+        c = Candidate('x', 'pick', 1, 1, type_id=161)
+        with patch('pvz.transactions.time.sleep'):
+            result = run_transaction(agent, g.read(), pick=c)
+        self.assertTrue(result['completed'], result)
+        self.assertEqual(result['kind'], 'pick_drop')
+        self.assertTrue(any(p.type_id == 161 for p in g.state.plants),
+                        '拾回的卡应重新种上')
+        self.assertFalse(g.state.dropped_seeds, '掉落卡应消失')
+
     # -- 事务：salvage 走完整铲子链路 --------------------------------------
     def test_salvage_transaction_removes_plant(self):
         g = FakeGame()

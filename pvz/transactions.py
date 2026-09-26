@@ -1,5 +1,6 @@
 """Short verified input transactions; never call Jev or collect sun between steps."""
 import time
+from types import SimpleNamespace
 from .board import placement_delta
 from .tactics import cell_x,relocation_target
 
@@ -10,9 +11,9 @@ class PlantTransaction:
     def __init__(self,agent,board):
         self.agent=agent;self.board=board;self.steps=[]
         self.identity=(board.pid,board.board,board.scene,board.rows)
-    def read(self,predicate=lambda b:True):
+    def read(self,predicate=lambda b:True,tries=6):
         previous=self.board.game_clock
-        for _ in range(6):
+        for _ in range(tries):
             time.sleep(.12)
             b=self.agent.reader.read()
             if not b.ok or (b.pid,b.board,b.scene,b.rows)!=self.identity:
@@ -108,7 +109,7 @@ class PlantTransaction:
         def find_drop(b):
             return next((d for d in b.dropped_seeds if d.type_id==source.type_id
                          and (d.index,d.type_id) not in old_drops),None)
-        self.read(lambda b:find_drop(b) is not None)
+        self.read(lambda b:find_drop(b) is not None,tries=20)
         drop=find_drop(self.board)
         x,y=self.agent.layout.dropped_seed_center(drop)
         if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
@@ -117,6 +118,32 @@ class PlantTransaction:
         self.read(lambda b:b.held_cursor==2 and b.held_type==source.type_id)
         self.steps.append({'step':'recovered_seed_in_hand','type_id':source.type_id})
         self.place_held(source.type_id,row,col)
+
+    def pick_drop(self,candidate):
+        """拾回草坪上的掉落卡（2026-09-26 新增）：回收事务被对局中断时，
+        已铲掉的墙会以卡片形式躺在草坪上 —— 没有这一步它就一直丢在那
+        （夜战实测两次 source_removed 后中断，7000 血墙 stranded）。"""
+        self.read()
+        drop=next((d for d in self.board.dropped_seeds if d.type_id==candidate.type_id),None)
+        if drop is None:
+            raise TransactionStopped('Dropped seed is gone')
+        self.agent.clicker.cancel_seed('pre-pick reset')
+        self.read(lambda b:not b.holding,tries=14)
+        drop=next((d for d in self.board.dropped_seeds if d.type_id==candidate.type_id),None)
+        if drop is None:
+            raise TransactionStopped('Dropped seed vanished after reset')
+        x,y=self.agent.layout.dropped_seed_center(drop)
+        if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
+            raise TransactionStopped('Dropped card outside client')
+        self.agent.clicker.click_client(x,y,'pick dropped seed')
+        self.read(lambda b:b.held_cursor==2 and b.held_type==candidate.type_id,tries=14)
+        self.steps.append({'step':'dropped_seed_in_hand','type_id':candidate.type_id})
+        # 落点：优先 relocation_target（撞车路/积雪/占用都已排除）；
+        # 没有就回原格（卡片躺着的格子本来就是合法位置之一）。
+        pseudo=SimpleNamespace(cell=(candidate.row,candidate.col),
+                               type_id=candidate.type_id,row=candidate.row,col=candidate.col)
+        dest=relocation_target(self.board,self.agent.book,pseudo) or (candidate.row,candidate.col)
+        self.place_held(candidate.type_id,dest[0],dest[1])
 
     def salvage(self,candidate):
         """铲掉换阳光（用户高级技巧 2026-09-26）：植物快被啃死/即将被压扁时，
@@ -151,9 +178,15 @@ class PlantTransaction:
             # 少数植物铲掉可能附带掉卡；捡不起来就复位光标，交给用户/后续轮次。
             self.agent.clicker.cancel_seed('post-salvage reset')
             self.read(lambda b:not b.holding)
+        # 返还的阳光是**落在草坪上的拾取物**（夜战实测 9 次里 5 次即时读数为 0，
+        # 有一次 +100 其实是天上掉的）—— 解除该区域的假阳性抑制，让收阳光
+        # 流程能把这份返还捡回来，而不是被之前的误点记录压着烂掉。
+        forgive=getattr(self.agent,'sun_tracker',None)
+        if forgive is not None:
+            forgive.forgive_cell(source.row,source.col,self.agent.layout)
 
 
-def run_transaction(agent,board,*,candidate=None,followup=None):
+def run_transaction(agent,board,*,candidate=None,followup=None,pick=None):
     tx=PlantTransaction(agent,board)
     try:
         if candidate is not None:
@@ -162,6 +195,9 @@ def run_transaction(agent,board,*,candidate=None,followup=None):
                 return {'kind':'salvaged','completed':True,'steps':tx.steps}
             tx.relocate(candidate)
             return {'kind':'relocated','completed':True,'steps':tx.steps}
+        if pick is not None:
+            tx.pick_drop(pick)
+            return {'kind':'pick_drop','completed':True,'steps':tx.steps}
         tx.bank(*followup)
         return {'kind':'support_followup','completed':True,'steps':tx.steps}
     except TransactionStopped as exc:
