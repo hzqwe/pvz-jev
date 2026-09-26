@@ -9,7 +9,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import offsets as O
-from .win32 import ProcessMemory, find_pid, module_base
+from .win32 import (
+    ProcessMemory,
+    find_pid,
+    is_process_alive,
+    module_base,
+    process_name,
+)
 
 PROCESS_NAMES = [
     "PlantsVsZombies.exe",
@@ -17,6 +23,17 @@ PROCESS_NAMES = [
     "pvzHE-Launcher.exe",
     "pvzHE-Launcher",
 ]
+
+# ⚠️★ 只有这几个 exe 名才是**游戏本体**（2026-09-26 实测确认）。
+#
+# `pvzHE-Launcher.exe` 虽然也在 PROCESS_NAMES 里（工具脚本需要"看得见"它），
+# 但它是个**没有任何顶层窗口**的加载器：主模块基址 0xD30000（游戏是 0x400000），
+# 内存里没有 LawnApp。把它当游戏读的后果：
+#   * 游戏关掉后 `find_pid` 落到 launcher 上、`attach` 报成功，
+#     上层以为游戏还在；
+#   * `find_game_window(launcher_pid)` 可能找到 launcher 的窗口，
+#     完整模式下就会去动一个和游戏无关的窗口。
+GAME_EXE_NAMES = ("plantsvszombies.exe", "plantsvszombies")
 
 
 # ---------------------------------------------------------------- 数据类
@@ -41,6 +58,9 @@ class Zombie:
     type_id: int
     x: float | None = None
     phase: int | None = None
+    hp: int | None = None
+    armor_hp: int | None = None
+    friendly: bool = False
 
     @property
     def close_to_house(self) -> bool:
@@ -96,6 +116,8 @@ class BoardState:
     held_slot: int = -1
     held_type: int = -1
     notes: list[str] = field(default_factory=list)
+    # Missing key means unknown; False means a validated row has no ready mower.
+    mowers: dict[int, bool] = field(default_factory=dict)
 
     # --- 派生视图 -----------------------------------------------------
     def occupancy(self) -> dict[tuple[int, int], list[Plant]]:
@@ -114,7 +136,7 @@ class BoardState:
         ]
 
     def zombies_in_lane(self, row: int) -> list[Zombie]:
-        return [z for z in self.zombies if z.row == row]
+        return [z for z in self.zombies if z.row == row and not z.friendly]
 
     def plants_in_lane(self, row: int) -> list[Plant]:
         return [p for p in self.plants if p.row == row]
@@ -128,6 +150,17 @@ class BoardReader:
         self.pid = pid
         self.pm: ProcessMemory | None = None
         self.notes: list[str] = []
+        # ★★ 「这一轮里**曾经**成功附着到游戏本体」—— 一旦为 True 就不再变回 False。
+        #
+        # 为什么必须是**粘性**的、不能拿 `self.pid is not None` 代替（2026-09-26 实测踩过）：
+        #   `attach()` 在发现 pid 已退出时会**把 self.pid 清成 None**，
+        #   于是"游戏刚刚还在、现在没了"这个事实被抹掉了 ——
+        #   上层只看到"pid 是 None"，就分不清
+        #     (a) 游戏**从来没出现过**（该耐心等 --wait-play）
+        #     (b) 游戏**刚才还在，现在被用户关了**（该立刻干净退出）
+        #   实测 (b) 被误判成 (a)，agent 就傻等到 --wait-play 超时（默认 900s），
+        #   用户看到的就是"退出游戏后它还在那儿转"。
+        self.ever_attached = False
         self.attach()
 
     # -- 生命周期 -------------------------------------------------------
@@ -136,22 +169,78 @@ class BoardReader:
         if self.pm is not None:
             self.pm.close()
             self.pm = None
-        pid = self.pid or find_pid(PROCESS_NAMES)
+        # ⚠️★ 缓存的 pid 可能是**僵尸**（2026-09-26 实测踩过）：游戏退出后 pid
+        #    仍可枚举、OpenProcess 仍会成功，于是 attach 会"成功"并读到
+        #    **定格不动的残留内存**，上层就会一直以为游戏在跑。
+        #    ⚠️ 但**不能直接 return False**：那样等于"缓存一旦失效就再也找不回来"，
+        #    用户关掉游戏再重开（pid 变了）时 agent 就永远看不见新进程了。
+        #    正确做法：**丢掉缓存、重新按优先级查一次**。
+        pid = self.pid
+        if pid is not None and not is_process_alive(pid):
+            self.notes.append(f"缓存的 pid={pid} 已退出（僵尸）—— 重新查找")
+            pid = None
+        if pid is None:
+            pid = find_pid(PROCESS_NAMES)
         if pid is None:
             self.notes.append("未找到游戏进程（PlantsVsZombies.exe）")
+            self.pid = None
+            return False
+        # 查回来的 pid 也要复核一次（find_pid 已过滤僵尸，这里是第二道闸）
+        if not is_process_alive(pid):
+            self.notes.append(f"pid={pid} 已经退出（进程对象仍在，属于僵尸）")
+            self.pid = None
             return False
         self.pid = pid
         try:
             base = module_base(pid) or O.PVZ_IMAGE_BASE
             self.pm = ProcessMemory(pid, base=base)
-        except OSError as exc:
+        except Exception as exc:  # noqa: BLE001
+            # ⚠️ 故意捕获所有异常：`attach()` 是"试探"型函数，任何失败都只该
+            #    返回 False 让上层重试。实测踩过 —— 只捕 OSError 时，ctypes 的
+            #    ArgumentError 会直接打崩整个 agent（pid 被回收给 64 位进程时）。
             self.notes.append(str(exc))
             return False
         if self.pm.base != O.PVZ_IMAGE_BASE:
             self.notes.append(
                 f"模块基址 0x{self.pm.base:X}（非 0x{O.PVZ_IMAGE_BASE:X}），已按重定位换算"
             )
+        # ⚠️★ 光"OpenProcess 成功"不等于"找对了进程"（2026-09-26 实测）：
+        #    `pvzHE-Launcher.exe` 和游戏本体常常同时在跑，而 launcher 的内存里
+        #    当然没有 LawnApp。不加这道校验的话，游戏关掉后 `find_pid` 会落到
+        #    launcher 上、`attach` 报成功，上层却以为游戏还在 —— 而且这时
+        #    `find_game_window(launcher_pid)` 还可能找到 launcher 的窗口，
+        #    在完整模式下就会去动一个完全无关的窗口。
+        if not self._plausible_game(pid):
+            self.notes.append(
+                f"pid={pid}（{process_name(pid)}）不是游戏本体 —— 已拒绝附着"
+            )
+            self.pm.close()
+            self.pm = None
+            self.pid = None
+            return False
+        # ★ 到这里才算"真的见过游戏本体"。粘性标记，供上层区分
+        #   "从没出现过"（耐心等）和"刚才还在现在没了"（立刻退）。
+        self.ever_attached = True
         return True
+
+    def _plausible_game(self, pid: int) -> bool:
+        """判断这个 pid 到底是不是游戏本体。
+
+        两道判据，**都过才算**：
+        1. **exe 名**必须是 `PlantsVsZombies*` —— launcher 名字就对不上；
+        2. `LawnApp` 指针必须非 0 且可读（主菜单/选卡下它也存在，
+           所以这道判据是宽松的，不会把"还没进关卡"误判成"不是游戏"）。
+        """
+        name = (process_name(pid) or "").lower()
+        if name not in GAME_EXE_NAMES:
+            return False
+        pm = self.pm
+        if pm is None:
+            return False
+        try:
+            return bool(pm.u32(pm.va(O.LAWN_PTR)))
+        except Exception:  # noqa: BLE001 —— 校验失败一律当作"不是游戏"
+            return False
 
     @property
     def attached(self) -> bool:
@@ -219,6 +308,7 @@ class BoardReader:
         st.plants = self._read_plants(board)
         st.zombies = self._read_zombies(board)
         st.slots = self._read_slots(board)
+        st.mowers = self._read_mowers(board, st.rows) if st.ui == O.UI_PLAYING else {}
         self._read_cursor(board, st)
 
         st.ok = st.ui == O.UI_PLAYING
@@ -329,9 +419,48 @@ class BoardReader:
             if x is not None and not (-2000.0 < x < 5000.0):
                 x = None
             out.append(
-                Zombie(index=i, row=r, type_id=t, x=x, phase=pm.i32(a + O.Z_PHASE))
+                Zombie(index=i, row=r, type_id=t, x=x, phase=pm.i32(a + O.Z_PHASE),
+                       hp=self._health(a + O.Z_HP, a + O.Z_MAX_HP),
+                       armor_hp=self._armor_health(a),
+                       friendly=pm.u8(a + O.Z_FRIENDLY) == 1)
             )
         return out
+
+    def _health(self, address: int, max_address: int) -> int | None:
+        hp, maximum = self.pm.i32(address), self.pm.i32(max_address)
+        if hp is None or maximum is None or not (0 <= hp <= maximum <= 1000000):
+            return None
+        return hp
+
+    def _armor_health(self, address: int) -> int | None:
+        helmet = self._health(address + O.Z_HELM_HP, address + O.Z_HELM_MAX_HP)
+        shield = self._health(address + O.Z_SHIELD_HP, address + O.Z_SHIELD_MAX_HP)
+        return helmet + shield if helmet is not None and shield is not None else None
+
+    def _read_mowers(self, board: int, rows: int) -> dict[int, bool]:
+        """Validate object pool before treating absent rows as lost mowers."""
+        pm = self.pm
+        base = pm.u32(board + O.OFF_MOWER)
+        cap = pm.i32(board + O.OFF_MOWER_COUNT_MAX)
+        count = pm.i32(board + O.OFF_MOWER_COUNT)
+        if not base or cap is None or count is None or not (0 < cap <= 64 and 0 <= count <= cap):
+            return {}
+        lawn = self.lawn_app_ptr()
+        seen = {}
+        live = 0
+        for i in range(cap):
+            a = base + i * O.MOWER_STRUCT
+            if not self._slot_is_live(a, lawn, board):
+                continue
+            row, dead, state = pm.i32(a + O.M_ROW), pm.u8(a + O.OFF_MOWER_DEAD), pm.i32(a + O.M_STATE)
+            if row is None or not 0 <= row < rows or dead not in (0, 1) or state not in range(4):
+                return {}  # incompatible layout: never invent lost lanes
+            live += dead == 0
+            ready = dead == 0 and state == O.M_READY
+            seen[row] = seen.get(row, False) or ready
+        if not seen or live != count:
+            return {}
+        return {r: seen.get(r, False) for r in range(rows)}
 
     # -- 种子栏 ---------------------------------------------------------
     def _read_slots(self, board: int) -> list[SeedSlot]:

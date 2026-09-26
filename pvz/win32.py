@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ctypes
 import struct
+import threading
 import time
 from ctypes import wintypes as wt
 from dataclasses import dataclass
@@ -26,6 +27,8 @@ _p = ctypes.WinDLL("psapi", use_last_error=True)
 # ---------------------------------------------------------------- 常量
 PROCESS_VM_READ = 0x0010
 PROCESS_QUERY_INFORMATION = 0x0400
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+STILL_ACTIVE = 259
 TH32CS_SNAPPROCESS = 0x00000002
 MAX_PATH = 260
 INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
@@ -171,41 +174,84 @@ def find_pid(names: list[str]) -> int | None:
     ⚠️ 必须按 `names` 的**优先级**返回，不能按系统枚举顺序 ——
     launcher 和游戏本体常常同时在跑，谁先被 EnumProcesses 枚举到是不确定的，
     按枚举顺序取会随机选中 launcher（它的内存里当然没有 LawnApp）。
+
+    ⚠️★ 必须**跳过已经退出、但进程对象还留着的"僵尸"**（2026-09-26 实测确认）。
+    `PlantsVsZombies.exe` 退出后：
+      * pid 仍然会被 `Process32Next` 枚举到；
+      * `OpenProcess` **照样成功**（进程对象还没被回收）；
+      * 于是 `ProcessMemory` 也能建起来 → **读到的是死进程的残留内存**，
+        而且是一张**定格的快照**（时钟永远不动、`ui` 还停在 3=对局中），
+        agent 会一直以为自己在打一局永远不会变化的游戏；
+      * 更糟的是这时它还可能对着一个**正在销毁的窗口**去 `ShowWindow` /
+        `PrintWindow` —— 跨进程调用永久阻塞 → **整个卡死**。
+    判据：`GetExitCodeProcess != STILL_ACTIVE`（见 `is_process_alive`）。
+    实测那个僵尸的退出码是 1，而 `is_process_alive` 正确返回 False。
     """
     procs = list_processes()
     for name in names:
         low = name.lower()
         for pid, pname in procs:
-            if pname.lower() == low:
+            if pname.lower() == low and is_process_alive(pid):
                 return pid
     return None
 
 
+# ⚠️ 必须显式声明签名。不声明的话 ctypes 把 Python int 当 **32 位 int** 传，
+#    而 HMODULE 在 64 位进程里是 64 位指针 → 直接抛
+#    `ctypes.ArgumentError: argument 2: OverflowError: int too long to convert`。
+#    实测踩过：目标进程不是 32 位游戏时（比如 pid 被回收给了别的进程），
+#    `module_base` 会在这里炸，而 `BoardReader.attach()` 只捕获 OSError
+#    → **整个 agent 直接崩掉**，不是干净退出。
+_p.EnumProcessModules.argtypes = [
+    wt.HANDLE, ctypes.POINTER(wt.HMODULE), wt.DWORD, ctypes.POINTER(wt.DWORD)
+]
+_p.EnumProcessModules.restype = wt.BOOL
+_p.GetModuleBaseNameW.argtypes = [wt.HANDLE, wt.HMODULE, wt.LPWSTR, wt.DWORD]
+_p.GetModuleBaseNameW.restype = wt.DWORD
+
+
+def process_name(pid: int) -> str | None:
+    """按 pid 反查 exe 名。"""
+    if not pid:
+        return None
+    for p, n in list_processes():
+        if p == pid:
+            return n
+    return None
+
+
 def module_base(pid: int, module_name: str | None = None) -> int | None:
-    """取进程内某模块的加载基址；module_name 为 None 时取主模块。"""
+    """取进程内某模块的加载基址；module_name 为 None 时取主模块。
+
+    ⚠️ 取不到一律返回 None，**绝不往上抛** —— 上层拿它做"试探"，
+    这里抛异常会把整个 agent 打崩。
+    """
     h = _k.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
     if not h:
         return None
     try:
         arr = (wt.HMODULE * 1024)()
         needed = wt.DWORD()
-        if not _p.EnumProcessModules(h, ctypes.byref(arr), ctypes.sizeof(arr), ctypes.byref(needed)):
+        if not _p.EnumProcessModules(h, arr, ctypes.sizeof(arr), ctypes.byref(needed)):
             return None
-        count = needed.value // ctypes.sizeof(wt.HMODULE)
+        count = min(needed.value // ctypes.sizeof(wt.HMODULE), 1024)
         for i in range(count):
+            base = arr[i]
+            if not base:
+                continue
             buf = ctypes.create_unicode_buffer(MAX_PATH)
-            _p.GetModuleBaseNameW(h, arr[i], buf, MAX_PATH)
+            _p.GetModuleBaseNameW(h, base, buf, MAX_PATH)
             if module_name is None or buf.value.lower() == module_name.lower():
-                info = ctypes.c_void_p()
-                if _p.GetModuleInformation(
-                    h, arr[i], ctypes.byref(ctypes.c_void_p()), 0
-                ):
-                    pass
-                # 直接用 HMODULE 值作为基址（PE 模块句柄 == 基址）
-                return int(arr[i]) if arr[i] else None
+                # PE 模块句柄 == 加载基址
+                return int(base)
+        return None
+    except (OSError, ctypes.ArgumentError, ValueError, OverflowError):
         return None
     finally:
-        _k.CloseHandle(h)
+        try:
+            _k.CloseHandle(h)
+        except Exception:
+            pass
 
 
 class ProcessMemory:
@@ -300,6 +346,25 @@ def list_windows(pid: int | None = None) -> list[WindowInfo]:
 
 
 def _make_window_info(hwnd: int, pid: int) -> WindowInfo | None:
+    # ⚠️ 已经卡住的窗口连"查询"都不要做：`GetWindowRect` / `GetClientRect`
+    #    是跨进程调用，对 hung 窗口同样可能阻塞。宁可直接跳过这个窗口。
+    if is_hung_window(hwnd):
+        return None
+    # ★★ 硬护栏（2026-09-26）：**窗口所属进程已经退出 → 直接当作不存在**。
+    #
+    # 为什么放在这里、而不是散在各个调用点上：这里是 `WindowInfo` 的**唯一产地**
+    # （`list_windows` → `_make_window_info`），所有窗口操作都要先拿到一个
+    # WindowInfo。把闸设在这里，等于**从结构上**保证：
+    #   agent 永远不可能拿到"属于一个正在退出的进程"的 hwnd，
+    #   于是 `ShowWindow` / `SetForegroundWindow` / `PrintWindow` 这些
+    #   会**无限阻塞**的跨进程同步调用，根本没有机会被发出去。
+    #
+    # 这是"用户退出游戏后整个卡死、连任务管理器都退不出去"那道故障的**根治**：
+    # 前面几层（3s 超时护栏、is_stuck 拉黑、各调用点的 is_process_alive 门）
+    # 都是"调用前检查"，只要有一条路径漏检就还会卡；这一层是"根本拿不到句柄"。
+    if not is_process_alive(pid):
+        return None
+
     cls = ctypes.create_unicode_buffer(256)
     _u.GetClassNameW(hwnd, cls, 256)
     title = ctypes.create_unicode_buffer(512)
@@ -376,24 +441,132 @@ def post_rclick(hwnd: int, x: int, y: int, settle: float = 0.05) -> None:
 SW_RESTORE = 9
 
 
+# ------------------------------------------------- 窗口操作的安全护栏
+# ⚠️⚠️ 这一整块是被一次真实的"卡死"故障逼出来的（2026-09-26）。
+#
+# 现象：用户退出 PvZ 之后，agent 把游戏窗口"拽"回前台，然后**整个卡死动不了，
+#       连 Ctrl+C 都没反应，只能重启电脑**。
+#
+# 机理：`ShowWindow` / `SetForegroundWindow` 是**跨进程的同步调用**。目标窗口
+#       所在线程如果没有在泵消息（游戏正在退出、或者已经卡住），这些调用会
+#       **无限期阻塞**。而 Python **无法中断一个卡住的 ctypes 调用** ——
+#       于是 KeyboardInterrupt 永远送不进去，主循环再也不动，看起来就是"死了"。
+#
+# 解法（两层，缺一不可）：
+#   1. 动手前先看目标窗口是不是已经卡住（`IsHungAppWindow`），卡住就别碰。
+#   2. 所有窗口操作都丢进 daemon 线程里跑，**超时就返回失败，并把该 hwnd
+#      永久拉黑** —— 之后一律跳过。宁可这一局不玩了，也不能把用户卡住。
+
+WINDOW_OP_TIMEOUT = 3.0
+
+_stuck_lock = threading.Lock()
+_stuck_hwnds: set[int] = set()
+
+
+def is_stuck(hwnd: int) -> bool:
+    """这个窗口是不是已经被判定为"碰不得"。"""
+    with _stuck_lock:
+        return hwnd in _stuck_hwnds
+
+
+def mark_stuck(hwnd: int) -> None:
+    with _stuck_lock:
+        _stuck_hwnds.add(hwnd)
+
+
+def stuck_hwnds() -> list[int]:
+    with _stuck_lock:
+        return sorted(_stuck_hwnds)
+
+
+def _run_bounded(hwnd: int, fn, timeout: float = WINDOW_OP_TIMEOUT):
+    """在 daemon 线程里跑一次窗口操作；超时返回 None 并把 hwnd 永久拉黑。"""
+    if is_stuck(hwnd):
+        return None
+    done = threading.Event()
+    box: list = []
+
+    def worker() -> None:
+        try:
+            box.append(fn())
+        except Exception:
+            box.append(None)
+        finally:
+            done.set()
+
+    threading.Thread(target=worker, daemon=True).start()
+    if not done.wait(timeout):
+        mark_stuck(hwnd)
+        return None
+    return box[0] if box else None
+
+
+def is_hung_window(hwnd: int) -> bool:
+    """窗口所属线程是不是已经卡住（没在泵消息）。"""
+    try:
+        return bool(_u.IsHungAppWindow(hwnd))
+    except Exception:
+        return False
+
+
+def is_process_alive(pid: int) -> bool:
+    """进程还在不在 —— 用来区分"用户把游戏关了"和"只是窗口不见了"。"""
+    if not pid:
+        return False
+    h = _k.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not h:
+        return False
+    try:
+        code = ctypes.c_ulong(0)
+        if not _k.GetExitCodeProcess(h, ctypes.byref(code)):
+            return False
+        return code.value == STILL_ACTIVE
+    except Exception:
+        return False
+    finally:
+        try:
+            _k.CloseHandle(h)
+        except Exception:
+            pass
+
+
 def restore_window(hwnd: int) -> bool:
     """把最小化的窗口恢复出来。
 
     PvZ 一旦被最小化就会**暂停**，同时客户区变成 0x0、窗口坐标变成 -32000，
     此时既读不到有效的对局状态也算不出点击坐标 —— 所以任何操作前先调它。
+
+    ⚠️ 动手前必须先确认窗口没卡住（见上面那一大段说明）。
     """
-    if _u.IsIconic(hwnd):
-        _u.ShowWindow(hwnd, SW_RESTORE)
-        time.sleep(0.35)
-    return not bool(_u.IsIconic(hwnd))
+    if is_stuck(hwnd):
+        return False
+    try:
+        if not _u.IsIconic(hwnd):
+            return True
+    except Exception:
+        return False
+    if is_hung_window(hwnd):
+        # 已经卡住的窗口再 ShowWindow 一次就可能把自己也卡住
+        mark_stuck(hwnd)
+        return False
+    if _run_bounded(hwnd, lambda: _u.ShowWindow(hwnd, SW_RESTORE)) is None:
+        return False
+    time.sleep(0.35)
+    try:
+        return not bool(_u.IsIconic(hwnd))
+    except Exception:
+        return False
 
 
 def focus_window(hwnd: int) -> bool:
-    try:
+    if is_stuck(hwnd) or is_hung_window(hwnd):
+        return False
+
+    def job() -> bool:
         _u.ShowWindow(hwnd, 9)  # SW_RESTORE
         return bool(_u.SetForegroundWindow(hwnd))
-    except Exception:
-        return False
+
+    return bool(_run_bounded(hwnd, job, timeout=2.5))
 
 
 def is_foreground(hwnd: int) -> bool:
@@ -418,8 +591,19 @@ def cycle_window(hwnd: int) -> bool:
     false。表现极具迷惑性：窗口在最前面、画面正常、进程活着，就是时钟不动、
     点卡没反应。
     minimize -> restore 会走完整的激活流程，能把它拽回来。
+
+    ⚠️⚠️ **这是全项目最"暴力"的一个动作**：它会闪一次窗口、抢一次焦点。
+    只在"时钟确实冻住且确认没有暂停菜单"时才该调它 —— 用户正在用别的窗口时
+    被反复闪屏非常讨厌，而且目标窗口一旦卡住，ShowWindow 会把调用者也拖死
+    （见文件上方那段护栏说明）。
     """
-    try:
+    if is_stuck(hwnd):
+        return False
+    if is_hung_window(hwnd):
+        mark_stuck(hwnd)
+        return False
+
+    def job() -> bool:
         _u.ShowWindow(hwnd, SW_MINIMIZE)
         time.sleep(0.35)
         _u.ShowWindow(hwnd, SW_RESTORE)
@@ -427,8 +611,8 @@ def cycle_window(hwnd: int) -> bool:
         _u.SetForegroundWindow(hwnd)
         time.sleep(0.25)
         return not bool(_u.IsIconic(hwnd))
-    except Exception:
-        return False
+
+    return bool(_run_bounded(hwnd, job, timeout=WINDOW_OP_TIMEOUT))
 
 
 def screen_size() -> tuple[int, int]:
@@ -548,15 +732,32 @@ def capture_screen(x: int, y: int, w: int, h: int) -> Screen | None:
 
 
 def capture_window(win: WindowInfo, use_printwindow: bool = False) -> Screen | None:
-    """抓窗口内容。默认走屏幕 DC；PrintWindow 在 DDraw 下常常全黑，故不作默认。"""
-    if use_printwindow:
+    """抓窗口内容。默认走屏幕 DC；PrintWindow 在 DDraw 下常常全黑，故不作默认。
+
+    ⚠️ `PrintWindow` 也是**跨进程同步调用**：它会让目标窗口去渲染一帧。
+    对一个 DirectDraw 窗口来说，如果游戏正好在重建/丢失 primary surface
+    （最小化恢复、切全屏的过程中就会），`PrintWindow` 可能**永久阻塞**。
+    所以它必须套超时护栏；超时就退回屏幕 DC，绝不让它把主线程拖死。
+    """
+    if use_printwindow and not is_stuck(win.hwnd):
         w, h = win.client_size
-        hdc_screen = _u.GetDC(win.hwnd)
+        # ⚠️ 用**屏幕 DC**（GetDC(0)）而不是 GetDC(win.hwnd) 来建兼容位图。
+        #    `GetDC(hwnd)` 对另一个进程的窗口同样是跨进程调用，窗口正在销毁时
+        #    可能阻塞；而这里只需要一个"颜色格式正确的源 DC"来 CreateCompatibleBitmap，
+        #    屏幕 DC 完全等效（PrintWindow 是往 hdc_mem 里渲染，与源 DC 无关）。
+        hdc_screen = _u.GetDC(0)
         hdc_mem = _g.CreateCompatibleDC(hdc_screen)
         hbm = _g.CreateCompatibleBitmap(hdc_screen, w, h)
         old = _g.SelectObject(hdc_mem, hbm)
         try:
-            if _u.PrintWindow(win.hwnd, hdc_mem, PW_RENDERFULLCONTENT | PW_CLIENTONLY):
+            ok = _run_bounded(
+                win.hwnd,
+                lambda: bool(_u.PrintWindow(
+                    win.hwnd, hdc_mem, PW_RENDERFULLCONTENT | PW_CLIENTONLY
+                )),
+                timeout=2.5,
+            )
+            if ok:
                 bmi = BITMAPINFO()
                 bmi.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
                 bmi.bmiHeader.biWidth = w
@@ -570,7 +771,7 @@ def capture_window(win: WindowInfo, use_printwindow: bool = False) -> Screen | N
             _g.SelectObject(hdc_mem, old)
             _g.DeleteObject(hbm)
             _g.DeleteDC(hdc_mem)
-            _u.ReleaseDC(win.hwnd, hdc_screen)
-        # 落到屏幕抓取
+            _u.ReleaseDC(0, hdc_screen)
+        # 超时或失败 → 落到屏幕抓取
     cl, ct, cr, cb = win.client_rect
     return capture_screen(cl, ct, cr - cl, cb - ct)

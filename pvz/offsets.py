@@ -99,6 +99,12 @@ Z_PHASE = 0x28
 Z_X = 0x2C
 Z_Y = 0x30
 Z_DEAD = 0xEC
+# Original field layout: ruslan831/PlantsVsZombies-decompilation, Lawn/Zombie.h.
+# Hybrid 3.9.9 body/helmet pairs checked read-only on 2026-09-26; reject invalid pairs.
+Z_HP, Z_MAX_HP = 0xC8, 0xCC
+Z_HELM_HP, Z_HELM_MAX_HP = 0xD0, 0xD4
+Z_SHIELD_HP, Z_SHIELD_MAX_HP = 0xDC, 0xE0
+Z_FRIENDLY = 0xB8
 
 # --- 对象槽位"是否真的有对象"的判据 -------------------------------------
 # ⚠️ 本项目最深的坑：PvZ 的对象数组是**预分配池**，未使用槽位**全零**。
@@ -117,6 +123,8 @@ OFF_MOWER_COUNT_MAX = 0x104
 OFF_MOWER_COUNT = 0x110
 MOWER_STRUCT = 0x48
 M_ROW = 0x14
+M_STATE = 0x2C
+M_READY = 1
 
 # --- 场地物品（墓碑/梯子/弹坑…）----------------------------------------
 OFF_GRID_ITEM = 0x11C

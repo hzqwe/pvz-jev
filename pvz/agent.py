@@ -6,13 +6,15 @@
 
 from __future__ import annotations
 
+import os
+import threading
 import time
 from dataclasses import dataclass, field
 
 from .board import BoardReader, BoardState
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
-from .policy import Decision, build_questions, generate_candidates, merge_decision
+from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current
 from .serialize import build_state, render_text
 from .ui import Clicker, Layout, collect_suns, find_pause_resume, grab
 from .win32 import (
@@ -21,9 +23,44 @@ from .win32 import (
     find_game_window,
     focus_window,
     is_foreground,
+    is_process_alive,
+    is_stuck,
     restore_window,
     sendinput_click,
 )
+
+# 时钟冻住时最多"抢救"多少次，超过就彻底收手只等。
+# ⚠️ 必须有这个上限：用户切到别的虚拟桌面/别的应用时，时钟会一直冻着，
+#    旧代码每 3 轮抢一次焦点、无限循环 —— 既烦人，也是在反复戳一个可能已经
+#    卡住的窗口（那正是把 agent 自己卡死的那类调用）。
+FOCUS_RETRY_LIMIT = 12
+
+# ★★ 「时钟冻住」后的**静默宽限期**（秒）—— 2026-09-26 第二次修复新增。
+#
+# 用户实测：**杂交版切屏进入游戏时，游戏自己会卡约 5 秒**（全屏模式切换、
+# 重新获取 primary surface）。那 5 秒里游戏主线程**不泵消息** ——
+# 也就是所有跨进程窗口调用都会阻塞、所有点击都会被无视的**脆弱窗口期**。
+#
+# 而"时钟冻住"这个信号**恰好**会在这 5 秒里触发（clock 不动），
+# 于是旧代码会**立刻**去抓屏 + 找暂停菜单 + 点「返回游戏」——
+# 正好一头撞进最脆弱的时刻。实测证据：日志里 `clock=57`（关卡刚开始 0.57 秒）
+# 那一条决策，`game_responsive=false`、点卡被拒，就是撞进了入场冻结。
+#
+# 所以：**时钟一冻住，先什么都别做**，只读内存，安静等它自己缓过来。
+# 超过宽限期还没缓过来（说明真的是暂停了，不是入场过渡）才去点菜单。
+# 8 > 5，留了余量。
+PAUSE_GRACE_S = 8.0
+
+# ★★ 启动/刚切回游戏后，必须先连续确认这么多轮"时钟在走"，才允许动手。
+#
+# 为什么需要：用户实测杂交版**切屏进入游戏时游戏自己会卡约 5 秒**。
+# 刚启动或刚切回来时，头几轮读到的 `game_clock` 就是冻的，而
+# `_frozen_hits` 要连续 3 轮才判定"暂停"，中间那 1 秒里旧代码照常
+# 收阳光 + 决策 + 点卡 —— 实测证据（09:06 那次运行）：
+#   `clock=57`（关卡刚开始 0.57s）就点了卡，`game_responsive=false`、被拒。
+# 攒够 2 轮只多花约 0.7 秒，但把"往正在做全屏切换的消息队列里塞鼠标消息"
+# 这件事从"每次开局必发生"变成"不发生"。
+WARMUP_ADVANCES = 2
 
 
 @dataclass
@@ -35,6 +72,18 @@ class AgentConfig:
     max_actions_per_min: int = 20
     log_path: str = "out/decisions.jsonl"
     verbose: bool = True
+    # ★★ 默认**不允许改变游戏窗口的状态**（2026-09-26 改成安全默认值）。
+    #
+    # 为什么：用户实测"按回车瞬间进游戏，然后直接卡死，连任务管理器都退不出去"。
+    # 一按回车 agent 就 `ShowWindow(SW_RESTORE)` + `SetForegroundWindow` 把游戏
+    # 拽到前台 —— 对 **DirectDraw 游戏**来说这是最危险的动作：它会丢 primary
+    # surface，一旦重建失败游戏就整个卡住、占住屏幕，桌面也跟着一起没反应。
+    #
+    # 而"抢焦点"本来就不是必需的：实测**后台 PostMessage 点击就能种植物**，
+    # 不需要前台光标、也不需要窗口处于激活状态。
+    # 所以默认只做**只读**的事（读内存、抓屏、PostMessage 点击），
+    # 绝不碰窗口状态。需要时用 `--allow-window-ops` 显式打开。
+    allow_window_ops: bool = False
 
 
 @dataclass
@@ -81,9 +130,36 @@ class PvZJevAgent:
         self._frozen_hits = 0
         self._binding_checked = False
         self._binding_warned = False
-        self._need_focus = True
+        # 只有允许动窗口时才需要"首次抢一次焦点"
+        self._need_focus = self.cfg.allow_window_ops
+        self._warned_minimized = False
         self._pause_fail_streak = 0
+        # 时钟"第一次被判定为冻住"的时刻。用来实现 PAUSE_GRACE_S 宽限期：
+        # 冻住的头几秒**什么都不做**（见 PAUSE_GRACE_S 的说明）。
+        self._frozen_since: float | None = None
+        self._grace_notified = False
+        # 连续多少轮确认"时钟在走"。见 WARMUP_ADVANCES。
+        self._advances = 0
         self._window_miss = 0
+        # 游戏进程连续多少次读不到。用来区分"用户把游戏关了"和"窗口暂时找不到"。
+        self._dead_misses = 0
+        # ★★ 最近一次**亲眼见过**的游戏 pid（粘性，不随 reader.pid 被清空而丢失）。
+        #    见 run() 顶部那段说明：判断"游戏是不是被关了"必须靠这个，
+        #    不能靠"窗口枚举得到吗"—— 进程正在退出时窗口还会被枚举到几秒，
+        #    那几秒里旧代码会拿着**定格的残留内存**去问 Jev、去点鼠标。
+        self._seen_pid: int | None = None
+        # 看门狗心跳：主循环每轮更新一次。超过阈值没更新 = 主线程被卡住了。
+        self._heartbeat = time.time()
+        self._wd_stop = threading.Event()
+        # 主线程"多久没动"就认为它被卡死了。窗口操作都有 3s 超时护栏，
+        # 正常一轮最多几十秒（含一次 Jev 调用），所以 180s 是非常宽松的阈值。
+        self._wd_stuck_after = 180.0
+        # STOP 文件出现后，给主线程多少秒自己收尾；超时就强制退出。
+        self._wd_stop_grace = 10.0
+        # 紧急停止开关：这个文件一出现就立刻结束本轮。见 run() 里的说明。
+        self._stop_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", "STOP"
+        )
         # 最近落点失败的格子 -> 时间戳。见 execute() 末尾的说明。
         self._bad_cells: dict[tuple[int, int], float] = {}
         self._bad_cell_ttl = 45.0
@@ -178,6 +254,22 @@ class PvZJevAgent:
             # 最小化的窗口：客户区是 0x0、坐标 -32000，抓屏/点击全是废的。
             # 实测 `ShowWindow(SW_RESTORE)` 一次就能恢复（client 0x0 -> 2560x1600），
             # 但 DirectDraw 窗口重建 surface 有时慢，所以重试 3 次而不是 1 次。
+            #
+            # ⚠️★ 2026-09-26 起**默认不做这个恢复动作**（见 AgentConfig.allow_window_ops）。
+            #    理由：对 DirectDraw 游戏 ShowWindow 是最危险的一类调用 ——
+            #    它会丢 primary surface，重建失败就整个卡死、占住屏幕。
+            #    安全模式下只提示用户自己把游戏切回前台。
+            self.win = win
+            if not self.cfg.allow_window_ops:
+                if not self._warned_minimized:
+                    self._warned_minimized = True
+                    print("[窗口] ⚠ 游戏窗口是最小化状态，而当前是安全模式"
+                          "（不动窗口）—— 请手动点一下任务栏把游戏切回前台。")
+                return False
+            # 进程已经没了就更不能碰：对着一个正在退出的窗口 ShowWindow
+            # 会永久阻塞，把 agent 自己也卡死。
+            if not is_process_alive(self.reader.pid):
+                return False
             for _ in range(3):
                 restore_window(win.hwnd)
                 time.sleep(0.3)
@@ -190,6 +282,7 @@ class PvZJevAgent:
             # 刚从最小化恢复：客户区几何变了，layout/clicker 都要重建，
             # 而且必须抢一次焦点（见下面 focus 的说明）
             self._need_focus = True
+        self._warned_minimized = False
         size_changed = self.win is None or self.win.client_size != win.client_size
         self.win = win
         if size_changed or self.layout is None:
@@ -199,12 +292,15 @@ class PvZJevAgent:
                 sx, sy = self.layout.scale()
                 print(f"[窗口] client={win.client_size} 缩放=({sx:.3f},{sy:.3f}) "
                       f"卡0中心={self.layout.card_center(0)} 格(0,0)中心={self.layout.cell_center(0, 0)}")
-        if self._need_focus:
-            # ⚠️ 必须抢焦点。实测证据：窗口没拿到焦点时，点卡槽会**扣掉阳光**、
-            #    但落点判定不生效（PvZ 在非激活状态下不处理草坪/卡槽的鼠标输入，
-            #    只有"游戏暂停"覆盖层的按钮还响应）。表现就是"阳光少了、植物没多"。
-            #    只在**首次**和**从最小化恢复**时抢，避免每轮跟用户抢窗口。
-            focus_window(win.hwnd)
+        if self._need_focus and self.cfg.allow_window_ops:
+            # ⚠️ 抢焦点**只在允许动窗口时**才做。
+            #    它唯一的作用是让 PvZ 重新开始处理输入 —— 但实测**后台
+            #    PostMessage 点击本来就能种植物**，不需要前台光标。
+            #    而 ShowWindow(SW_RESTORE) 对 DirectDraw 窗口是危险动作
+            #    （见 AgentConfig.allow_window_ops 的说明）。
+            #    ⚠️ 进程没了就别抢：`SetForegroundWindow` 同样会阻塞。
+            if is_process_alive(self.reader.pid) and not is_stuck(win.hwnd):
+                focus_window(win.hwnd)
             self._need_focus = False
             time.sleep(0.15)
         return True
@@ -242,6 +338,25 @@ class PvZJevAgent:
         """
         if self.win is None:
             return False
+        # ★★ 安全模式：**不做任何改变窗口状态的动作**（2026-09-26 新增）。
+        #    `cycle_window`（minimize→restore）和 `sendinput_click`（真实移动光标）
+        #    正是"用户一按回车就卡死"的头号嫌疑 —— 对 DirectDraw 游戏，
+        #    minimize/restore 会让它丢掉 primary surface，重建失败就整个卡死、
+        #    占住屏幕，连任务管理器都出不来。
+        #    安全模式下只保留"点返回游戏"（后台 PostMessage，完全不改变窗口状态），
+        #    拽不回来就安静等着，绝不闪窗口。
+        if not self.cfg.allow_window_ops:
+            if self.cfg.verbose:
+                print("[唤醒] 安全模式：不闪窗口 / 不抢焦点 —— 跳过唤醒"
+                      "（需要完整唤醒请用 --allow-window-ops）")
+            return False
+        # ⚠️ 进程已经没了、或者窗口已经被判定卡住 → **什么都别做**。
+        #    对着一个正在退出的窗口 minimize/restore，可能把调用者自己也拖死
+        #    （见 pvz/win32.py 顶部那段护栏说明）。
+        if not is_process_alive(self.reader.pid) or is_stuck(self.win.hwnd):
+            if self.cfg.verbose:
+                print("[唤醒] 游戏进程已消失或窗口已卡住 → 不做任何窗口操作")
+            return False
         if self.cfg.verbose:
             print("[唤醒] 画面里没有暂停菜单 → 制造一次真实的激活 + 输入")
         cycle_window(self.win.hwnd)
@@ -268,6 +383,13 @@ class PvZJevAgent:
             return True
 
         # 第 2 步：真实鼠标输入
+        # ⚠️ 这是**真实移动光标并点击**（不是后台消息）。如果游戏已经不在了，
+        #    这一下会点到光标底下任意一个窗口上（用户的浏览器、编辑器…），
+        #    非常危险 —— 所以动手前再确认一次进程还活着。
+        if not is_process_alive(self.reader.pid) or is_stuck(self.win.hwnd):
+            if self.cfg.verbose:
+                print("[唤醒] 游戏已退出 → 取消真实鼠标点击")
+            return False
         sx0, sy0, sw, sh = self.layout.sun_display
         px, py = self.win.client_to_screen(sx0 + sw // 2, sy0 + sh // 2)
         if self.cfg.verbose:
@@ -382,6 +504,34 @@ class PvZJevAgent:
           3. 没掉 = 游戏拒绝了这张卡（太贵/冷却）→ 记下成本下界，这轮不点格子
         """
         assert self.clicker and self.layout
+        # ★★ 兜底闸（2026-09-26 第二次修复）：**只在"时钟确实在走"时才注入点击。**
+        #
+        # `_frozen_hits` 是 `note_clock()` 用"本轮读到的 game_clock 和上一轮相同"
+        # 累加出来的。正常游玩时游戏 100 tick/s、循环间隔 ≥0.35s，
+        # **每一轮读到的时钟都必然不同** —— 所以 `_frozen_hits >= 1` 在日常
+        # 游玩里永远不会误伤。
+        #
+        # 而一旦时钟没走，就说明游戏正处于"不泵消息"的状态：切屏/入场过渡
+        # （用户实测杂交版进游戏会自己卡 5 秒）、或者真的暂停了。
+        # 这时点击**必然被无视**，而且会把鼠标消息塞进一个正在做全屏模式切换的
+        # 消息队列里 —— 有害无益。实测证据：`clock=57`（关卡刚开始 0.57s）那条
+        # 决策点了卡、`game_responsive=false`、被拒 —— 就是撞进了入场冻结。
+        #
+        # 阈值取 1（而不是旧版的 3）是刻意的：**第一次读到"没走"就停手**，
+        # 不留那 1 秒的窗口。这比"点了之后发现被拒再取消"安全得多 ——
+        # 后者已经往游戏里注入了 5 条鼠标消息（含一次右键）。
+        if not self._responsive:
+            self.stats.input_ignored += 1
+            record["executed"] = {
+                "kind": "skipped_not_responsive",
+                "frozen_hits": self._frozen_hits,
+                "advances": self._advances,
+                "note": "时钟没走（切屏/入场/暂停）—— 本轮不注入任何点击",
+            }
+            if self.cfg.verbose:
+                print(f"  ⏸️ 时钟没走（同值 {self._frozen_hits} 轮 / 确认在走 "
+                      f"{self._advances} 轮）→ 本轮不注入任何点击")
+            return
         cand = dec.candidate
         if cand is None or cand.kind == "wait" or dec.hold:
             self.stats.holds += 1
@@ -421,6 +571,34 @@ class PvZJevAgent:
                       f"({pre_slot.cd_left}/{pre_slot.cd_total})，跳过")
             return
 
+        # ★★ 动手前的**最后一道闸**（2026-09-26 第二次修复）：
+        #    从"读到状态、交给 Jev 决策"到"真的要点击"之间，隔着一次 Jev 调用
+        #    （实测 1~3s）。这段时间里游戏完全可能进入切屏/入场的过渡
+        #    （用户实测会自己卡 5 秒）。`_frozen_hits` 反映的是**决策那一刻**的
+        #    状态，已经过期了。
+        #    所以这里再核一次：**时钟必须比决策时前进了**，才允许动手。
+        #
+        #    ⚠️ 位置很关键：必须在**任何注入之前** —— 包括下面 `cancel_seed`
+        #    那一下右键。只要时钟没走，就连一条鼠标消息都不往游戏里塞。
+        chk = self.reader.read()
+        if ((chk.pid, chk.board, chk.level) != (board.pid, board.board, board.level)
+                or not action_is_current(cand, chk, self.book)):
+            record["executed"] = {"kind": "stale_action", "note": "战场或卡槽已变化，重新决策后再操作"}
+            return
+        if (chk.game_clock is None or board.game_clock is None
+                or chk.game_clock == board.game_clock):
+            self.stats.input_ignored += 1
+            record["executed"] = {
+                "kind": "skipped_not_responsive",
+                "clock_at_decision": board.game_clock,
+                "clock_before_click": chk.game_clock,
+                "note": "决策后到动手前时钟没走（游戏进入切屏/暂停）—— 一条消息都没发",
+            }
+            if self.cfg.verbose:
+                print(f"  ⏸️ 决策后时钟没走（{board.game_clock} -> {chk.game_clock}）"
+                      f"→ 放弃本次动作（游戏可能正在切屏）")
+            return
+
         # 1) 清空"手持种子"状态
         self.clicker.cancel_seed("pre-action reset")
         time.sleep(0.15)
@@ -438,7 +616,14 @@ class PvZJevAgent:
         # 新判据读 `Board+0x138 -> CursorObject+0x30`（0=空手, 1=手持种子），
         # 外加 `+0x24` 卡槽下标 / `+0x28` type_id。这是游戏自己维护的状态，
         # 不受阳光涨落影响，也能顺便验证卡槽绑定有没有错。
+        #
+        # ⚠️ 阳光基线在 `cancel_seed` **之后**取（取消手持种子可能让阳光变化，
+        #    在它之前取会污染"真实成本"的差值）。
         pre = self.reader.read()
+        if ((pre.pid, pre.board, pre.level) != (board.pid, board.board, board.level)
+                or not action_is_current(cand, pre, self.book)):
+            record["executed"] = {"kind": "stale_action", "note": "选卡前复核失败，未购买植物"}
+            return
         sun0 = pre.sun
         self.clicker.click_card(cand.slot, self.layout, f"pick card {cand.slot}")
         time.sleep(0.3)
@@ -566,24 +751,74 @@ class PvZJevAgent:
             self.ensure_running()
         end = time.time() + duration_s
         give_up = time.time() + wait_play_s
+        if self.cfg.verbose:
+            print(f"[提示] 想停就按 Ctrl+C；万一没反应，新建一个空文件 "
+                  f"{self._stop_path} 即可（看门狗会在 10 秒内强制结束进程）。")
+        self._start_watchdog()
+        try:
+            return self._loop(end, give_up, wait_play_s)
+        finally:
+            self._wd_stop.set()
+
+    def _loop(self, end: float, give_up: float,
+              wait_play_s: float) -> AgentStats:
         while time.time() < end:
             self.stats.cycles += 1
+            self._heartbeat = time.time()
+            if self._stop_requested():
+                print(f"\n[停止] 检测到 {self._stop_path} —— 本轮结束。")
+                break
+            # ★★ 每轮第一件事：**确认游戏进程还在**（2026-09-26 新增）。
+            #    必须放在所有窗口操作和 Jev 调用**之前**，理由见 _game_still_there()。
+            if not self._game_still_there():
+                break
             if not self.ensure_window():
                 self._window_miss += 1
+                # ★★ 关键修复（2026-09-26）：**游戏进程已经没了就必须立刻收手**。
+                #    旧代码在这里无限重试"重新附着 + 恢复窗口"，而窗口一旦属于
+                #    一个**正在退出的进程**，`ShowWindow` / `SetForegroundWindow`
+                #    就可能**永久阻塞**（跨进程同步调用，目标线程不再泵消息），
+                #    把主线程连同 Ctrl+C 一起卡死 ——
+                #    用户遇到的就是"退出游戏后整个卡住，只能重启电脑"。
+                #    现在：先确认进程还在，不在就干净退出，一个窗口操作都不做。
+                #    ⚠️ 判据用 `_seen_pid`（粘性）而**不是** `self.reader.pid`：
+                #       `attach()` 失败时会把 pid 清成 None，用它判会把"游戏刚被
+                #       关掉"误判成"游戏从没出现过"，于是傻等到 --wait-play 超时。
+                if self._seen_pid is not None and not is_process_alive(self._seen_pid):
+                    self._dead_misses += 1
+                    if self._dead_misses == 1 and self.cfg.verbose:
+                        print("[退出] 游戏进程已消失 —— 不再尝试恢复窗口")
+                    if self._dead_misses >= 2:
+                        print("\n[退出] 游戏已关闭，本轮结束（未做任何窗口操作）。")
+                        break
+                    time.sleep(1.0)
+                    continue
+                self._dead_misses = 0
+                # 游戏从头到尾没出现过 → 由 --wait-play 决定等多久
+                if self._seen_pid is None and time.time() > give_up:
+                    if self.cfg.verbose:
+                        print(f"[等待] 已等 {wait_play_s:.0f}s 仍未找到游戏，退出")
+                    break
                 if self.cfg.verbose and (self._window_miss == 1 or self._window_miss % 10 == 0):
-                    print(f"[等待] 窗口/进程不可用（第 {self._window_miss} 次）—— "
-                          f"尝试重新附着并恢复窗口…")
+                    what = ("尝试重新附着并恢复窗口" if self.cfg.allow_window_ops
+                            else "重新附着（安全模式：不动窗口）")
+                    print(f"[等待] 窗口/进程不可用（第 {self._window_miss} 次）—— {what}…")
                 # ⚠️ 不能只是 sleep 重试：实测窗口被最小化后，
                 #    `find_game_window` 仍能返回它，但 `client_size` 是 0x0，
                 #    而 `refresh_window` 的恢复重试需要**进程还活着**才有效。
                 #    这里再补一次强制恢复 + 重新附着，避免整局空转。
-                if self.reader.attach():
+                #    ⚠️ 顺序：**先确认进程活着，再去碰窗口**（顺序反了就是上面那个坑）。
+                #    ⚠️ 安全模式下这一整段跳过 —— 恢复窗口本身就是危险动作。
+                if (self.cfg.allow_window_ops
+                        and self.reader.attach()
+                        and is_process_alive(self.reader.pid)):
                     w = find_game_window(self.reader.pid)
-                    if w is not None:
+                    if w is not None and not is_stuck(w.hwnd):
                         restore_window(w.hwnd)
                 time.sleep(1.5)
                 continue
             self._window_miss = 0
+            self._dead_misses = 0
 
             board = self.reader.read()
             if not board.ok:
@@ -604,6 +839,30 @@ class PvZJevAgent:
             #    很常见（第一次点击可能落在菜单刚弹出的动画帧上），
             #    而放弃的代价是整局都卡在菜单前面（曾经 150 秒一次没种上）。
             if self.note_clock(board):
+                # ★★ 宽限期（2026-09-26 第二次修复）：时钟**刚**冻住的头
+                #    PAUSE_GRACE_S 秒里，**什么都不做** —— 不抓屏、不找菜单、
+                #    不点任何东西，只安静地读内存。
+                #
+                #    为什么必须这样：用户实测杂交版"切屏进游戏时游戏自己会卡 5 秒"
+                #    （全屏模式切换、重新获取 primary surface）。那 5 秒里游戏
+                #    主线程**不泵消息**，是所有跨进程调用会阻塞、所有点击被无视的
+                #    **脆弱窗口期**。而"时钟冻住"恰好在这 5 秒里触发 ——
+                #    旧代码会**立刻**抓屏 + 点「返回游戏」，一头撞进最脆弱的时刻。
+                #    实测证据：日志里 `clock=57`（关卡刚开始 0.57s）那条决策，
+                #    `game_responsive=false`、点卡被拒 —— 就是撞进了入场冻结。
+                if self._frozen_since is None:
+                    self._frozen_since = time.time()
+                waited = time.time() - self._frozen_since
+                if waited < PAUSE_GRACE_S:
+                    if self.cfg.verbose and not self._grace_notified:
+                        self._grace_notified = True
+                        print(f"[暂停] 时钟冻住 → 静默等待 {PAUSE_GRACE_S:.0f}s"
+                              f"（切屏/入场时游戏会自己卡几秒，这段时间绝不碰它）")
+                    time.sleep(0.5)
+                    continue
+                if self.cfg.verbose and self._grace_notified:
+                    self._grace_notified = False
+                    print(f"[暂停] 已静默等 {waited:.0f}s 仍未恢复 → 开始尝试点「返回游戏」")
                 recovered = self.dismiss_pause(board)
                 if not recovered and self._pause_fail_streak < 3:
                     # 画面里找不到菜单 → 是"静默暂停"，走真实的激活流程。
@@ -619,12 +878,24 @@ class PvZJevAgent:
                     if self._pause_fail_streak == 1 or self._pause_fail_streak % 5 == 0:
                         print(f"[暂停] 第 {self._pause_fail_streak} 次尝试仍未恢复"
                               f"（窗口 {self.win.client_size if self.win else '?'}）")
-                    # 连续失败多半是窗口状态变了（被最小化），重建一次再试
-                    if self._pause_fail_streak % 3 == 0:
+                    # 连续失败多半是窗口状态变了（被最小化），重建一次再试。
+                    # ⚠️ 但**必须限次**：时钟一直冻住时（用户切到别的虚拟桌面、
+                    #    或者把游戏关了一半），旧代码每 3 轮抢一次焦点、无限循环 ——
+                    #    既烦人，也是在反复戳一个可能已经卡住的窗口。
+                    #    超过上限后彻底收手，只安静地等游戏自己回来。
+                    if self._pause_fail_streak % 3 == 0 and self._pause_fail_streak <= FOCUS_RETRY_LIMIT:
                         self._need_focus = True
                         self.refresh_window()
+                    elif self._pause_fail_streak == FOCUS_RETRY_LIMIT + 1:
+                        print(f"[暂停] 已尝试 {self._pause_fail_streak} 次仍无法恢复 —— "
+                              f"停止操作窗口，改为静默等待（游戏恢复后会自动继续）")
                     time.sleep(0.6)
                     continue
+            else:
+                # 时钟在走 → 清掉冻结计时。下次再冻住会**重新**给一遍宽限期
+                # （用户每切屏进一次游戏，游戏就会自己卡几秒）。
+                self._frozen_since = None
+                self._grace_notified = False
 
             # 第一轮就把卡槽绑好：没有名字和功能，Jev 后面所有的判断都是瞎猜
             if not self._binding_checked:
@@ -633,23 +904,23 @@ class PvZJevAgent:
                     print(f"[手牌] {self.describe_deck(board)}")
 
             now = time.time()
-            if now - self._last_sun >= self.cfg.collect_sun_every_s:
+            # ★★ 收阳光 = **往草坪上点击**，所以它和种植物一样属于"注入输入"，
+            #     必须服从同一个前提：**游戏真的在处理输入**（`_responsive`）。
+            #
+            #     ⚠️ 旧代码只看 `board.paused`(0x164)，而那个字段**实测不可靠**
+            #     （时钟正常推进时它也读 1）。漏判的后果很重：暂停菜单正好压在
+            #     草坪中央，收阳光的点击可能落在「重新开始」/「主菜单」上毁掉进度。
+            #     这是测试 9 抓出来的真实漏洞 —— 它原本能绕过 execute() 里的闸。
+            if (self._responsive and not board.paused
+                    and now - self._last_sun >= self.cfg.collect_sun_every_s):
                 self._last_sun = now
-                # ⚠️ 暂停时**绝不点草坪**：`collect_suns` 是往草坪上的亮黄色团块点击，
-                #    而暂停菜单正好压在屏幕中央、上面有金色文字和绿色按钮 ——
-                #    实测菜单开着时找"阳光"会命中菜单里的金色/亮色像素，
-                #    那些点击落在按钮上，可能误触「重新开始」/「主菜单」毁掉进度。
-                #    `board.paused`(0x164) 实测在"菜单开着"时=1、"在跑"时=0，
-                #    拿它当这道闸足够（保守：判不准就少收一点阳光，没有副作用）。
-                if board.paused:
-                    pass
-                else:
-                    shot = grab(self.win)
-                    if shot is not None:
-                        hits = collect_suns(shot, self.layout, self.clicker, max_click=3)
-                        self.stats.suns_collected += len(hits)
+                shot = grab(self.win)
+                if shot is not None:
+                    hits = collect_suns(shot, self.layout, self.clicker, max_click=3)
+                    self.stats.suns_collected += len(hits)
 
-            if now - self._last_decision >= self.cfg.decide_every_s:
+            if (self._responsive
+                    and now - self._last_decision >= self.cfg.decide_every_s):
                 self._last_decision = now
                 dec, record = self.decide(board)
                 self.stats.decisions += 1
@@ -682,6 +953,98 @@ class PvZJevAgent:
             time.sleep(0.35)
         return self.stats
 
+    def _game_still_there(self) -> bool:
+        """游戏进程还在吗？返回 False 表示调用方应当**立刻干净收手**。
+
+        为什么必须**每轮**都查、而且放在所有窗口操作与 Jev 调用之前：
+          * `ensure_window()` 返回 True 只说明"找到了窗口"，**不代表进程活着** ——
+            进程正在退出的那几秒里，窗口仍然会被 `EnumWindows` 枚举到；
+          * 那几秒里读到的是**定格的残留内存快照**（`game_clock` 不动、
+            `ui` 还是 3=对局中），上层完全看不出异常，会照常去问 Jev
+            （一次调用可能十几秒）、照常去点鼠标；
+          * 更要命的是对着一个**正在销毁的窗口**做窗口操作（ShowWindow /
+            SetForegroundWindow / PrintWindow）会**永久阻塞** ——
+            这正是用户遇到的"退出游戏后整个卡死"。
+        所以"进程还在不在"必须是**独立于窗口枚举**的第一判据，且每轮都查。
+
+        ⚠️ 判据用粘性的 `_seen_pid` 而不是 `self.reader.pid`：后者会被
+        `attach()` 在失败时清成 None，用它判就分不清"游戏刚被关掉"和
+        "游戏从没出现过"。
+        """
+        if self.reader.pid is not None:
+            self._seen_pid = self.reader.pid
+        if self._seen_pid is None:
+            return True  # 还没见过游戏 → 交给 --wait-play 决定等多久
+        if is_process_alive(self._seen_pid):
+            return True
+        # 进程没了。先确认一下是不是用户**重启**了游戏（pid 会变）——
+        # 只重新附着，**不做任何窗口操作**。
+        self._dead_misses += 1
+        if self._dead_misses == 1 and self.cfg.verbose:
+            print(f"[退出] 游戏进程 pid={self._seen_pid} 已消失 —— 不再尝试恢复窗口")
+        if self.reader.attach():
+            self._seen_pid = self.reader.pid
+            self._dead_misses = 0
+            if self.cfg.verbose:
+                print(f"[退出] 发现新的游戏进程 pid={self._seen_pid} —— 继续运行")
+            return True
+        print(f"\n[退出] 游戏已关闭（pid={self._seen_pid}），本轮结束"
+              f"（未做任何窗口操作）。")
+        return False
+
+    def _start_watchdog(self) -> None:
+        """看门狗线程：主线程被卡住 / 用户喊停时，**强制结束进程**。
+
+        ⚠️ 为什么必须有它（2026-09-26，用户实测）：`ShowWindow` / `PrintWindow`
+        这类**跨进程同步调用**一旦阻塞，Python **无法中断**（ctypes 调用阻塞期间
+        收不到 KeyboardInterrupt），用户实测"卡住之后连任务管理器都退不出去"。
+        现在窗口操作都有 3s 超时护栏、窗口句柄那一层也加了硬闸，正常不该再卡；
+        但**万一**还有没想到的路径，这个线程是最后一道保险。
+
+        它只做两件完全不碰窗口的事：
+          1. 主循环心跳停了 > `_wd_stuck_after` 秒 → 打印原因并 `os._exit(3)`；
+          2. `out/STOP` 出现 > `_wd_stop_grace` 秒而主线程仍未退出 → 强制退出。
+
+        用 `os._exit` 而不是 `sys.exit`：前者不等待任何清理、不跑 atexit，
+        在"主线程被 ctypes 卡死"的场景下，只有它真的能把进程干掉。
+        """
+        def loop() -> None:
+            stop_seen_at: float | None = None
+            while not self._wd_stop.is_set():
+                now = time.time()
+                if self._stop_requested():
+                    if stop_seen_at is None:
+                        stop_seen_at = now
+                    elif now - stop_seen_at >= self._wd_stop_grace:
+                        print(f"\n[看门狗] {self._stop_path} 已存在 "
+                              f"{now - stop_seen_at:.0f}s 而主循环仍未退出 —— "
+                              f"强制结束。", flush=True)
+                        os._exit(3)
+                else:
+                    stop_seen_at = None
+                idle = now - self._heartbeat
+                if idle > self._wd_stuck_after:
+                    print(f"\n[看门狗] 主循环已 {idle:.0f}s 没有任何进展"
+                          f"（多半被某个卡住的窗口调用拖住了）—— 强制结束进程。"
+                          f"游戏窗口不会再被碰，可以直接重开。", flush=True)
+                    os._exit(3)
+                time.sleep(0.5)
+
+        threading.Thread(target=loop, name="jev-watchdog", daemon=True).start()
+
+    def _stop_requested(self) -> bool:
+        """紧急停止开关：`out\\STOP` 一出现就结束本轮。
+
+        ⚠️ 为什么需要它：窗口操作一旦卡住，主线程就收不到 Ctrl+C
+        （Python **无法中断阻塞中的 ctypes 调用**）。这是给用户留的一个
+        "不用碰游戏窗口就能喊停"的出口。
+        真正的兜底是 `pvz/win32.py` 里那层**超时护栏** —— 两道一起上。
+        """
+        try:
+            return os.path.exists(self._stop_path)
+        except OSError:
+            return False
+
     def close(self) -> None:
         # 把实测到的真实成本存下来：下一局就不用从零再学一遍
         # （杂交版每局阵容会变，但同一个植物类型的价格是固定的）
@@ -705,38 +1068,61 @@ class PvZJevAgent:
             return False
         if self._last_clock is not None and c == self._last_clock:
             self._frozen_hits += 1
+            self._advances = 0
         else:
             self._frozen_hits = 0
+            self._advances += 1
         self._last_clock = c
         return self._frozen_hits >= 3
+
+    @property
+    def _responsive(self) -> bool:
+        """游戏真的在更新吗？—— **唯一**允许"动手"的前提。
+
+        两个条件都要满足：
+          * `_frozen_hits == 0`：本轮读到的 `game_clock` 和上一轮**不同**
+            （正常游玩时 100 tick/s、循环间隔 ≥0.35s，必然不同）；
+          * `_advances >= WARMUP_ADVANCES`：已经连续确认过几轮时钟在走。
+
+        第二个条件是"启动 / 刚切回游戏时先观察一下再动手"。用户实测杂交版
+        切屏进游戏会自己卡 5 秒，头几轮时钟就是不动 —— 那时候**任何点击都会被
+        无视**，而且会往一个正在做全屏模式切换的消息队列里塞鼠标消息。
+        """
+        return self._frozen_hits == 0 and self._advances >= WARMUP_ADVANCES
 
     def _find_resume_xy(self) -> tuple[int, int] | None:
         """定位暂停菜单的「返回游戏」按钮，返回**客户区坐标**。
 
-        ⚠️ 为什么要抓两次屏（2026-09-26 新增）：旧代码只用屏幕 DC 抓屏
-        （`capture_window` 默认路径 = `BitBlt` 桌面）。那抓的是**屏幕上此刻显示的
-        像素**，游戏窗口被别的窗口挡住时抓到的就是别人的画面 ——
-        于是 `find_pause_resume` 在一张无关的图上找不到绿色按钮，直接放弃，
-        而游戏其实好好地停在菜单里。表现就是"点了半天返回游戏，游戏一动不动"。
-        实测 `PrintWindow(PW_RENDERFULLCONTENT)` 在这个游戏上**能拿到完整内容**
-        （非黑像素比例 0.998），而且和屏幕 DC 得到**完全一致**的按钮坐标
-        （两者都返回 (1261,1195)）。所以现在优先用 PrintWindow，
-        它对"窗口被遮挡/不在最前"免疫；再退回屏幕 DC 兜底。
+        ★★ 2026-09-26 **第二次修复：这里彻底禁用 `PrintWindow`。**
+        之前这里会先试 `PrintWindow(PW_RENDERFULLCONTENT)`（为了免疫窗口遮挡），
+        失败才退回屏幕 DC。**这是一个危险的错误，已移除。**
+
+        为什么：`PrintWindow` 内部是 `SendMessage(WM_PRINT)` —— 它**不是只读**，
+        它要求**目标窗口去渲染一帧**。对一个 DirectDraw 全屏游戏来说：
+          * 用户实测"切屏进游戏时游戏本身会卡 5 秒" —— 那 5 秒里游戏正在
+            重建/重新获取 primary surface，主线程**不泵消息**；
+          * 而这个函数**只在"时钟冻住"时被调用** —— 也就是**恰好**在那 5 秒里；
+          * 于是在游戏最脆弱的时刻逼它渲染 → 游戏卡进显示驱动里出不来 →
+            进程变成"杀不掉、必须重启"的状态，桌面也被占住。
+        （`_run_bounded` 的 2.5s 超时只能救**我们自己的主线程**，
+        救不了那个被我们逼着渲染的目标。）
+
+        现在只用**屏幕 DC 抓屏**（`capture_window` 默认路径 = `BitBlt` 桌面），
+        它是**纯读**：不碰目标窗口、不要求目标做任何事、不需要目标泵消息。
+        代价是"窗口被挡住时抓到别人的画面"—— 但那正是**安全模式的前提**
+        （用户自己保证游戏在最前面），而且找不到按钮时我们本来就**拒绝猜坐标**。
         """
         if self.win is None:
             return None
-        shots = []
-        for use_pw in (True, False):
-            s = capture_window(self.win, use_printwindow=use_pw)
-            if s is not None and s.w > 0 and s.h > 0:
-                shots.append(s)
-        for s in shots:
-            xy = find_pause_resume(s, fallback=None)
-            if xy is not None:
-                # find_pause_resume 返回的是**屏幕坐标**（它内部按 shot.x/shot.y
-                # 加了客户区原点），而 click_client 要**客户区坐标**。
-                return (xy[0] - self.win.client_rect[0], xy[1] - self.win.client_rect[1])
-        return None
+        s = capture_window(self.win)
+        if s is None or s.w <= 0 or s.h <= 0:
+            return None
+        xy = find_pause_resume(s, fallback=None)
+        if xy is None:
+            return None
+        # find_pause_resume 返回的是**屏幕坐标**（它内部按 shot.x/shot.y
+        # 加了客户区原点），而 click_client 要**客户区坐标**。
+        return (xy[0] - self.win.client_rect[0], xy[1] - self.win.client_rect[1])
 
     def dismiss_pause(self, board: BoardState) -> bool:
         """时钟冻住了就点"返回游戏"。返回是否点成功了。

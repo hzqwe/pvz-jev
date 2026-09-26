@@ -368,6 +368,11 @@ class PlantBook:
         ent = self.kb_by_id.get(type_id)
         return ent.hp if ent else None
 
+    def combat(self, type_id: int) -> dict:
+        """Structured almanac facts; absent values remain unknown."""
+        entry = self.kb_by_id.get(type_id)
+        return dict(entry.raw.get('combat', {})) if entry else {}
+
     def is_known(self, type_id: int) -> bool:
         return type_id in self.table
 
@@ -383,6 +388,7 @@ class PlantBook:
             "hp": ent.hp if ent else None,
             "cooldown_s": ent.cooldown_s if ent else None,
             "effect": ent.effect_en if ent else "",
+            "combat": self.combat(type_id),
             "registered": self.is_known(type_id),
             "bound": type_id in self.kb_by_id,
         }

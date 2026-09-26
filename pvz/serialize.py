@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from .board import BoardState
 from .plants import PlantBook
+from .tactics import lane_facts, saving_plan
 
 SCENE_NAMES = {
     0: "白天草地 day_lawn",
@@ -42,32 +43,10 @@ def _closeness(x: float | None) -> str:
     return "far(刚出现)"
 
 
-def lane_threat(board: BoardState, row: int) -> dict:
-    zs = board.zombies_in_lane(row)
-    ps = board.plants_in_lane(row)
-    n = len(zs)
-    nearest = min((z.x for z in zs if z.x is not None), default=None)
-    walls = sum(1 for p in ps if True)  # 仅计数，角色判断在 policy 里做
-    if n == 0:
-        level = "none"
-    elif nearest is not None and nearest < 160:
-        level = "critical"
-    elif nearest is not None and nearest < 320:
-        level = "high"
-    elif n >= 3:
-        level = "high"
-    elif n >= 1:
-        level = "low"
-    else:
-        level = "low"
-    return {
-        "lane": row + 1,
-        "zombie_count": n,
-        "nearest_zombie_x": round(nearest, 1) if nearest is not None else None,
-        "nearest_closeness": _closeness(nearest),
-        "plant_count": walls,
-        "threat_level": level,
-    }
+def lane_threat(board: BoardState, row: int, book=None) -> dict:
+    facts = lane_facts(board, row, book)
+    facts['nearest_closeness'] = _closeness(facts['nearest_zombie_x'])
+    return facts
 
 
 def build_state(board: BoardState, book: PlantBook) -> dict:
@@ -90,13 +69,15 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 ],
                 "zombies": [
                     {
-                        "kind": book.name(z.type_id),
+                        "kind": f"zombie_type_{z.type_id} (hybrid identity unverified)",
+                        "body_hp": z.hp, "armor_hp": z.armor_hp,
                         "x_px": round(z.x, 0) if z.x is not None else None,
                         "closeness": _closeness(z.x),
                     }
                     for z in sorted(zs, key=lambda z: (z.x if z.x is not None else 9999))
                 ],
-                "threat_level": lane_threat(board, r)["threat_level"],
+                "threat_level": lane_threat(board, r, book)["threat_level"],
+                "tactical_assessment": lane_threat(board, r, book),
             }
         )
 
@@ -112,6 +93,10 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 "role": info["role"],
                 "tags": info["tags"],
                 "cost": info["cost"],
+                "effect": info["effect"],
+                "combat": info["combat"],
+                "hp": info["hp"],
+                "almanac_cooldown_s": info["cooldown_s"],
                 "ready": s.ready,
                 "cooldown_left_frac": round(s.cooldown_left_frac, 2),
                 "registered": info["registered"],
@@ -130,6 +115,8 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         },
         "lanes": lanes,
         "seed_cards": seeds,
+        "saving_plan": saving_plan(board, book),
+        "assessment_note": "Pressure/support are heuristic estimates, not measured DPS or time-to-kill. Mower null means unknown.",
         "empty_cell_count": len(board.empty_cells()),
         "unregistered_plant_ids": book.unregistered_ids(
             [p.type_id for p in board.plants] + [s.type_id for s in board.slots]
