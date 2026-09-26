@@ -60,14 +60,19 @@ class PoolTests(unittest.TestCase):
         self.assertTrue(b.is_water(2))
         self.assertTrue(any(c.type_id==PAD for c in generate_candidates(b,self.book)))
     def test_bare_pad_is_never_a_rescue(self):
-        # 实战 2026-09-26：危急水路种了裸荷叶（25 阳光不攻击不阻挡），
-        # 眼睁睁看僵尸进门。荷叶前置候选永远不进 emergency 池、分值封顶 45。
+        # 2026-09-26：危急水路裸荷叶（25 阳光不攻击不阻挡）曾眼睁睁看僵尸进门。
+        # 2026-09-27 修订：受压水路的荷叶候选现在**连锁种墙**（一个事务里
+        # 荷叶+墙一起落地，不再裸奔）—— 所以保护对象从"分值封顶 45"改为
+        # "不进 emergency 池 + 必须连锁墙系卡"。
         b=self.pool([PAD,PEA],zombies=[Zombie(0,2,0,x=110)],sun=365)
         cs=generate_candidates(b,self.book)
         pads=[c for c in cs if c.type_id==PAD]
         self.assertTrue(pads)
         self.assertTrue(all(not c.emergency for c in pads))
-        self.assertTrue(all(c.score<=45 for c in pads))
+        # 手里只有豌豆时也要链接（最优可用卡）；墙优先见 test_strategy_tips.WaterLanePadTests
+        self.assertTrue(all(c.supports_type is not None and c.supports_type != PAD
+                            for c in pads),
+                        '受压水路的荷叶必须链接防御卡，不许裸奔')
 
     def test_producer_recovery_behind_walls_in_high_lane(self):
         # 实战 2026-09-26：产阳光被打到 4 株以下、全路 high 时经济断供螺旋死亡。

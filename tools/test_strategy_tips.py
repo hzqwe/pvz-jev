@@ -179,3 +179,43 @@ class MemorySunTests(unittest.TestCase):
         out = memory_sun_positions(
             [{"type": 6, "x": -300, "y": 250, "w": 50, "h": 60}], lay)
         self.assertEqual(out, [])
+
+
+class WaterLanePadTests(unittest.TestCase):
+    """受压水路的荷叶链（2026-09-27 夜战教训：荷叶后接了豌豆/阳光菇，
+    而挨打的 L4 全程没有荷叶——水路被穿）。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        for tid, name in ((0, '豌豆射手'), (12, '冰冻坚果'), (421, '高冰果'),
+                          (16, '睡莲'), (1, '阳光向日葵')):
+            self.assertTrue(self.book.bind_one(tid, name))
+
+    def test_pressured_water_lane_pads_chain_walls(self):
+        # 泳池：L3/L4 水路被压（僵尸 460/677），手里有坚果+高冰果+睡莲
+        # -> 挨打水路应出"荷叶+连锁墙"候选，分数不再被 45 封顶
+        b = BoardState(ok=True, sun=900, rows=6, cols=9, game_clock=40000, scene=2,
+                       slots=[SeedSlot(0, 0, 0, 1000), SeedSlot(1, 12, 0, 1000),
+                              SeedSlot(2, 421, 0, 1000), SeedSlot(3, 16, 0, 1000)],
+                       zombies=[Zombie(0, 2, 0, x=460), Zombie(1, 3, 0, x=677)],
+                       plants=[Plant(0, 0, 2, 430), Plant(1, 1, 0, 1)])
+        b.row_types = {0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1}
+        pads = [c for c in generate_candidates(b, self.book)
+                if c.kind == 'plant' and c.supports_type is not None]
+        self.assertTrue(pads, '受压水路应出荷叶候选')
+        pressured = [c for c in pads if c.score >= 70]
+        self.assertTrue(pressured, '受压水路的荷叶不应被 45 封顶')
+        for c in pressured:
+            self.assertTrue(self.book.has_tag(c.supports_type, 'wall'),
+                            f'荷叶连锁的应是墙系而不是 {c.supports_type}')
+
+    def test_calm_water_pad_stays_cheap(self):
+        # 平静期的水路荷叶维持低价（铺地基，不是救场）
+        b = BoardState(ok=True, sun=900, rows=6, cols=9, game_clock=40000, scene=2,
+                       slots=[SeedSlot(0, 0, 0, 1000), SeedSlot(1, 12, 0, 1000),
+                              SeedSlot(2, 16, 0, 1000)],
+                       zombies=[], plants=[Plant(0, 0, 2, 430)])
+        b.row_types = {0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1}
+        pads = [c for c in generate_candidates(b, self.book)
+                if c.kind == 'plant' and c.supports_type is not None]
+        self.assertTrue(pads and all(c.score <= 45 for c in pads))

@@ -247,16 +247,44 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                             and book.cost(s.type_id) is not None
                             and sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
                 if pad is not None:
-                    # 荷叶是"施工前置"，不是救场牌：光秃秃的荷叶既不攻击也不阻挡
-                    # （实战 2026-09-26：危急水路种了裸荷叶，眼睁睁看僵尸进门）。
-                    # 永远不进 emergency 池，分值封顶 45——危急水路的救场应该由
-                    # 炸弹/垫背承担，荷叶只是给下一轮的防御铺地基。
+                    # ★ 支撑卡选择（2026-09-27 夜战教训）：以前取"槽位顺序第一张"，
+                    #   结果荷叶后面接的是豌豆/阳光菇 —— 水路防线形同虚设。
+                    #   现在在所有"就绪且买得起（含荷叶钱）"的卡里挑最适合上荷叶
+                    #   的：墙系 > 高价射手 > 其他，顺序即优先级。
+                    supporters = [s for s in board.slots if s.ready
+                                  and book.cost(s.type_id) is not None
+                                  and not book.has_tag(s.type_id, T_PLATFORM)
+                                  and not book.has_tag(s.type_id, T_PRODUCER)
+                                  and sun >= book.cost(s.type_id) + 25]
+                    supporters.sort(key=lambda s: (
+                        not book.has_tag(s.type_id, T_WALL),
+                        -(book.cost(s.type_id) or 0)))
+                    best = next((s for s in supporters
+                                 if sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)),
+                                slot)
+                    # 压力升级：受压水路（high/critical）且本路无荷叶时，荷叶+
+                    # 连锁种植就是救场本体（一个事务里荷叶+墙一起落地），
+                    # 不再固定封顶 45 —— 封顶曾让挨打的水路永远排不进来。
+                    # 压力升级：受压水路（high/critical，或僵尸已进中圈<560）
+                    # 且本路无荷叶时，荷叶+连锁种植就是救场本体（一个事务里
+                    # 荷叶+墙一起落地），不再固定封顶 45 —— 封顶曾让挨打的
+                    # 水路永远排不进来（2026-09-27 夜战 L4 被穿的教训）。
+                    pressured = (facts[row]['threat_level'] in ('high', 'critical')
+                                 or (facts[row]['zombie_count']
+                                     and (facts[row]['nearest_zombie_x'] or 9999) < 560))
+                    if pressured and not board.has_platform(row, col, book):
+                        score = max(value, 75)
+                        tag = 'Plant Lily Pad and immediately chain the defender onto it'
+                    else:
+                        score = value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45)
+                        tag = 'First place Lily Pad to support'
                     candidates.append(Candidate('', 'plant', row, col, pad.index, pad.type_id,
-                        value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45),
-                        f'First place Lily Pad to support {book.en(slot.type_id)} at this water cell; '
+                        score,
+                        f'{tag} {book.en(best.type_id)} at this water cell; '
                         'Execute as a continuous pad-then-plant transaction; only the completed wall blocks. '
                         'Re-read and confirm both placements without another model call.',
-                        book.tags(pad.type_id), rescue and T_WALL in tags, tuple(covers), supports_type=slot.type_id))
+                        book.tags(pad.type_id), rescue and T_WALL in tags, tuple(covers),
+                        supports_type=best.type_id))
             return
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value * 0.2 if calm else value,
