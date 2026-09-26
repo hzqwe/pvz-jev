@@ -69,6 +69,7 @@ class Candidate:
     covers: tuple[int, ...] = ()
     supports_type: int | None = field(default=None, kw_only=True)
     relocate_to: tuple[int,int] | None = field(default=None, kw_only=True)
+    salvage: bool = field(default=False, kw_only=True)   # 铲掉换阳光（不回收卡片）
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def describe(self, book: PlantBook) -> str:
@@ -161,6 +162,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         for f in facts)
     rescue_now = emergency or close_intercept_any or zero_defence_pressure
     rescue_bypass_tags = {T_WALL, T_SHOOTER, T_INSTANT, T_SPLASH3, T_GLOBAL_FREEZE}
+    # 进阶 2（用户 2026-09-26）：僵尸非常多或非常坦（橄榄球类灰烬一发打不死）
+    # 时要**提前**交灰烬，不能拖到贴脸。eager 局面下：灰烬绕过经济储备闸，
+    # 中线（<560）允许出爆发候选，全屏冻结的 6 只门槛也放开。
+    eager = (total >= 6
+             or any(strength(z) >= 12
+                    for lane_zs in (board.zombies_in_lane(x) for x in range(board.rows))
+                    for z in lane_zs)
+             or any(f.get('crush_zombies') for f in facts))
 
     # -- 兜底垫背（用户策略，2026-09-26）----------------------------------
     # 危急路上没有墙卡可用（都在冷却/买不起）时，用便宜植物垫在僵尸脚下拖时间，
@@ -246,11 +255,13 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 for p in board.plants_in_lane(f['lane']-1)) for f in facts)
         if (producers < ECON_TARGET
                 and not (emergency or close_intercept
-                         or (zero_defence_pressure and cost <= 150))
+                         or (zero_defence_pressure and cost <= 150)
+                         or (eager and T_INSTANT in tags))
                 and T_PRODUCER not in tags
                 and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
             # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
+            # 例外：eager（大波/坦克/撞车）时灰烬绕过储备闸 —— 提前交牌优先。
             continue
 
         # ---- 开局储蓄到账：女王（plan 目标）买得起就直接出高分候选 ----
@@ -294,8 +305,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             if added_stall:
                 continue
 
+        # eager 已在候选生成开头计算（大波/坦克/撞车 -> 提前交灰烬）。
         if T_GLOBAL_FREEZE in tags:
-            if not emergency and total < 6:
+            if not emergency and total < 6 and not eager:
                 continue
             cells = [(r,c) for r in quiet for c in range(board.cols) if (r,c) not in occ]
             if cells:
@@ -328,7 +340,11 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     hit = [z for lane in range(board.rows) for z in board.zombies_in_lane(lane)
                            if z.x is not None and ((z.x-cell_x(col))/80)**2+(z.row-r)**2 <= 2.25]
                     cover = {z.row for z in hit}
-                    if not any(facts[x]['threat_level'] in ('high','critical') for x in cover):
+                    mid_push = any(facts[x]['zombie_count']
+                                   and (facts[x]['nearest_zombie_x'] or 9999) < 560
+                                   for x in cover)
+                    if not any(facts[x]['threat_level'] in ('high', 'critical') for x in cover) \
+                            and not (eager and mid_push):
                         continue
                     urgent_hit = any(z.x < 160 or (board.mowers.get(z.row) is False and z.x < 240)
                                      for z in hit)
@@ -339,9 +355,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                         # 事实层不编造数字，只在启发式评分里按命中数给小额加成。
                         sun_bonus = 8 * len(hit)
                         sun_note = ' Victims convert to sun (refund unspecified; small scoring bonus).'
+                    eager_note = (' Dense/tanky push: spend the burst now instead of at the '
+                                  'last moment.' if eager and not any(
+                                      facts[x]['threat_level'] in ('high', 'critical')
+                                      for x in cover) else '')
                     add(slot,r,col,100 + sum(min(strength(z), 1800/270)*14 for z in hit) + sun_bonus
-                        + (1000 if urgent_hit else 0),
-                        f'Local burst reaches {len(hit)} zombie(s); damage may not kill heavy armor.'+sun_note,
+                        + (40 if eager and mid_push else 0) + (1000 if urgent_hit else 0),
+                        f'Local burst reaches {len(hit)} zombie(s); damage may not kill heavy armor.'
+                        + sun_note + eager_note,
                         cover if urgent_hit else ())
             continue
 
@@ -409,6 +430,28 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if T_REFLECT in tags and facts[r]['zombie_count']:
                     bonus += min(10.0, profile.get('reflect_dps', 0) * 0.1)
                     extra += ' Reflects damage while being bitten.'
+                # 进阶 1（用户 2026-09-26）：昂贵的输出植物没有墙保护时会被远程
+                # 僵尸（僵尸豌豆射手）隔着防线点杀 —— 泳池里一整排射手被齐射团灭。
+                # 无墙的昂贵射手路，墙候选加分；路上有驻停（远程）僵尸再加急。
+                uncovered = [p for p in board.plants_in_lane(r)
+                             if not book.has_tag(p.type_id, T_WALL)
+                             and (book.cost(p.type_id) or 0) >= 300]
+                if uncovered and not facts[r]['blocking_walls']:
+                    bonus += 20 + 8 * min(3, len(uncovered))
+                    extra += (f' Protects {len(uncovered)} expensive plant(s) that currently '
+                              'have no wall in front of them.')
+                if facts[r].get('ranged_zombies'):
+                    bonus += 15
+                    extra += (f" {facts[r]['ranged_zombies']} stationary (likely ranged) "
+                              'zombie(s) in this lane shoot uncovered plants.')
+                # 进阶 3（用户 2026-09-26）：撞车僵尸（冰车读报类）直接压扁普通墙；
+                # 防撞墙（雷果子/高冰果）是本路的正确答案，普通墙要明示风险。
+                if facts[r].get('crush_zombies'):
+                    if profile.get('crush_hits') or profile.get('lethal_hit_burst'):
+                        bonus += 15
+                        extra += ' Crush-resistant: this is the right wall against crushing zombies.'
+                    else:
+                        extra += ' WARNING: a crushing zombie in this lane can squash this wall.'
                 val = 65 + facts[r]['priority'] * 0.8 + bonus
                 add(slot,r,col,val,
                     'Intercept on the house side of the zombie; shield the surviving rear plants.'
@@ -533,6 +576,53 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
              + f'Recover the dropped card and replant at lane {destination[0]+1}, column {destination[1]+1}; prepare water support first.'),
             book.tags(p.type_id), urgent, (destination[0],), hp, relocate_to=destination,
         ))
+
+    # -- 高级技巧（用户 2026-09-26）：铲掉换阳光 --------------------------
+    # 这版游戏铲植物**返阳光**，所以"快被啃死的植物"应该铲掉换阳光，而不是
+    # 被僵尸白吃。两个确定性触发：
+    #   a) 正在被啃、血量撑不过一个决策周期（按路上最快的啃食速度算，黑橄榄球
+    #      类更快）—— 铲掉回收阳光；
+    #   b) 撞车僵尸（冰车读报类）距本路最前面的**不可防撞**植物 ≤2 格 —— 它会
+    #      直接压扁植物，提前铲掉换阳光。防撞植物（雷果子/高冰果）绝不铲。
+    # 与回收高坚果的"回收"不同：这里不指望拿回卡片，只要阳光 > 0 就是净赚。
+    for p in board.plants:
+        if book.has_tag(p.type_id, T_WALL_REGEN) or p.asleep:
+            continue
+        profile = book.combat(p.type_id)
+        anti_crush = bool(profile.get('crush_hits') or profile.get('lethal_hit_burst'))
+        f = facts[p.row]
+        biters = [z for z in board.zombies_in_lane(p.row)
+                  if z.x is not None and z.x <= cell_x(p.col) + 48]
+        bite_dps = max([book.zombie_trait(z.type_id, 'eat_dps') or 100 for z in biters] or [100])
+        # a) 快被啃死：血量 <= 一个决策周期(约3s)的啃食量，且确实有嘴在啃
+        if (p.recently_eaten and p.hp is not None and biters
+                and p.hp <= bite_dps * 3):
+            candidates.append(Candidate(
+                '', 'shovel', p.row, p.col, -1, p.type_id,
+                120 + f["priority"] * 0.5,
+                (f'Salvage shovel: it is being eaten and only about {p.hp} hp is left '
+                 f'(biters chew ~{bite_dps:.0f}/s here) - shoveling refunds sun instead '
+                 'of letting zombies destroy it for nothing. Do this immediately.'),
+                book.tags(p.type_id), f["threat_level"] == "critical", (p.row,),
+                salvage=True, hp=p.hp,
+            ))
+        # b) 压扁前预铲：撞车僵尸两格内的前排不可防撞植物（还没被啃到）
+        if (not anti_crush and not p.recently_eaten and f.get('crush_zombies')
+                and f['nearest_zombie_x'] is not None):
+            in_path = [q for q in board.plants_in_lane(p.row)
+                       if cell_x(q.col) <= f['nearest_zombie_x'] + 40]
+            frontmost = max(in_path, key=lambda q: cell_x(q.col), default=None)
+            if (frontmost is not None and frontmost.cell == p.cell
+                    and f['nearest_zombie_x'] - cell_x(p.col) <= 160):
+                candidates.append(Candidate(
+                    '', 'shovel', p.row, p.col, -1, p.type_id,
+                    110 + f["priority"] * 0.5,
+                    (f'A crushing zombie is within ~2 cells of this plant and will squash '
+                     f'it outright (this plant is not crush-resistant); shovel it now to '
+                     'convert it into sun instead of losing it for nothing.'),
+                    book.tags(p.type_id), False, (p.row,),
+                    salvage=True, hp=p.hp,
+                ))
 
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
@@ -704,6 +794,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             if current is not None:
                 c.emergency, c.covers, c.score = current.emergency, current.covers, current.score
                 c.supports_type, c.relocate_to = current.supports_type, current.relocate_to
+                c.salvage = current.salvage
             valid.append(c)
     wait = next((c for c in valid if c.kind == 'wait'), Candidate('WAIT','wait'))
     # 铲子和种植是同一层"可执行动作"，一起参与择优与救场覆盖。

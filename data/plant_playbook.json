@@ -31,7 +31,11 @@
     "Jumping zombies: they leap over normal walls; the reclaimable tall nut blocks jumps.",
     "Ice-trail zombies: they leave ice that slows the lane; the cherry-chili burst destroys ice trails and cancels ice slow.",
     "Control-immune helmets: charm does not work on them; use damage instead.",
-    "Zombie identities are unverified at runtime; reason from observed body_hp, armor_hp and x position, not from guessed names."
+    "Zombie identities are unverified at runtime; reason from observed body_hp, armor_hp and x position, not from guessed names.",
+    "RANGED ZOMBIES (zombie peashooter family) stand still and shoot: they kill uncovered expensive plants across the lawn, and a whole row of shooters can be wiped in the pool. Keep a wall in front of EVERY expensive (300+ sun) shooter; the code detects stationary zombies automatically and boosts wall candidates on their lanes.",
+    "CRUSHING ZOMBIES (ice-truck / newspaper-truck fusions) squash normal plants outright instead of chewing. 雷果子 and 高冰果 RESIST crushing - prefer them on those lanes; ordinary walls there are temporary. Spend ash bursts early against them instead of at the last moment.",
+    "SALVAGE TECHNIQUE (user-confirmed): shoveling a plant in this build REFUNDS SUN. A nearly-dead plant (about to be chewed through within one decision cycle) or a non-crush-resistant plant about to be squashed should be shoveled immediately - sun beats a wasted plant. 雷果子/高冰果 are never salvage-shoveled for crushing (they survive it).",
+    "BLACK FOOTBALL-type zombies eat AND move faster than normal zombies (bite ~150/s vs 100/s). Judge timing per zombie type, not by the average pace."
   ],
   "usage_en": {
     "向日葵女王": "First costs 500 sun; add 100 for each same-type plant currently on the field. Prefer column C (third column), with torch-compatible peas behind in A/B. Produces 150 sun per 25s and 80 nominal tracking DPS; when this covers weak enemies, keep growing the economy. Do not classify every ordinary zombie as an emergency.",

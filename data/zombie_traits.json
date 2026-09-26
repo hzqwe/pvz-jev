@@ -1,0 +1,55 @@
+{
+  "_meta": {
+    "version": 1,
+    "date": "2026-09-26",
+    "note": [
+      "按 type_id 索引的僵尸特征表，供策略层用（crush/远程/啃食速度/移速）。",
+      "杂交版沿用原版僵尸结构体，id 大概率沿用原版枚举（12=冰车、23=巨人、7=橄榄球），",
+      "但**杂交版可能就地替换 id**（植物层就发生过）。标记 confirmed 的才可信；",
+      "其余是按原版 id 推定的候选，实战里用决策日志的 zombie_type_N 对照确认后更新。",
+      "确认方法：tools/look.py 或决策日志里看该类型出现时的行为（压扁=crush、",
+      "驻停射击=ranged、啃得快=eat_dps 高），然后回填本文件并加 confirmed: true。"
+    ],
+    "defaults": {
+      "eat_dps": 100,
+      "speed_px_s": 8,
+      "source": "原版通用值（啃 100/s、走 8px/s 逻辑坐标）；无实测，仅作保守缺省"
+    }
+  },
+  "types": {
+    "5": {
+      "name_hint": "newspaper/读报（杂交版可能与冰车融合为『冰车读报僵尸』）",
+      "speed_px_s": 10,
+      "note": "读报僵尸被激怒后加速；用户报告融合型会直接压扁植物（crush 待确认）",
+      "confirmed": false
+    },
+    "7": {
+      "name_hint": "football/橄榄球（用户报告的黑橄榄球更快，id 待确认）",
+      "eat_dps": 150,
+      "speed_px_s": 12,
+      "tanky": true,
+      "note": "用户 2026-09-26：黑橄榄球啃食和移动都比别的僵尸快",
+      "confirmed": false
+    },
+    "12": {
+      "name_hint": "zomboni/冰车",
+      "crush": true,
+      "speed_px_s": 6,
+      "note": "原版冰车直接压扁植物（压扁=crush）；杂交版『冰车读报僵尸』大概率挂在这个或 5 号位",
+      "confirmed": false
+    },
+    "22": {
+      "name_hint": "catapult/投石车",
+      "crush": true,
+      "speed_px_s": 6,
+      "confirmed": false
+    },
+    "23": {
+      "name_hint": "gargantuar/巨人",
+      "crush": true,
+      "speed_px_s": 5,
+      "tanky": true,
+      "confirmed": false
+    }
+  }
+}

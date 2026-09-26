@@ -144,6 +144,7 @@ COST_FILE = os.path.join(_DIR, "plant_costs.json")
 KB_FILE = os.path.join(_DIR, "hybrid_plants.json")
 IDS_FILE = os.path.join(_DIR, "plant_ids.json")
 LINEUPS_FILE = os.path.join(_DIR, "lineups.json")
+ZOMBIE_TRAITS_FILE = os.path.join(_DIR, "zombie_traits.json")
 
 # 成本下界（min_cost）的有效期（秒）。点卡被拒记下的"成本 ≥ 阳光+1"只在
 # 短期内可信：坐标偏一点、消息晚处理一拍都会造成假"被拒"。没有衰减的话
@@ -235,11 +236,43 @@ class PlantBook:
         self.copies_on_field: dict[int, int] = {}
         # 绑定后学到的成本与知识库不符的告警（用于发现绑错）
         self.cost_mismatch: dict[int, tuple[int, int]] = {}
+        # 僵尸特征表（crush/远程/啃食速度/移速），见 data/zombie_traits.json。
+        # 杂交版可能就地替换 id：标了 confirmed 的才硬性可信，其余是候选。
+        self.zombie_traits = {"defaults": {"eat_dps": 100, "speed_px_s": 8}, "types": {}}
 
         self.load()            # plant_names.json（原版重复项，保持兼容）
         self.load_kb()         # hybrid_plants.json（功能知识库）
         self.load_ids()        # plant_ids.json（已绑定结果）
         self.load_costs()      # plant_costs.json（实测成本）
+        self.load_zombie_traits()  # zombie_traits.json（僵尸特征）
+
+    def load_zombie_traits(self) -> None:
+        data = load_json(ZOMBIE_TRAITS_FILE, {}) or {}
+        defaults = dict(data.get("defaults") or {})
+        types: dict[int, dict] = {}
+        for k, v in (data.get("types") or {}).items():
+            try:
+                tid = int(k)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(v, dict):
+                types[tid] = v
+        self.zombie_traits = {"defaults": defaults, "types": types}
+
+    # -- 僵尸特征查询 ----------------------------------------------------
+    def zombie_flag(self, type_id: int, key: str) -> bool:
+        """布尔型特征（crush / tanky）。未登记 = False，绝不猜。"""
+        ent = self.zombie_traits["types"].get(type_id) or {}
+        return bool(ent.get(key))
+
+    def zombie_trait(self, type_id: int, key: str) -> float | None:
+        """数值型特征（eat_dps / speed_px_s）。未登记回落到 defaults。"""
+        ent = self.zombie_traits["types"].get(type_id) or {}
+        v = ent.get(key, self.zombie_traits["defaults"].get(key))
+        try:
+            return float(v) if v is not None else None
+        except (TypeError, ValueError):
+            return None
 
     # -- 载入 -----------------------------------------------------------
     def load(self) -> None:

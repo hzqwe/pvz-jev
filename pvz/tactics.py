@@ -135,12 +135,20 @@ def lane_facts(board, row, book=None):
         priority = priority * 1.35 + 30
     if not zs:
         priority = 0
+    # 行为/特征威胁（2026-09-26 进阶）：远程驻停僵尸点杀无墙保护的昂贵植物，
+    # 撞车僵尸直接压扁不可防撞的墙 —— 两者都会改变墙/灰烬候选的优先级。
+    # ranged 来自 agent 的跨快照驻停观测；crush/eat_dps 来自 zombie_traits.json。
+    ranged = sum(1 for z in zs if getattr(z, 'stationary', None))
+    crush = sum(1 for z in zs if book is not None and book.zombie_flag(z.type_id, 'crush'))
+    eat_dps = max([book.zombie_trait(z.type_id, 'eat_dps') or 100
+                   for z in zs] or [100]) if book is not None else 100.0
     return dict(lane=row + 1, zombie_count=len(zs), nearest_zombie_x=nx,
                 nearest_closeness=level, plant_count=len(ps), threat_level=level,
                 priority=round(priority, 2), zombie_strength=round(power, 2),
                 shooter_support=round(shooters, 2), reflect_support=round(reflect, 2),
                 blocking_walls=walls,
-                mower_available=mower, pressure=round(pressure, 2))
+                mower_available=mower, pressure=round(pressure, 2),
+                ranged_zombies=ranged, crush_zombies=crush, eat_dps=eat_dps)
 
 
 def saving_plan(board, book):
@@ -223,7 +231,10 @@ def stall_window(board, book, row, type_id, col=None):
         return None
     # Several nearby mouths shorten a disposable plant's useful life.
     mouths = sum(abs(z.x-nearest.x) <= 80 for z in known)
-    delay = hp / (100 * max(1,mouths))
+    # 啃食速度按僵尸类型取最大（黑橄榄球类比普通僵尸快，用户 2026-09-26 报告；
+    # zombie_traits.json 未确认的类型回落到 100/s 保守值）。
+    eat = max([book.zombie_trait(z.type_id, 'eat_dps') or 100 for z in known] or [100])
+    delay = hp / (eat * max(1,mouths))
     kill = (nearest.hp + (nearest.armor_hp or 0)) / dps
     front = max(cell_x(p.col) for p in rear)
     contact = max(0,nearest.x-front-40)/8

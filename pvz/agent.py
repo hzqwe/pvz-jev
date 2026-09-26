@@ -16,6 +16,7 @@ from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
 from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, escalate_emergency
 from .serialize import COL_LABEL, build_state, render_text
+from .tactics import cell_x
 from .transactions import run_transaction
 from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab
 from .win32 import (
@@ -446,11 +447,46 @@ class PvZJevAgent:
         return self.wake_game()
 
     # -- 单次决策 -------------------------------------------------------
+    def _track_zombie_station(self, board: BoardState) -> None:
+        """跨快照观测僵尸位移，标记"驻停"僵尸 —— 远程僵尸（僵尸豌豆射手类）
+        的行为特征：时钟在走它却不动，且没贴着植物啃。啃食中的僵尸同样驻停，
+        用"是否贴着某个植物格中心"排除。样本不足时保持 None，绝不猜。
+
+        远程僵尸是最高优先级的威胁信号（它会隔着防线点杀高价值植物，泳池里
+        一排射手被齐射团灭的根因），policy 据此给"无墙保护的昂贵射手"补墙。
+        """
+        if not hasattr(self, "_zombie_track"):
+            self._zombie_track: dict[tuple[int, int], list[tuple[int, float]]] = {}
+        clock = board.game_clock or 0
+        alive: set[tuple[int, int]] = set()
+        for z in board.zombies:
+            if z.friendly or z.x is None:
+                continue
+            key = (z.index, z.type_id)
+            alive.add(key)
+            hist = self._zombie_track.get(key)
+            if hist and abs(hist[-1][1] - z.x) > 120:
+                hist = []          # 槽位被复用/瞬移 -> 重新观测
+            hist = (hist or []) + [(clock, z.x)]
+            hist[:] = hist[-12:]
+            self._zombie_track[key] = hist
+            if clock - hist[0][0] >= 300 and abs(hist[-1][1] - hist[0][1]) < 12:
+                # 3s 观测窗内位移 <12px（低于一步的 8px/s 应有位移）→ 驻停
+                contact = any(p.row == z.row and abs(cell_x(p.col) - z.x) <= 48
+                              for p in board.plants)
+                z.stationary = not contact
+            else:
+                z.stationary = False
+        for key in list(self._zombie_track):
+            if key not in alive:
+                self._zombie_track.pop(key, None)
+
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
         # 动态涨价按场上株数生效（图鉴 price_increment；见 PlantBook.cost）
         self.book.sync_field_copies(board.plants)
         # 决策层的"活体"判据统一用时钟推进（0x164 paused 不可靠，见 note_clock）
         board.clock_advancing = self._responsive
+        self._track_zombie_station(board)
         context = (board.pid,board.board,board.scene,board.rows)
         restarted = (self._last_decision_clock is not None and board.game_clock is not None
                      and board.game_clock < self._last_decision_clock)

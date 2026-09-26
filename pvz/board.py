@@ -76,6 +76,9 @@ class Zombie:
     hp: int | None = None
     armor_hp: int | None = None
     friendly: bool = False
+    # 行为观测（agent 按前后多拍位置写入）：时钟在走却驻停、且没贴着植物啃
+    # —— 远程僵尸（僵尸豌豆射手类）的行为特征。None = 样本不足未判定。
+    stationary: bool | None = None
 
     @property
     def close_to_house(self) -> bool:

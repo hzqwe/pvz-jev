@@ -115,14 +115,52 @@ class PlantTransaction:
         self.steps.append({'step':'recovered_seed_in_hand','type_id':source.type_id})
         self.place_held(source.type_id,row,col)
 
+    def salvage(self,candidate):
+        """铲掉换阳光（用户高级技巧 2026-09-26）：植物快被啃死/即将被压扁时，
+        铲掉它把损失变成阳光。与 relocate 不同——不期待掉落卡片，只确认
+        植物消失，并记录铲前铲后的阳光差供后续校准返还量。"""
+        self.read()
+        source=next((p for p in self.board.plants if p.cell==(candidate.row,candidate.col)
+                     and p.type_id==candidate.type_id),None)
+        if source is None:
+            raise TransactionStopped('Nothing left to salvage')
+        sun0=self.board.sun
+        self.agent.clicker.cancel_seed('pre-salvage reset')
+        self.read(lambda b:not b.holding)
+        self.agent.clicker.shovel_hotkey()
+        try:self.read(lambda b:b.holding_shovel)
+        except TransactionStopped:
+            # Keyboard miss can fall back to the calibrated button, only on a live board.
+            self.read()
+            self.agent.clicker.click_shovel(self.agent.layout,'shovel button fallback')
+            self.read(lambda b:b.holding_shovel)
+        current=next((p for p in self.board.plants if p.cell==source.cell
+                      and p.type_id==source.type_id),None)
+        if current is None:
+            raise TransactionStopped('Plant gone before shovel hit')
+        self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'salvage shovel')
+        self.read(lambda b:not any(p.cell==source.cell and p.type_id==source.type_id
+                                   for p in b.plants))
+        if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
+        self.steps.append({'step':'salvaged','cell':list(source.cell),
+                           'sun_before':sun0,'sun_after':self.board.sun})
+        if self.board.holding:
+            # 少数植物铲掉可能附带掉卡；捡不起来就复位光标，交给用户/后续轮次。
+            self.agent.clicker.cancel_seed('post-salvage reset')
+            self.read(lambda b:not b.holding)
+
 
 def run_transaction(agent,board,*,candidate=None,followup=None):
     tx=PlantTransaction(agent,board)
     try:
-        if candidate is not None:tx.relocate(candidate)
-        else:tx.bank(*followup)
-        return {'kind':'relocated' if candidate is not None else 'support_followup',
-                'completed':True,'steps':tx.steps}
+        if candidate is not None:
+            if getattr(candidate,'salvage',False):
+                tx.salvage(candidate)
+                return {'kind':'salvaged','completed':True,'steps':tx.steps}
+            tx.relocate(candidate)
+            return {'kind':'relocated','completed':True,'steps':tx.steps}
+        tx.bank(*followup)
+        return {'kind':'support_followup','completed':True,'steps':tx.steps}
     except TransactionStopped as exc:
         # Never let later sun collection place a held plant or use a held shovel.
         agent.clicker.cancel_seed('transaction stopped')

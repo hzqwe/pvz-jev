@@ -102,6 +102,9 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                         "body_hp": z.hp, "armor_hp": z.armor_hp,
                         "x_px": round(z.x, 0) if z.x is not None else None,
                         "closeness": _closeness(z.x),
+                        # 特征只在有信息时出现：crush 来自 zombie_traits.json，
+                        # stationary 是 agent 跨快照的驻停观测（远程僵尸嫌疑）。
+                        **({'traits': tr} if (tr := _zombie_traits(book, z)) else {}),
                     }
                     for z in sorted(zs, key=lambda z: (z.x if z.x is not None else 9999))
                 ],
@@ -171,6 +174,19 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             [p.type_id for p in board.plants] + [s.type_id for s in board.slots]
         ),
     }
+
+
+def _zombie_traits(book: PlantBook, z) -> dict:
+    """给 Jev 的僵尸特征标记；没有任何信息时返回空 dict（不编造）。"""
+    tr: dict = {}
+    if book.zombie_flag(z.type_id, 'crush'):
+        tr['crush'] = True
+        tr['note'] = 'Crushes (squashes) plants outright; only crush-resistant walls hold it.'
+    if getattr(z, 'stationary', None):
+        tr['stationary_maybe_ranged'] = True
+        tr.setdefault('note', 'Standing still while the clock advances: likely a ranged '
+                              'zombie (e.g. zombie peashooter) shooting uncovered plants.')
+    return tr
 
 
 def _wave_info(board: BoardState) -> dict | None:
