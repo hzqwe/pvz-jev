@@ -64,6 +64,8 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                         "role": book.role(p.type_id),
                         "column": COL_LABEL[p.col] if 0 <= p.col < len(COL_LABEL) else str(p.col),
                         "asleep": p.asleep,
+                        "hp": p.hp,
+                        "recently_eaten": p.recently_eaten,
                     }
                     for p in ps
                 ],

@@ -265,7 +265,7 @@
         "coverage": "none",
         "anti_jump": true,
         "reclaim_hp_cost": 800,
-        "notes": "Reclaim only if HP remains after paying 800; recovered card retains remaining HP. Agent has no shovel action."
+        "notes": "Reclaim only if HP remains after paying 800; recovered card retains remaining HP. Agent shovel action implemented 2026-09-26 (shovel offered only when 800<hp<=2400 and the lane is pressured)."
       },
       "combat_source": "user_almanac_2026-09-26"
     },

@@ -538,7 +538,9 @@ class PvZJevAgent:
             record["executed"] = {"kind": "hold"}
             return
         if self.cfg.dry_run:
-            record["executed"] = {"kind": "dry_run", "would": f"card {cand.slot} -> r{cand.row}c{cand.col}"}
+            would = (f"shovel {self.book.name(cand.type_id)} @ r{cand.row}c{cand.col}"
+                     if cand.kind == "shovel" else f"card {cand.slot} -> r{cand.row}c{cand.col}")
+            record["executed"] = {"kind": "dry_run", "would": would}
             return
         now = time.time()
         self._action_times = [t for t in self._action_times if now - t < 60]
@@ -597,6 +599,10 @@ class PvZJevAgent:
             if self.cfg.verbose:
                 print(f"  ⏸️ 决策后时钟没走（{board.game_clock} -> {chk.game_clock}）"
                       f"→ 放弃本次动作（游戏可能正在切屏）")
+            return
+
+        if cand.kind == "shovel":
+            self._execute_shovel(cand, record, board)
             return
 
         # 1) 清空"手持种子"状态
@@ -735,6 +741,77 @@ class PvZJevAgent:
                 print(f"  ⚠️ 落点 r{cand.row + 1}c{cand.col} 未生效"
                       f"（阳光 {sun0} -> {after.sun}），已取消手持种子，"
                       f"该格 {self._bad_cell_ttl:.0f}s 内不再尝试")
+
+    # -- 铲子执行 ---------------------------------------------------------
+    def _execute_shovel(self, cand, record: dict, board: BoardState) -> None:
+        """执行一次"铲子"动作：点铲子按钮 → 验证光标 → 点目标植物 → 验证移除。
+
+        和种植链路同一条纪律：**每一步都要有"确实生效了"的内存证据**，
+        绝不拿"点过了"当"成功了"。
+          1. 点铲子后必须读到 `mCursorType == 6`（手持铲子），否则立即收手
+             —— 可能是坐标偏了、或者游戏没在处理输入；
+          2. 点植物格后必须读到该格**空了**，才算回收成功；
+          3. 任何一步失败都右键复位光标，绝不让铲子一直举在手上
+             （否则下一次"收阳光"的点击就会铲掉一株无辜的植物）。
+        """
+        assert self.clicker and self.layout
+        target = (cand.row, cand.col)
+        pre = self.reader.read()
+        pre_plant = next((p for p in pre.plants if (p.row, p.col) == target), None)
+        if pre_plant is None or pre_plant.type_id != cand.type_id:
+            record["executed"] = {"kind": "shovel_stale",
+                                  "note": "目标植物已经不在（被吃掉/已被铲），放弃本次铲子"}
+            return
+        hp_before = pre_plant.hp
+        self.clicker.cancel_seed("pre-shovel reset")
+        time.sleep(0.15)
+
+        # 点铲子按钮，并用光标枚举验证真的拿起来了
+        self.clicker.click_shovel(self.layout, f"pick shovel for r{cand.row}c{cand.col}")
+        time.sleep(0.3)
+        mid = self.reader.read()
+        if not mid.holding_shovel:
+            self.stats.pick_rejected += 1
+            self.clicker.cancel_seed("shovel pick failed: reset cursor")
+            record["executed"] = {
+                "kind": "shovel_pick_rejected",
+                "cursor": mid.held_cursor,
+                "note": ("点铲子后光标不是铲子（坐标偏了或游戏没在处理输入），"
+                         "已右键复位，本次未铲任何植物"),
+            }
+            if self.cfg.verbose:
+                print(f"  ⚠️ 铲子没拿起来（mCursorType={mid.held_cursor}），已复位光标")
+            return
+
+        # 铲目标格，然后回读验证
+        self.clicker.click_grid(cand.row, cand.col, self.layout,
+                                f"shovel r{cand.row}c{cand.col}")
+        self._action_times.append(time.time())
+        time.sleep(0.7)
+        after = self.reader.read()
+        removed = target not in after.occupancy()
+        if after.holding:
+            # 铲完光标通常回到空手；若还举着（点了个不可铲目标），右键复位
+            self.clicker.cancel_seed("post-shovel reset")
+        if removed:
+            self.stats.executed += 1
+            self._bad_cells.pop(target, None)
+        else:
+            self.stats.failed_actions += 1
+            self._bad_cells[target] = time.time()
+        record["executed"] = {
+            "kind": "shovel",
+            "removed": removed,
+            "plant": self.book.name(cand.type_id),
+            "hp_before": hp_before,
+            "grid": f"r{cand.row}c{cand.col}",
+            "note": ("回收成功：卡片带着剩余血量回到卡槽"
+                     if removed else "目标格仍有植物 —— 铲除未生效，已复位光标"),
+        }
+        if self.cfg.verbose:
+            mark = "✅ 已回收" if removed else "❌ 铲除未生效"
+            print(f"  {mark} {self.book.name(cand.type_id)} @ r{cand.row + 1}c{cand.col}"
+                  f"（铲前血量={hp_before}）")
 
     # -- 主循环 ---------------------------------------------------------
     def run(self, duration_s: float = 120.0, on_cycle=None,

@@ -76,7 +76,16 @@ P_IMITATER = 0x138
 P_DEAD = 0x141
 P_SQUISHED = 0x142
 P_ASLEEP = 0x143
-P_HP = 0xC8                     # 经验值/血量字段（杂交版可能不同，probe 里仅作参考）
+# ★ 植物血量（2026-09-26 按反编译 Lawn/Plant.h 补上）：mPlantHealth=+0x40、
+#   mPlantMaxHealth=+0x44、mRecentlyEatenCountdown=+0xB4（>0 = 正在被啃）。
+#   为什么可信：杂交版沿用了原版字段布局（P_TYPE=0x24 / P_COL=0x28 /
+#   P_ASLEEP=0x143 都和反编译一字不差，只是把结构体步长拉长到 0x304），
+#   血量没有理由单独挪走。读取时仍按 `_health()` 的 0<=hp<=max 边界校验，
+#   读不出合法值就返回 None（未知），绝不拿垃圾值当血量。
+#   （旧表里曾写 P_HP=0xC8 —— 那是照抄僵尸的 mBodyHealth，植物上没有依据，已删除。）
+P_HP = 0x40
+P_MAX_HP = 0x44
+P_RECENTLY_EATEN = 0xB4
 
 # --- 僵尸数组 -----------------------------------------------------------
 OFF_ZOMBIE = 0x90               # -> Zombie[] 基址
@@ -148,9 +157,15 @@ GI_DEAD = 0x20
 #   cursor_grab 是游戏自己维护的状态，不受阳光涨落影响。
 #   附带好处：+0x24/+0x28 是**卡槽绑定的 ground truth**，比冷却指纹可靠。
 OFF_CURSOR = 0x138
-C_GRAB = 0x30                   # 0=空手, 1=手持种子
-C_SLOT = 0x24                   # 手持的卡槽下标
-C_TYPE = 0x28                   # 手持的 type_id
+C_GRAB = 0x30                   # 实为 mCursorType 枚举（见下），0=空手
+C_SLOT = 0x24                   # 手持的卡槽下标（mSeedBankIndex）
+C_TYPE = 0x28                   # 手持的 type_id（mType）
+# ★ mCursorType 的完整枚举（2026-09-26 按反编译 ConstEnums.h 补全）：
+#   0=NORMAL(空手) 1=PLANT_FROM_BANK(手持种子) ... 6=SHOVEL(铲子)。
+#   此前只把它当 0/1 的"抓取标志"用；现在铲子支持需要区分 1 和 6。
+CUR_NORMAL = 0
+CUR_PLANT_FROM_BANK = 1
+CUR_SHOVEL = 6
 
 # --- 种子栏（SeedBank）-------------------------------------------------
 # pvztoolkit: slot 0x144 是 **指针**，slot_count 0x24 是相对 slot 基址的子偏移；

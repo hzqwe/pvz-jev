@@ -45,6 +45,10 @@ class Plant:
     type_id: int
     imitater: int = -1
     asleep: bool = False
+    # 血量未知时是 None（读取失败/越界），绝不用 0 冒充"快死了"。
+    hp: int | None = None
+    max_hp: int | None = None
+    recently_eaten: bool = False   # mRecentlyEatenCountdown > 0：正在被啃
 
     @property
     def cell(self) -> tuple[int, int]:
@@ -110,14 +114,21 @@ class BoardState:
     plants: list[Plant] = field(default_factory=list)
     zombies: list[Zombie] = field(default_factory=list)
     slots: list[SeedSlot] = field(default_factory=list)
-    # -- 光标（"手上有没有拿种子"）--------------------------------------
+    # -- 光标（"手上有没有拿东西"）--------------------------------------
     # 这是判断"点卡有没有成功"的**唯一可靠信号**，见 offsets.OFF_CURSOR 的说明。
+    # holding 现在泛指"手上有东西"（种子或铲子）；具体是什么看 held_cursor：
+    # 1=手持种子（这时 held_slot/held_type 才有意义），6=手持铲子。
     holding: bool = False
+    held_cursor: int = 0
     held_slot: int = -1
     held_type: int = -1
     notes: list[str] = field(default_factory=list)
     # Missing key means unknown; False means a validated row has no ready mower.
     mowers: dict[int, bool] = field(default_factory=dict)
+
+    @property
+    def holding_shovel(self) -> bool:
+        return self.held_cursor == O.CUR_SHOVEL
 
     # --- 派生视图 -----------------------------------------------------
     def occupancy(self) -> dict[tuple[int, int], list[Plant]]:
@@ -381,6 +392,8 @@ class BoardReader:
                     type_id=t,
                     imitater=pm.i32(a + O.P_IMITATER) if pm.i32(a + O.P_IMITATER) is not None else -1,
                     asleep=bool(pm.u8(a + O.P_ASLEEP)),
+                    hp=self._health(a + O.P_HP, a + O.P_MAX_HP),
+                    recently_eaten=(pm.i32(a + O.P_RECENTLY_EATEN) or 0) > 0,
                 )
             )
         return out
@@ -489,9 +502,11 @@ class BoardReader:
     def _read_cursor(self, board: int, st: "BoardState") -> None:
         """读"手上拿着什么"。
 
-        `CursorObject+0x30` 是 0/1 的抓取标志；`+0x24` 是卡槽下标、`+0x28` 是
-        type_id。这三者在"点卡是否成功"和"卡槽↔名字绑定"两件事上都是 ground truth
-        （见 `offsets.OFF_CURSOR` 的长注释）。
+        `CursorObject+0x30` 是 **mCursorType 枚举**（反编译 ConstEnums.h）：
+        0=空手、1=手持种子、6=手持铲子。`+0x24` 卡槽下标、`+0x28` type_id
+        只在手持种子时有意义。三者在"点卡是否成功"和"卡槽↔名字绑定"两件事上
+        都是 ground truth（见 `offsets.OFF_CURSOR` 的长注释）。
+        铲子支持（回收高坚果）需要区分"手持种子"和"手持铲子"。
         """
         pm = self.pm
         assert pm
@@ -499,8 +514,9 @@ class BoardReader:
         if not cur:
             return
         grab = pm.i32(cur + O.C_GRAB)
-        st.holding = bool(grab)
-        if st.holding:
+        st.held_cursor = grab if grab is not None else 0
+        st.holding = st.held_cursor != O.CUR_NORMAL
+        if st.held_cursor == O.CUR_PLANT_FROM_BANK:
             slot = pm.i32(cur + O.C_SLOT)
             typ = pm.i32(cur + O.C_TYPE)
             st.held_slot = slot if slot is not None else -1

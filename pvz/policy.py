@@ -30,6 +30,14 @@ from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgra
 MAX_CANDIDATES = 24
 MAX_PER_TYPE = 2          # 同一张卡最多出几条落点候选（见 generate_candidates 末尾）
 
+# ---- 铲子/回收护栏（2026-09-26 新增）-----------------------------------
+# 只有"可回收"的墙（回收高坚果，wall_regen 标签）才允许铲。规则来自图鉴：
+# 每次铲除扣 800 血，**血量 > 800 才能变回卡片**（保留剩余血量）。
+# 所以：血量未知 → 不铲；血量 <= RECLAIM_MIN_HP → 铲不回卡片，不铲；
+# 血量还很满 → 没必要铲，不铲。铲子候选只在"这面墙快没了"时出现。
+RECLAIM_MIN_HP = 800      # 扣完 800 必须还 > 0 才变卡
+RECLAIM_MAX_HP = 2400     # 血量高于这个值时铲它纯属浪费（还能挡很久）
+
 # ---- 经济护栏（2026-09-26 实测加的）------------------------------------
 # 实测故障：agent 开局 25 秒内连买 125 + 500 + 150 + 200 + 125，把阳光打到 0~100，
 # 之后整整 60 秒里 **就绪卡有 10~13/15、草坪上有 8~32 只僵尸，却一个候选都出不来**
@@ -48,7 +56,7 @@ ECON_CHEAP = 150          # 便宜到不值得拦的卡：急救就靠它们
 @dataclass
 class Candidate:
     cid: str
-    kind: str                    # "plant" | "wait"
+    kind: str                    # "plant" | "shovel" | "wait"
     row: int = -1
     col: int = -1
     slot: int = -1
@@ -58,12 +66,20 @@ class Candidate:
     tags: tuple[str, ...] = ()
     emergency: bool = False
     covers: tuple[int, ...] = ()
+    hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def describe(self, book: PlantBook) -> str:
         if self.kind == "wait":
             return (
                 "Wait / do nothing this cycle. Save the sun. Choose this when no "
                 "placement would meaningfully improve the defence right now. " + self.why
+            )
+        if self.kind == "shovel":
+            col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
+            hp_txt = f"about {self.hp} hp left" if self.hp is not None else "hp unknown"
+            return (
+                f"Shovel up \"{book.en(self.type_id)}\" at lane {self.row + 1}, column {col} "
+                f"({hp_txt}) and take it back as a seed card. Reason: {self.why}"
             )
         col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
         cost = book.cost(self.type_id)
@@ -289,6 +305,35 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if tracking:
                     break
 
+    # -- 铲子候选（回收高坚果等"可回收"的墙）------------------------------
+    # 为什么放在卡槽循环之外：铲子不花阳光、不占卡槽，它作用于**已经在场上的植物**。
+    for p in board.plants:
+        if not book.has_tag(p.type_id, T_WALL_REGEN):
+            continue
+        hp = p.hp
+        if hp is None or hp <= RECLAIM_MIN_HP or hp > RECLAIM_MAX_HP:
+            # 血量未知/扣完 800 就没了/还很满 —— 三种情况都不值得铲。
+            # 血量未知绝不猜：铲子候选宁可缺席，也不能拿垃圾血量赌。
+            continue
+        f = facts[p.row]
+        if not f["zombie_count"]:
+            continue
+        contact = (f["nearest_zombie_x"] is not None
+                   and f["nearest_zombie_x"] <= cell_x(p.col) + 30)
+        if not contact and f["threat_level"] not in ("high", "critical"):
+            # 没僵尸在啃它、路线也不告急 → 慢慢等它挡，铲它是送 800 血。
+            continue
+        urgent = f["threat_level"] == "critical"
+        candidates.append(Candidate(
+            '', 'shovel', p.row, p.col, -1, p.type_id,
+            (150 if urgent else 60) + f["priority"] * 0.5,
+            (f'Reclaim it before zombies finish it: shoveling costs 800 hp, the returned '
+             f'card keeps the remaining {hp - 800}; once its hp drops to 800 or below it '
+             f'can never be reclaimed again and is simply lost. '
+             f'Replant it where it helps more once ready.'),
+            book.tags(p.type_id), urgent, (p.row,), hp,
+        ))
+
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
     selected, seen, counts = [], set(), {}
@@ -376,6 +421,8 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "sun reserve is small ONLY if that solves the actual danger. Follow saving_plan "
                 "when safe; avoid repeated cheap spending that delays its target. Rescue near-house "
                 "threats first, especially without a mower. Do not assume unknown mower status is safe. "
+                "A shovel option removes an existing plant and returns it as a card; choose it only "
+                "when reclaiming it now clearly beats letting zombies destroy it. "
                 "Be careful with long-cooldown one-shot plants "
                 "when the board is still calm."
             ),
@@ -419,7 +466,9 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                 c.emergency, c.covers, c.score = current.emergency, current.covers, current.score
             valid.append(c)
     wait = next((c for c in valid if c.kind == 'wait'), Candidate('WAIT','wait'))
-    plants = sorted((c for c in valid if c.kind == 'plant'),key=lambda c:(not c.emergency,-c.score))
+    # 铲子和种植是同一层"可执行动作"，一起参与择优与救场覆盖。
+    plants = sorted((c for c in valid if c.kind in ('plant', 'shovel')),
+                    key=lambda c:(not c.emergency,-c.score))
     best = plants[0] if plants else wait
     emergency = next((c for c in plants if c.emergency),None)
     d = Decision()

@@ -1,6 +1,6 @@
 """Live Jev API smoke test on synthetic boards; never touches the game.
 
-Uses the configured TypeSafe API key and makes three billable requests.
+Uses the configured TypeSafe API key and makes four billable requests.
 """
 import json
 from pathlib import Path
@@ -11,21 +11,30 @@ from pvz.policy import generate_candidates, build_questions, merge_decision
 from pvz.serialize import build_state
 from pvz.jev import JevClient
 
+RECLAIM = 320   # 回收高坚果（hybrid_plants.json 里有完整登记）
+
 
 def main():
     fixture = StrategyTests()
     fixture.setUp()
     book = fixture.book
+    assert book.bind_one(RECLAIM, '回收高坚果')
     plants = [Plant(r, r, 0, SUN) for r in range(4)] + [Plant(10, 0, 2, PEA)]
     saving = fixture.board([SUN, PEA, STRONG], [Zombie(0, 0, 0, x=720)], plants, sun=400)
     rescue = fixture.board([BOMB, WALL, FREEZE, SUN], [Zombie(0, 4, 0, x=110)], sun=300)
     rescue.mowers = {4: False}
     upgrade = fixture.board([SUN, PEA, STRONG], [Zombie(0, 0, 0, x=720)], plants, sun=500)
+    # 回收场景：一面马上要跌破回收线的回收高坚果（1000 血，再啃两秒就低于
+    # 800 —— 那之后就永远收不回来了）+ 正在啃它的僵尸。卡槽为空 -> 没有任何
+    # 种植候选，唯一留住这面墙的办法就是现在铲掉它收回卡片。
+    reclaim = fixture.board([], [Zombie(0, 0, 0, x=250)],
+                            [Plant(0, 0, 2, RECLAIM, hp=1000, recently_eaten=True)], sun=1000)
     client = JevClient(timeout=12, retries=2)
     results = []
     output = Path(__file__).resolve().parents[1] / 'out' / 'strategy-validation.json'
     output.parent.mkdir(exist_ok=True)
-    for name, board in [('saving', saving), ('house_rescue', rescue), ('buy_upgrade', upgrade)]:
+    for name, board in [('saving', saving), ('house_rescue', rescue),
+                        ('buy_upgrade', upgrade), ('reclaim_shovel', reclaim)]:
         candidates = generate_candidates(board, book)
         response = client.ask(build_state(board, book), build_questions(candidates, board, book))
         if not response.ok:
@@ -34,6 +43,7 @@ def main():
         candidate = decision.candidate
         passed = (decision.hold if name == 'saving' else
                   not decision.hold and candidate.emergency if name == 'house_rescue' else
+                  not decision.hold and candidate.kind == 'shovel' if name == 'reclaim_shovel' else
                   not decision.hold and candidate.type_id == STRONG)
         result = dict(scenario=name, passed=passed, model=response.model,
                       latency_s=round(response.latency_s, 2),
@@ -42,8 +52,10 @@ def main():
                       fallback=decision.fallback, notes=decision.notes)
         results.append(result)
         output.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding='utf-8')
+        label = ('WAIT' if decision.hold else
+                 f'{candidate.kind}:{book.en(candidate.type_id)}')
         print(f'{name}: passed={passed}, latency={response.latency_s:.2f}s, '
-              f'fallback={decision.fallback}, action={book.en(candidate.type_id) if not decision.hold else "WAIT"}', flush=True)
+              f'fallback={decision.fallback}, action={label}', flush=True)
         if not passed:
             raise AssertionError(f'{name}: inspect {output}')
     print(f'Results: {output}')

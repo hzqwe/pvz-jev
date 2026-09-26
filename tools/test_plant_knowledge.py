@@ -4,7 +4,7 @@ import test_strategy as fixtures
 from test_strategy import SUN, PEA, WALL, STRONG, BOMB, FREEZE
 from pvz.board import Plant, Zombie
 from pvz.tactics import saving_plan, lane_facts, upgrade_value
-from pvz.policy import generate_candidates
+from pvz.policy import generate_candidates, merge_decision, action_is_current
 from pvz.serialize import build_state
 
 QUEEN, CORN, GATLING, TALL, THUNDER = range(310,315)
@@ -108,3 +108,48 @@ class PlantKnowledgeTests(unittest.TestCase):
             if c.kind=='plant' and c.type_id==CHILL]
         self.assertTrue(cs)
         self.assertIn('frozen zombie',cs[0].why)
+
+    def test_reclaim_shovel_offered_when_wall_nearly_dead(self):
+        self.book.bind_one(320,'回收高坚果')
+        wall=Plant(0,0,2,320,hp=1500)
+        b=self.board([],[Zombie(0,0,0,x=250)],[wall])   # x=250 已啃到 col2 的墙
+        sh=[c for c in generate_candidates(b,self.book) if c.kind=='shovel']
+        self.assertTrue(sh)
+        self.assertFalse(sh[0].emergency)   # x=250 是 high 不是 critical
+        crit=self.board([],[Zombie(0,0,0,x=110)],[wall])
+        sh2=[c for c in generate_candidates(crit,self.book) if c.kind=='shovel']
+        self.assertTrue(sh2 and sh2[0].emergency)
+        self.assertIn('Reclaim it',sh[0].why)
+        self.assertIn('Shovel up',sh[0].describe(self.book))
+        self.assertEqual(sh[0].hp,1500)
+
+    def test_no_shovel_when_full_or_unknown_or_too_low_hp(self):
+        self.book.bind_one(320,'回收高坚果')
+        z=Zombie(0,0,0,x=250)
+        for hp in (8000,None,500):
+            b=self.board([],[z],[Plant(0,0,2,320,hp=hp)])
+            self.assertFalse([c for c in generate_candidates(b,self.book)
+                              if c.kind=='shovel'], f'hp={hp} 不应有铲子候选')
+
+    def test_no_shovel_when_no_pressure(self):
+        self.book.bind_one(320,'回收高坚果')
+        b=self.board([],[],[Plant(0,0,2,320,hp=1500)])  # 没有僵尸
+        self.assertFalse([c for c in generate_candidates(b,self.book)
+                          if c.kind=='shovel'])
+
+    def test_shovel_survives_merge_and_revalidation(self):
+        self.book.bind_one(320,'回收高坚果')
+        wall=Plant(0,0,2,320,hp=1500)
+        b=self.board([],[Zombie(0,0,0,x=250)],[wall])
+        cs=generate_candidates(b,self.book)
+        sh=[c for c in cs if c.kind=='shovel'][0]
+        self.assertTrue(action_is_current(sh,b,self.book))
+        d=merge_decision(None,cs,b,self.book)   # Jev 不可用 -> 兜底应选中紧急铲子
+        self.assertEqual(d.candidate.kind,'shovel')
+
+    def test_defender_hp_reaches_the_model(self):
+        self.book.bind_one(320,'回收高坚果')
+        b=self.board([],[Zombie(0,0,0,x=700)],[Plant(0,0,2,320,hp=1500,recently_eaten=True)])
+        info=build_state(b,self.book)['lanes'][0]['defenders'][0]
+        self.assertEqual(info['hp'],1500)
+        self.assertTrue(info['recently_eaten'])

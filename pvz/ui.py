@@ -58,6 +58,12 @@ class Layout:
     sun_display: tuple[int, int, int, int] = (18, 52, 90, 32)  # 阳光数字区域(客户区)
     # 暂停菜单"返回游戏"按钮中心（客户区坐标）。None 表示未知，需要 tools/scan_green.py 量。
     pause_resume_xy: tuple[int, int] | None = None
+    # 铲子按钮中心（客户区坐标，2560x1600 基准下量测）。
+    # 2026-09-26 从两份不同对局的截图（out/board.png、out/live_now2.png）里
+    # 用金色像素定位：铲子 plaque 在卡条右端、最后一张卡之后，
+    # 金色区域 x≈2150..2294、y≈5..196，中心 ≈ (2220, 95)。
+    # 和 pause_resume_xy 一样按 scale() 缩放，分辨率变了也不会错位。
+    shovel_xy: tuple[int, int] = (2220, 95)
 
     # -- 载入 / 保存 -----------------------------------------------------
     @classmethod
@@ -68,7 +74,7 @@ class Layout:
                 raw = json.load(fh)
             for k, v in raw.items():
                 if hasattr(lay, k):
-                    if k in ("sun_display", "pause_resume_xy") and isinstance(v, list):
+                    if k in ("sun_display", "pause_resume_xy", "shovel_xy") and isinstance(v, list):
                         v = tuple(v)
                     setattr(lay, k, v)
         except (OSError, ValueError):
@@ -136,6 +142,11 @@ class Layout:
         sx, sy = self.scale()
         return int(self.pause_resume_xy[0] * sx), int(self.pause_resume_xy[1] * sy)
 
+    def shovel_button(self) -> tuple[int, int]:
+        """铲子按钮中心（客户区坐标，已按尺寸缩放）。见 shovel_xy 字段的量测说明。"""
+        sx, sy = self.scale()
+        return int(self.shovel_xy[0] * sx), int(self.shovel_xy[1] * sy)
+
 
 # ---------------------------------------------------------------- 点击
 class Clicker:
@@ -164,6 +175,12 @@ class Clicker:
     def click_card(self, index: int, layout: Layout, note: str = "") -> tuple[int, int]:
         x, y = layout.card_center(index)
         self.click_client(x, y, note or f"card {index}")
+        return x, y
+
+    def click_shovel(self, layout: Layout, note: str = "pick up shovel") -> tuple[int, int]:
+        """点铲子按钮。拿起成功与否由调用方读 `held_cursor == 6` 验证。"""
+        x, y = layout.shovel_button()
+        self.click_client(x, y, note)
         return x, y
 
     def pick_and_place(self, card_index: int, row: int, col: int, layout: Layout,
