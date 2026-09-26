@@ -440,3 +440,7 @@ python tools/run_agent.py --report
 3. 真实对局下验证点击注入（PostMessage 后台 vs `--foreground` 前台）。
 4. 复核僵尸数组的"假活僵尸"问题（`Board+0xA0` 不可靠，须以 `dead@0xEC` 逐槽过滤）。
 5. 真实对局里调 `policy.py` 的启发式分与 `HOLD_THRESHOLD`。
+
+## License
+
+MIT —— 见 [LICENSE](LICENSE)。本仓库只包含自研代码与知识库数据，不含《植物大战僵尸》及杂交版本体资源；游戏本体请支持官方与 B 站 UP 主「潜艇伟伟迷」的杂交版。
