@@ -14,6 +14,9 @@ from pvz.jev import JevClient
 RECLAIM = 320   # 回收高坚果（hybrid_plants.json 里有完整登记）
 
 
+CONFIDENCE_FLOOR = 0.3   # 低于此值=argmax 险过，结果算 passed 但要人工复核
+
+
 def main():
     fixture = StrategyTests()
     fixture.setUp()
@@ -33,6 +36,7 @@ def main():
     results = []
     output = Path(__file__).resolve().parents[1] / 'out' / 'strategy-validation.json'
     output.parent.mkdir(exist_ok=True)
+    needs_review = []
     for name, board in [('saving', saving), ('house_rescue', rescue),
                         ('buy_upgrade', upgrade), ('reclaim_shovel', reclaim)]:
         candidates = generate_candidates(board, book)
@@ -45,7 +49,15 @@ def main():
                   not decision.hold and candidate.emergency if name == 'house_rescue' else
                   not decision.hold and candidate.kind == 'shovel' if name == 'reclaim_shovel' else
                   not decision.hold and candidate.type_id == STRONG)
-        result = dict(scenario=name, passed=passed, model=response.model,
+        action_answer = response.get('action')
+        conf = action_answer.confidence if action_answer else None
+        # 2026-09-26 加严：实测 buy_upgrade 0.11 / reclaim_shovel 0.06 都是
+        # argmax 险过 —— 这样的"通过"拦不住实战问题，必须显式标记出来。
+        low_conf = conf is not None and conf < CONFIDENCE_FLOOR
+        if low_conf:
+            needs_review.append(name)
+        result = dict(scenario=name, passed=passed, confidence=conf,
+                      needs_review=low_conf, model=response.model,
                       latency_s=round(response.latency_s, 2),
                       answers={key: answer.raw for key, answer in response.answers.items()},
                       action=candidate.describe(book), hold=decision.hold,
@@ -54,10 +66,14 @@ def main():
         output.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding='utf-8')
         label = ('WAIT' if decision.hold else
                  f'{candidate.kind}:{book.en(candidate.type_id)}')
-        print(f'{name}: passed={passed}, latency={response.latency_s:.2f}s, '
+        print(f'{name}: passed={passed}, conf={conf}, '
+              f'latency={response.latency_s:.2f}s, '
               f'fallback={decision.fallback}, action={label}', flush=True)
         if not passed:
             raise AssertionError(f'{name}: inspect {output}')
+    if needs_review:
+        print(f'⚠️ 这些场景置信度 <{CONFIDENCE_FLOOR}（argmax 险过，需人工复核）：'
+              f'{", ".join(needs_review)}')
     print(f'Results: {output}')
 
 

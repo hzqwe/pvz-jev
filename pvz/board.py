@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 from . import offsets as O
 from .win32 import (
@@ -53,6 +54,16 @@ class Plant:
     @property
     def cell(self) -> tuple[int, int]:
         return self.row, self.col
+
+
+@dataclass
+class DroppedSeed:
+    index: int
+    type_id: int
+    x: float
+    y: float
+    width: int
+    height: int
 
 
 @dataclass
@@ -109,9 +120,14 @@ class BoardState:
     sun: int | None = None
     game_clock: int | None = None
     paused: int | None = None
+    # 时钟是否在推进（agent 每轮用前后两拍 game_clock 判定后写回）。
+    # ⚠️ 这是决策层唯一的"活体"判据 —— 0x164 paused 实测不可靠（时钟正常
+    #    推进时也读 1）。None = 未知（合成战场/第一轮），按"在跑"处理。
+    clock_advancing: bool | None = None
     rows: int = O.LAWN_ROWS
     cols: int = O.LAWN_COLS
     plants: list[Plant] = field(default_factory=list)
+    dropped_seeds: list[DroppedSeed] = field(default_factory=list)
     zombies: list[Zombie] = field(default_factory=list)
     slots: list[SeedSlot] = field(default_factory=list)
     # -- 光标（"手上有没有拿东西"）--------------------------------------
@@ -127,6 +143,14 @@ class BoardState:
     row_types: dict[int, int] = field(default_factory=dict)
     # Missing key means unknown; False means a validated row has no ready mower.
     mowers: dict[int, bool] = field(default_factory=dict)
+    # -- 出怪/波次（信息层，语义未经杂交版实战核验，仅供 Jev 参考）----------
+    # spawn_list 是本关整张出怪表（僵尸 type 序列，-1 结尾）；spawned 估算用
+    # 僵尸池分配游标。任何一步读不出合法值就保持 None，绝不猜。
+    spawn_total: int | None = None
+    spawn_spawned: int | None = None
+    spawn_upcoming: int | None = None
+    spawn_upcoming_kinds: dict[int, int] | None = None
+    spawnable_types: list[int] | None = None
 
     @property
     def holding_shovel(self) -> bool:
@@ -351,8 +375,11 @@ class BoardReader:
         st.plants = self._read_plants(board)
         st.zombies = self._read_zombies(board)
         st.slots = self._read_slots(board)
+        st.dropped_seeds = self._read_dropped_seeds(board)
         st.mowers = self._read_mowers(board, st.rows) if st.ui == O.UI_PLAYING else {}
         self._read_cursor(board, st)
+        if st.ui == O.UI_PLAYING:
+            self._read_spawn(board, st)
 
         st.ok = st.ui == O.UI_PLAYING
         if not st.ok:
@@ -531,6 +558,27 @@ class BoardReader:
         return out
 
     # -- 光标 -----------------------------------------------------------
+    def _read_dropped_seeds(self, board):
+        pm=self.pm
+        base=pm.u32(board+O.OFF_COINS)
+        cap=pm.i32(board+O.OFF_COINS_CAP)
+        if not base or cap is None or not 0 <= cap <= 1024:
+            return []
+        result=[]
+        lawn=self.lawn_app_ptr()
+        for i in range(cap):
+            a=base+i*O.COIN_STRUCT
+            if not self._slot_is_live(a,lawn,board):continue
+            if pm.u8(a+0x38)!=0 or pm.u8(a+0x50)!=0:continue
+            if pm.i32(a+0x58)!=O.COIN_USABLE_SEED:continue
+            tid=pm.i32(a+0x68);x=pm.f32(a+0x24);y=pm.f32(a+0x28)
+            w=pm.i32(a+0x10);h=pm.i32(a+0x14)
+            if (tid is not None and 0<=tid<4096 and x is not None and y is not None
+                    and math.isfinite(x) and math.isfinite(y) and -100<x<1000 and -100<y<700
+                    and w is not None and h is not None and 10<=w<=150 and 10<=h<=150):
+                result.append(DroppedSeed(i,tid,x,y,w,h))
+        return result
+
     def _read_cursor(self, board: int, st: "BoardState") -> None:
         """读"手上拿着什么"。
 
@@ -548,11 +596,53 @@ class BoardReader:
         grab = pm.i32(cur + O.C_GRAB)
         st.held_cursor = grab if grab is not None else 0
         st.holding = st.held_cursor != O.CUR_NORMAL
-        if st.held_cursor == O.CUR_PLANT_FROM_BANK:
+        if st.held_cursor in (O.CUR_PLANT_FROM_BANK,O.CUR_PLANT_FROM_DROP):
             slot = pm.i32(cur + O.C_SLOT)
             typ = pm.i32(cur + O.C_TYPE)
             st.held_slot = slot if slot is not None else -1
             st.held_type = typ if typ is not None else -1
+
+    # -- 出怪/波次 -------------------------------------------------------
+    def _read_spawn(self, board: int, st: "BoardState") -> None:
+        """读出怪表与"还没出"的估算（信息层，**语义在杂交版未实战核验**）。
+
+        出处：pvztoolkit `GetSpawnList()` 读 `ReadMemory<int,1000>({lawn, board,
+        spawn_list})` —— Board+0x6B4 是指向 1000 个 int 的指针，内容是本关的
+        僵尸 type 序列，-1 结尾。"已经出了多少"没有权威字段，这里用僵尸池的
+        分配游标（OFF_ZOMBIE_NEXT_POS）估算；杂交版池语义未定，所以：
+          * 任何一步越界/读失败 -> 全部保持 None；
+          * 结果只进 Jev 的 state（标 unverified），**不驱动任何确定性逻辑**。
+        """
+        pm = self.pm
+        assert pm
+        ptr = pm.u32(board + O.OFF_SPAWN_LIST)
+        if not ptr:
+            return
+        entries: list[int] = []
+        for i in range(1000):
+            v = pm.i32(ptr + i * 4)
+            if v is None:
+                return
+            if v < 0:
+                break
+            if v > 4095:
+                return  # 明显不是 type 序列，整表作废
+            entries.append(v)
+        if not entries:
+            return
+        st.spawn_total = len(entries)
+        nxt = pm.i32(board + O.OFF_ZOMBIE_NEXT_POS)
+        if nxt is not None and 0 <= nxt <= len(entries):
+            st.spawn_spawned = nxt
+            upcoming = entries[nxt:]
+            st.spawn_upcoming = len(upcoming)
+            kinds: dict[int, int] = {}
+            for t in upcoming[:300]:
+                kinds[t] = kinds.get(t, 0) + 1
+            st.spawn_upcoming_kinds = kinds
+        flags = [pm.u8(board + O.OFF_SPAWN_TYPE + i) for i in range(33)]
+        if all(f in (0, 1) for f in flags) and any(flags):
+            st.spawnable_types = [i for i, f in enumerate(flags) if f]
 
     # -- 诊断 -----------------------------------------------------------
     def slot_variants(self, board: int | None = None) -> list[dict]:

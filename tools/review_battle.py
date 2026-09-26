@@ -217,6 +217,33 @@ def detect(recs: list[dict]) -> list[dict]:
             f"{n} 次", "见对应拦截的 note 字段；blocked_geometry=几何熔断，"
             "unsupported_layout=未知地图，skipped_not_responsive=时钟没走")
 
+    # 7) 点卡被拒率异常（2026-09-26 新增）：分诊后仍然"记了成本下界"的拒绝
+    #    说明账面价和游戏实价对不上（动态涨价/换卡池/绑定错位），每次都是一个
+    #    白费的决策周期。同步捕捉"点到了相邻卡槽"——那是几何偏移的新信号。
+    rejected = [rec for rec in recs if _g(rec, "executed", "kind") == "pick_rejected"]
+    price_rejected = [
+        rec for rec in rejected
+        if _g(rec, "executed", "game_responsive") is True
+        and _g(rec, "executed", "slot_ready") is not False
+        and "未记成本" not in (_g(rec, "executed", "note") or "")
+        and "坐标偏移" not in (_g(rec, "executed", "note") or "")
+    ]
+    offslot = [rec for rec in rejected if "坐标偏移" in (_g(rec, "executed", "note") or "")]
+    if price_rejected and len(price_rejected) / max(1, len(recs)) > 0.05:
+        samples = "；".join(
+            f"{_g(r, 'executed', 'plant')} 账面价{_g(r, 'executed', 'book_cost')}"
+            f"/阳光{_g(r, 'executed', 'sun')}"
+            for r in price_rejected[:4])
+        add("high", "点卡被拒偏多（价格校准失真？）",
+            f"{len(price_rejected)}/{len(recs)} 条决策点卡被拒且记了成本下界：{samples}",
+            "图鉴写了部分植物「场上每多一张 +100」（price_increment）——成本模型"
+            "应已按株数动态加价；若仍被拒，核对该卡 runtime 学习值（plant_costs.json）"
+            "和卡面价，必要时删除污染条目重学")
+    if offslot:
+        add("medium", "点卡点到了相邻卡槽",
+            f"{len(offslot)} 次点击拿起了别的卡（光标证据）",
+            "卡条坐标偏移信号：重跑 tools/measure_layout.py 并肉眼复核 card_center")
+
     return findings
 
 

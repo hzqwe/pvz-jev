@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
 
 # ---------------------------------------------------------------- 角色常量
@@ -144,6 +145,12 @@ KB_FILE = os.path.join(_DIR, "hybrid_plants.json")
 IDS_FILE = os.path.join(_DIR, "plant_ids.json")
 LINEUPS_FILE = os.path.join(_DIR, "lineups.json")
 
+# 成本下界（min_cost）的有效期（秒）。点卡被拒记下的"成本 ≥ 阳光+1"只在
+# 短期内可信：坐标偏一点、消息晚处理一拍都会造成假"被拒"。没有衰减的话
+# 这个下界只涨不跌，`cost()` 取 max 后这张卡就永远买不起、永远没机会用
+# 一次成功的购买把真实成本校准回来 —— 单向棘轮死锁（2026-09-26 实测）。
+MIN_COST_TTL = 90.0
+
 
 def load_json(path: str, default):
     try:
@@ -219,6 +226,13 @@ class PlantBook:
         # 运行时校准出来的真实成本 / 已知下界
         self.real_cost: dict[int, int] = {}
         self.min_cost: dict[int, int] = {}
+        # 每条成本下界的记录时刻（秒）。见 MIN_COST_TTL：下界必须有衰减，
+        # 否则一次误判（坐标偏 1px / 消息延迟）就把这张卡永久锁死 ——
+        # 实测日志里 book_cost 全部等于"当时阳光+1"随阳光水涨船高，就是它。
+        self.min_cost_ts: dict[int, float] = {}
+        # 场上每种植物的株数（agent 每轮同步）。图鉴写明部分植物"场上每多一张 +100"
+        # （高冰果 combat.price_increment），成本必须跟着株数走，否则点卡被拒。
+        self.copies_on_field: dict[int, int] = {}
         # 绑定后学到的成本与知识库不符的告警（用于发现绑错）
         self.cost_mismatch: dict[int, tuple[int, int]] = {}
 
@@ -287,7 +301,12 @@ class PlantBook:
         data = load_json(self.cost_file, {})
         for k, v in (data or {}).items():
             try:
-                self.real_cost[int(k)] = int(v)
+                tid, value = int(k), int(v)
+                baseline = self.table.get(tid)
+                # Legacy files contain noisy net sun changes and already-increased prices.
+                if baseline and baseline[1] >= 0 and value != baseline[1]:
+                    continue
+                self.real_cost[tid] = value
             except (TypeError, ValueError):
                 continue
 
@@ -302,38 +321,75 @@ class PlantBook:
         save_json(self.cost_file, out)
 
     def set_real_cost(self, type_id: int, cost: int) -> None:
-        """记录实测到的真实成本。
+        """Check an observed net sun delta against normalized known prices.
 
-        ⚠️ 为什么必须有这个机制：**杂交版把植物价格全改了**，而且每局的卡槽
-        阵容都不同，所以任何硬编码价格表都会错。实测踩到的坑：代码以为火爆辣椒
-        125 阳光，实际要 275 —— 于是"买得起"的判断是错的，点卡被游戏拒绝，
-        表现为 **阳光没扣、植物没种上**，极容易被误判成"点击注入失效"。
-        可靠来源只有一个：点卡之后阳光掉了多少。
-
-        ⚠️ 但实测值不能照单全收：测量窗口（点卡->回读 0.7s）可能混入同帧的
-        其他阳光变动，历史上污染出过 35/75 的向日葵、600 的女王。图鉴照片是
-        权威基线——实测价偏离基线 >40% 一律**拒收**（保留图鉴值）并打
-        cost_mismatch 标记供复盘。±40% 的容忍度足够容纳至尊金卡 +100/株
-        这类合法涨价（500 -> 600 = +20%）。
+        Sun production/collection can overlap placement, so a net delta is not a price
+        oracle. Known almanac/user-confirmed bases are never overwritten by a different
+        delta. Dynamic increments are removed using pre-placement field counts.
+        Unknown plants can still learn a positive base for later identification.
         """
         if cost <= 0:
             return
         ent = self.kb_by_id.get(type_id)
-        if ent and ent.cost is not None and abs(cost - ent.cost) > ent.cost * 0.4:
-            self.cost_mismatch[type_id] = (ent.cost, cost)
+        base = cost - self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
+        if base <= 0:
             return
-        self.real_cost[type_id] = cost
+        if ent and ent.cost is not None and base != ent.cost:
+            self.cost_mismatch[type_id] = (ent.cost, base)
+            return
+        self.real_cost[type_id] = base
         # 顺带校验绑定：如果实测价格和知识库差太多，八成是把卡绑错了
-        if ent and ent.cost is not None and cost != ent.cost:
-            self.cost_mismatch[type_id] = (ent.cost, cost)
+        if ent and ent.cost is not None and base != ent.cost:
+            self.cost_mismatch[type_id] = (ent.cost, base)
 
     def note_unaffordable(self, type_id: int, sun: int) -> None:
         """点卡被游戏拒绝 -> 真实成本至少是 sun+1。
 
         先记下这个下界，这样后续的"买得起吗"判断会立刻变严，不会反复白点同一张卡。
         等阳光涨过真实成本后，点卡会成功，`set_real_cost` 就会把它精确下来。
+
+        ⚠️ 两个护栏（2026-09-26）：
+        1. 调用方必须先做**失败分诊**——冷却中 / 时钟没走 / 输入无效的拒绝
+           毫无信息量，绝不能记（见 agent.execute）。
+        2. 下界存的是"按当前场上株数归一化的基价"，且带 **TTL 衰减**
+           （MIN_COST_TTL）：假"被拒"（坐标偏 1px、消息晚一拍）记出的下界
+           过期自动失效，否则只涨不跌的单向棘轮会把这张卡整局锁死。
         """
-        self.min_cost[type_id] = max(self.min_cost.get(type_id, 0), sun + 1)
+        base = (sun + 1) - self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
+        if base <= 0:
+            # 阳光不够付"基价+已囤溢价"里的溢价部分？下界至少也要 ≥1 才有意义
+            base = 1
+        if base > self.min_cost.get(type_id, 0):
+            self.min_cost[type_id] = base
+        self.min_cost_ts[type_id] = time.time()
+
+    def sync_field_copies(self, plants) -> None:
+        """每轮把场上株数喂给成本模型（动态涨价按株数生效）。"""
+        counts: dict[int, int] = {}
+        for p in plants:
+            counts[p.type_id] = counts.get(p.type_id, 0) + 1
+        self.copies_on_field = counts
+
+    def price_increment(self, type_id: int) -> int:
+        """「场上每多一张 +X」的图鉴涨价（高冰果=100；未登记=0）。"""
+        ent = self.kb_by_id.get(type_id)
+        v = (ent.raw.get('combat') or {}).get('price_increment') if ent else None
+        try:
+            return int(v) if v is not None else 0
+        except (TypeError, ValueError):
+            return 0
+
+    def _floor(self, type_id: int) -> int | None:
+        """带 TTL 的成本下界。过期即失效，回落到图鉴基线。"""
+        floor = self.min_cost.get(type_id)
+        if floor is None:
+            return None
+        ts = self.min_cost_ts.get(type_id)
+        if ts is not None and time.time() - ts > MIN_COST_TTL:
+            self.min_cost.pop(type_id, None)
+            self.min_cost_ts.pop(type_id, None)
+            return None
+        return floor
 
     # -- 查询 -----------------------------------------------------------
     def name(self, type_id: int) -> str:
@@ -356,15 +412,26 @@ class PlantBook:
         return nm
 
     def cost(self, type_id: int) -> int | None:
-        """真实成本优先，其次知识库/原版表，最后取"已知下界"。"""
-        if type_id in self.real_cost:
-            return self.real_cost[type_id]
-        ent = self.table.get(type_id)
-        base = ent[1] if (ent and ent[1] >= 0) else None
-        floor = self.min_cost.get(type_id)
+        """查询"当前这一张"的真实成本（含动态涨价），供买得起判断用。
+
+        组成：max(实测基价, 图鉴基线, 未过期的成本下界) + 图鉴每多一张的溢价 × 场上株数。
+        实测基价是"1 张时的总价"（set_real_cost 已归一化），所以这里统一按当前
+        场上株数把溢价加回去 —— 场上已有 2 张高冰果时，第 3 张的正确价格是
+        基价 + 200，用静态值去判断必然点卡被拒（2026-09-26 实测）。
+        """
+        inc = self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
+        vals: list[int] = []
+        base = self.real_cost.get(type_id)
+        if base is not None:
+            vals.append(base + inc)
+        else:
+            ent = self.table.get(type_id)
+            if ent and ent[1] >= 0:
+                vals.append(ent[1] + inc)
+        floor = self._floor(type_id)
         if floor is not None:
-            return max(base or 0, floor)
-        return base
+            vals.append(floor + inc)
+        return max(vals) if vals else None
 
     def role(self, type_id: int) -> str:
         ent = self.table.get(type_id)

@@ -14,9 +14,10 @@ from dataclasses import dataclass, field
 from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
-from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current
-from .serialize import build_state, render_text
-from .ui import Clicker, Layout, collect_suns, find_pause_resume, grab
+from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, escalate_emergency
+from .serialize import COL_LABEL, build_state, render_text
+from .transactions import run_transaction
+from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab
 from .win32 import (
     capture_window,
     cycle_window,
@@ -164,7 +165,15 @@ class PvZJevAgent:
         self._bad_cells: dict[tuple[int, int, int], float] = {}
         self._geometry_error = None
         self._terrain_context = None
+        self._last_decision_clock = None
         self._bad_cell_ttl = 45.0
+        # 连续 hold（等待）计数：复盘里"阳光≥400 还连等 9 轮"就是它缺位的后果。
+        self._hold_streak = 0
+        self._hold_warned_at = 0.0
+        # 上一次"长时间卡死后重试唤醒"的时刻（ops 模式限频用）。
+        self._last_stall_wake = 0.0
+        # 阳光收集的假阳性抑制（见 ui.SunTracker 的长注释）。
+        self.sun_tracker = SunTracker()
 
     # -- 卡槽绑定 -------------------------------------------------------
     def sync_binding(self, board: BoardState) -> None:
@@ -438,9 +447,18 @@ class PvZJevAgent:
 
     # -- 单次决策 -------------------------------------------------------
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
+        # 动态涨价按场上株数生效（图鉴 price_increment；见 PlantBook.cost）
+        self.book.sync_field_copies(board.plants)
+        # 决策层的"活体"判据统一用时钟推进（0x164 paused 不可靠，见 note_clock）
+        board.clock_advancing = self._responsive
         context = (board.pid,board.board,board.scene,board.rows)
-        if context != self._terrain_context:
+        restarted = (self._last_decision_clock is not None and board.game_clock is not None
+                     and board.game_clock < self._last_decision_clock)
+        self._last_decision_clock = board.game_clock
+        if context != self._terrain_context or restarted:
             self._bad_cells.clear()
+            self.book.min_cost.clear()
+            self.book.min_cost_ts.clear()
             self._geometry_error = None
             self._terrain_context = context
         state = build_state(board, self.book)
@@ -607,6 +625,26 @@ class PvZJevAgent:
                       f"→ 放弃本次动作（游戏可能正在切屏）")
             return
 
+        # ★★ 执行前的**威胁重评**（2026-09-26）：决策时 low 的路，Jev 返回的
+        #    这几秒里可能已经 critical（僵尸每秒走 8px，一个周期就是 40~80px）。
+        #    用刚读到的 chk 重算 lane_facts，出现危急路且原动作不是救场时，
+        #    直接改交救场候选 —— 不让"过期威胁"骗过执行层。
+        esc = escalate_emergency(cand, chk, self.book, self._bad_cells)
+        if esc is not None:
+            note = (f"Execution-time re-eval: a lane just turned critical; "
+                    f"switched to rescue ({self.book.en(esc.type_id)} r{esc.row + 1}"
+                    f"{COL_LABEL[esc.col] if 0 <= esc.col < len(COL_LABEL) else esc.col}).")
+            dec.candidate = esc
+            dec.action_id = esc.cid
+            dec.fallback = True
+            dec.notes.append(note)
+            cand = esc
+            record["decision"]["action_id"] = esc.cid
+            record["decision"]["chosen"] = esc.describe(self.book)
+            record["decision"]["fallback"] = True
+            if self.cfg.verbose:
+                print(f"  🚨 {note}")
+
         self.layout.configure_board(chk)
         geometry = (chk.scene,chk.rows,self.layout.client_w,self.layout.client_h,
                     self.layout.grid_left,self.layout.grid_top,self.layout.cell_w,self.layout.row_height())
@@ -643,6 +681,7 @@ class PvZJevAgent:
         #    在它之前取会污染"真实成本"的差值）。
         pre = self.reader.read()
         if ((pre.pid, pre.board, pre.level) != (board.pid, board.board, board.level)
+                or pre.scene != board.scene or pre.rows != board.rows
                 or not action_is_current(cand, pre, self.book)):
             record["executed"] = {"kind": "stale_action", "note": "选卡前复核失败，未购买植物"}
             return
@@ -653,15 +692,19 @@ class PvZJevAgent:
         picked = bool(mid.holding) and mid.held_cursor == 1 and mid.held_slot == cand.slot and mid.held_type == cand.type_id
 
         if not picked:
-            # 卡没拿起来。三种原因，**绝不能一律当成"植物太贵"**：
+            # 卡没拿起来。原因必须**逐个分诊**，绝不能一律当成"植物太贵"：
             #   a) 真实价格确实比我们以为的高 / 阳光不够
             #   b) 卡还在冷却
             #   c) **游戏根本没在处理输入**（暂停菜单开着、窗口最小化、失焦）
+            #   d) **点到了相邻的卡槽**（点击坐标偏移）—— 光标其实拿起了卡，
+            #      只是不是目标槽。这是几何问题，记成本下界会把好卡锁死。
             self.stats.pick_rejected += 1
             responsive = (mid.game_clock is not None and pre.game_clock is not None
                           and mid.game_clock != pre.game_clock)
             mid_slot = next((s for s in mid.slots if s.index == cand.slot), None)
             slot_ready = mid_slot.ready if mid_slot is not None else True
+            picked_other = (mid.holding and mid.held_cursor == 1
+                            and mid.held_slot != cand.slot and mid.held_slot >= 0)
             self.clicker.cancel_seed("rejected: cancel")
             if not slot_ready:
                 # 冷却中被拒是**预期行为**，和"价格"毫无关系
@@ -678,6 +721,14 @@ class PvZJevAgent:
                 if self.cfg.verbose:
                     print(f"  ⏸️ 时钟没走（clock={pre.game_clock}->{mid.game_clock}）："
                           f"游戏没在处理输入，本次点击不计入成本")
+            elif picked_other:
+                # 光标拿着的是**另一张**卡：点击坐标偏了（几何/缩放问题）。
+                # 记成本下界会污染成本模型（实测 book_cost 曾集体变成"阳光+1"），
+                # 这里只标记几何疑点，让用户去重跑 measure_layout。
+                note = (f"点到了相邻卡槽 {mid.held_slot}（id={mid.held_type}）—— "
+                        f"点击坐标偏移，与价格无关，未记成本；建议重跑 tools/measure_layout.py")
+                if self.cfg.verbose:
+                    print(f"  ⚠️ {note}")
             else:
                 self.book.note_unaffordable(cand.type_id, sun0 or 0)
                 note = "点卡被拒（阳光不够），已记下成本下界"
@@ -703,12 +754,27 @@ class PvZJevAgent:
         # `held_type` 是这张卡**真实的 type_id**，比冷却指纹可靠得多；
         # 如果和知识库对不上，说明 lineups 的卡面顺序错了，必须让用户知道。
         if mid.held_type >= 0 and mid.held_type != cand.type_id:
+            # ⚠️ 必须放弃本轮落点（2026-09-26）：继续点格子会把**另一株植物**
+            #    种下去，而 placement_delta 只认 cand.type_id -> placed=False ->
+            #    误记落点失败 + 把真实已被占用的格子拉黑 + 真实花费不进成本模型。
+            #    决策层从此以为"那格是空的、种不下去"，快照与战场持续偏差。
+            #    正确动作：右键取消手持、记告警、重新决策。
+            self.clicker.cancel_seed("binding mismatch: cancel")
             msg = (f"⚠️ 绑定不符：卡槽 {cand.slot} 知识库记的是 "
                    f"{self.book.name(cand.type_id)}(id={cand.type_id})，"
-                   f"但游戏说手持的是 id={mid.held_type} —— 请核对 data/lineups.json")
+                   f"但游戏说手持的是 id={mid.held_type} —— 已取消本次落点，"
+                   f"请核对 data/lineups.json")
             record.setdefault("warnings", []).append(msg)
+            record["executed"] = {
+                "kind": "binding_mismatch",
+                "slot": cand.slot,
+                "expected_type": cand.type_id,
+                "actual_type": mid.held_type,
+                "note": msg,
+            }
             if self.cfg.verbose:
                 print(f"  {msg}")
+            return
 
         # 3) 落点 + 回读验证
         self.clicker.click_grid(cand.row, cand.col, self.layout, f"place r{cand.row}c{cand.col}")
@@ -743,6 +809,9 @@ class PvZJevAgent:
         if placed:
             self.stats.executed += 1
             self._bad_cells.pop((cand.type_id,*target), None)
+            if cand.supports_type is not None:
+                record['followup']=run_transaction(self,after,
+                    followup=(cand.supports_type,cand.row,cand.col))
         else:
             self.stats.failed_actions += 1
             # ⚠️ 记住这个落点，短时间内不再选它（见 decide() 里的过滤）。
@@ -774,65 +843,12 @@ class PvZJevAgent:
           3. 任何一步失败都右键复位光标，绝不让铲子一直举在手上
              （否则下一次"收阳光"的点击就会铲掉一株无辜的植物）。
         """
-        assert self.clicker and self.layout
-        target = (cand.row, cand.col)
-        pre = self.reader.read()
-        pre_plant = next((p for p in pre.plants if (p.row, p.col) == target), None)
-        if pre_plant is None or pre_plant.type_id != cand.type_id:
-            record["executed"] = {"kind": "shovel_stale",
-                                  "note": "目标植物已经不在（被吃掉/已被铲），放弃本次铲子"}
-            return
-        hp_before = pre_plant.hp
-        self.clicker.cancel_seed("pre-shovel reset")
-        time.sleep(0.15)
-
-        # 点铲子按钮，并用光标枚举验证真的拿起来了
-        self.clicker.click_shovel(self.layout, f"pick shovel for r{cand.row}c{cand.col}")
-        time.sleep(0.3)
-        mid = self.reader.read()
-        if not mid.holding_shovel:
-            self.stats.pick_rejected += 1
-            self.clicker.cancel_seed("shovel pick failed: reset cursor")
-            record["executed"] = {
-                "kind": "shovel_pick_rejected",
-                "cursor": mid.held_cursor,
-                "note": ("点铲子后光标不是铲子（坐标偏了或游戏没在处理输入），"
-                         "已右键复位，本次未铲任何植物"),
-            }
-            if self.cfg.verbose:
-                print(f"  ⚠️ 铲子没拿起来（mCursorType={mid.held_cursor}），已复位光标")
-            return
-
-        # 铲目标格，然后回读验证
-        self.clicker.click_grid(cand.row, cand.col, self.layout,
-                                f"shovel r{cand.row}c{cand.col}")
-        self._action_times.append(time.time())
-        time.sleep(0.7)
-        after = self.reader.read()
-        removed = after.ok and not any(p.type_id == cand.type_id
-            for p in after.occupancy().get(target,[]))
-        if after.holding:
-            # 铲完光标通常回到空手；若还举着（点了个不可铲目标），右键复位
-            self.clicker.cancel_seed("post-shovel reset")
-        if removed:
-            self.stats.executed += 1
-            self._bad_cells.pop((cand.type_id,*target), None)
+        result=run_transaction(self,board,candidate=cand)
+        record['executed']=result
+        if result['completed']:
+            self.stats.executed+=1
         else:
-            self.stats.failed_actions += 1
-            self._bad_cells[(cand.type_id,*target)] = time.time()
-        record["executed"] = {
-            "kind": "shovel",
-            "removed": removed,
-            "plant": self.book.name(cand.type_id),
-            "hp_before": hp_before,
-            "grid": f"r{cand.row}c{cand.col}",
-            "note": ("回收成功：卡片带着剩余血量回到卡槽"
-                     if removed else "目标格仍有植物 —— 铲除未生效，已复位光标"),
-        }
-        if self.cfg.verbose:
-            mark = "✅ 已回收" if removed else "❌ 铲除未生效"
-            print(f"  {mark} {self.book.name(cand.type_id)} @ r{cand.row + 1}c{cand.col}"
-                  f"（铲前血量={hp_before}）")
+            self.stats.failed_actions+=1
 
     # -- 主循环 ---------------------------------------------------------
     def run(self, duration_s: float = 120.0, on_cycle=None,
@@ -987,6 +1003,24 @@ class PvZJevAgent:
                     elif self._pause_fail_streak == FOCUS_RETRY_LIMIT + 1:
                         print(f"[暂停] 已尝试 {self._pause_fail_streak} 次仍无法恢复 —— "
                               f"停止操作窗口，改为静默等待（游戏恢复后会自动继续）")
+                    elif (self.cfg.allow_window_ops
+                          and self._pause_fail_streak > FOCUS_RETRY_LIMIT
+                          and time.time() - self._last_stall_wake > 90.0):
+                        # ★★ 长期挂起自救（2026-09-26）：超过重试上限后旧代码就永远
+                        #    静默等下去 —— 实测有 425s/900s 的挂起全耗在这上面，
+                        #    而一次 cycle_window 就能把用户切回来之后的时间救回来。
+                        #    限频 90s 一次、每次都过 is_stuck/进程存活检查，风险可控。
+                        self._last_stall_wake = time.time()
+                        if self.cfg.verbose:
+                            print(f"[唤醒] 已挂起 {self._pause_fail_streak} 次 —— "
+                                  f"限频重试一次完整唤醒")
+                        if self.wake_game():
+                            self._pause_fail_streak = 0
+                            continue
+                    if (not self.cfg.allow_window_ops
+                            and self._pause_fail_streak % 30 == 0):
+                        print("[等待] 安全模式无法自愈失焦/最小化 —— 请把游戏窗口点回前台，"
+                              "或改用 --allow-window-ops 让 agent 自己唤醒")
                     time.sleep(0.6)
                     continue
             else:
@@ -1001,21 +1035,36 @@ class PvZJevAgent:
                 if self.cfg.verbose and board.slots:
                     print(f"[手牌] {self.describe_deck(board)}")
 
+            # 每轮同步行数（泳池=6）：hold 轮早退也要更新，否则阳光扫描区
+            # 一直按 5 行算，第 6 行的天降阳光永远收不到（2026-09-26 实测盲区）。
+            self.layout.configure_board(board)
+
             now = time.time()
             # ★★ 收阳光 = **往草坪上点击**，所以它和种植物一样属于"注入输入"，
             #     必须服从同一个前提：**游戏真的在处理输入**（`_responsive`）。
             #
-            #     ⚠️ 旧代码只看 `board.paused`(0x164)，而那个字段**实测不可靠**
-            #     （时钟正常推进时它也读 1）。漏判的后果很重：暂停菜单正好压在
-            #     草坪中央，收阳光的点击可能落在「重新开始」/「主菜单」上毁掉进度。
-            #     这是测试 9 抓出来的真实漏洞 —— 它原本能绕过 execute() 里的闸。
-            if (self._responsive and not board.paused
+            #     ⚠️ 不看 `board.paused`(0x164) —— 实测时钟正常推进时它也读 1，
+            #     完全不可靠；时钟推进已由 `_responsive` 判定。
+            if (self._responsive
                     and now - self._last_sun >= self.cfg.collect_sun_every_s):
                 self._last_sun = now
                 shot = grab(self.win)
                 if shot is not None:
-                    hits = collect_suns(shot, self.layout, self.clicker, max_click=3)
-                    self.stats.suns_collected += len(hits)
+                    # ★★ 回读验证（2026-09-26）：阳光只会因点击而增加，
+                    #    点完 0.35s 再读一次差值，把"点了但没涨"的位置计入
+                    #    SunTracker —— 持久黄色假阳性（女王/向日葵贴图）3 轮后
+                    #    被抑制，不再每轮吃满点击额度（实测 535 次点击阳光没涨）。
+                    sun0 = board.sun
+                    hits = collect_suns(shot, self.layout, self.clicker, max_click=5,
+                                        banned=self.sun_tracker.banned_keys())
+                    if hits:
+                        time.sleep(0.35)
+                        sun1 = self.reader.read().sun
+                        gained = (sun1 - sun0) if (sun0 is not None and sun1 is not None) else None
+                        self.sun_tracker.feedback(hits, gained)
+                        self.stats.suns_collected += len(hits)
+                        if self.cfg.verbose and gained is not None and gained <= 0:
+                            print(f"  ☀️ 点了 {len(hits)} 个'阳光'但阳光没涨 —— 已计入假阳性抑制")
 
             if (self._responsive
                     and now - self._last_decision >= self.cfg.decide_every_s):
@@ -1026,6 +1075,21 @@ class PvZJevAgent:
                     self.stats.fallbacks += 1
                 self.execute(dec, record, board)
                 self.log.append(record)
+                # 连续 hold 观测（2026-09-26）：等待本身常常是对的（攒女王/攒大件），
+                # 但"阳光≥400 还一路等下去"曾连出 9 轮。这里只记录 + 周期性提醒，
+                # 决策层已有 bounded development / 兑现升级兜底，不在主循环里抢决策权。
+                if dec.hold:
+                    self._hold_streak += 1
+                    if (self._hold_streak >= 4 and (board.sun or 0) >= 400
+                            and now - self._hold_warned_at > 30.0):
+                        self._hold_warned_at = now
+                        msg = (f"已连续等待 {self._hold_streak} 轮而阳光 {(board.sun or 0)} "
+                               f"—— 若非攒大件（saving_plan），复盘时应关注这段")
+                        record.setdefault("warnings", []).append(msg)
+                        if self.cfg.verbose:
+                            print(f"  ⚠️ {msg}")
+                else:
+                    self._hold_streak = 0
                 if self.cfg.verbose:
                     print(render_text(board, self.book))
                     chosen = dec.candidate.describe(self.book) if dec.candidate else "-"

@@ -196,3 +196,10 @@ SCENE_ROWS = {0: 5, 1: 5, 2: 6, 3: 6, 4: 5}
 #    2 只在 GetScene 的条件里出现，语义未证实，不要依赖。
 UI_MENU = 1
 UI_PLAYING = 3
+
+# Hybrid 3.9.9 coin pool: 14 consecutive live back-pointer pairs at 0x104 spacing
+# verified read-only 2026-09-26. Original Coin fields remain at these offsets.
+OFF_COINS, OFF_COINS_CAP = 0xE4, 0xE8
+COIN_STRUCT = 0x104
+COIN_USABLE_SEED = 16
+CUR_PLANT_FROM_DROP = 2

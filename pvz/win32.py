@@ -775,3 +775,11 @@ def capture_window(win: WindowInfo, use_printwindow: bool = False) -> Screen | N
         # 超时或失败 → 落到屏幕抓取
     cl, ct, cr, cb = win.client_rect
     return capture_screen(cl, ct, cr - cl, cb - ct)
+
+
+def post_key(hwnd: int, virtual_key: int) -> None:
+    """Post one key without changing focus; used for the user-confirmed shovel key 1."""
+    scan = _u.MapVirtualKeyW(virtual_key, 0)
+    _u.PostMessageW(hwnd, 0x100, virtual_key, 1 | (scan << 16))
+    time.sleep(0.05)
+    _u.PostMessageW(hwnd, 0x101, virtual_key, 1 | (scan << 16) | (3 << 30))

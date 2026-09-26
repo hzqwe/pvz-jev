@@ -75,6 +75,7 @@ def lane_threat(board: BoardState, row: int, book=None) -> dict:
 
 def build_state(board: BoardState, book: PlantBook) -> dict:
     """产出给 Jev 的 state（JSON 友好、语义化）。"""
+    book.sync_field_copies(board.plants)
     lanes = []
     for r in range(board.rows):
         zs = board.zombies_in_lane(r)
@@ -125,6 +126,8 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 "role": info["role"],
                 "tags": info["tags"],
                 "cost": info["cost"],
+                "price_increment_per_field_copy": book.price_increment(s.type_id),
+                "field_copies": book.copies_on_field.get(s.type_id,0),
                 "effect": info["effect"],
                 "combat": info["combat"],
                 "usage": usage or "",
@@ -146,6 +149,10 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             "cols": board.cols,
             "clock": board.game_clock,
         },
+        # 出怪表提示（2026-09-26 新增，**unverified**）：读的是 pvztoolkit 同款
+        # spawn_list 指针 + 僵尸池分配游标估算，杂交版语义未实战核验。
+        # 只给 Jev 当"后面还有多少怪"的参考，代码侧不据此做任何确定性决策。
+        "wave_info_unverified": _wave_info(board),
         "lanes": lanes,
         "seed_cards": seeds,
         "doctrine": {
@@ -164,6 +171,30 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             [p.type_id for p in board.plants] + [s.type_id for s in board.slots]
         ),
     }
+
+
+def _wave_info(board: BoardState) -> dict | None:
+    """把出怪表读数翻成给 Jev 的提示；读不到就是 None（绝不编造）。"""
+    if board.spawn_total is None and board.spawnable_types is None:
+        return None
+    info: dict = {
+        "note": ("Approximate spawn-table hint read from memory, UNVERIFIED in the "
+                 "hybrid build - treat as background context only."),
+    }
+    if board.spawn_total is not None:
+        info["level_total_spawns"] = board.spawn_total
+    if board.spawn_spawned is not None:
+        info["spawned_estimate"] = board.spawn_spawned
+    if board.spawn_upcoming is not None:
+        info["upcoming_estimate"] = board.spawn_upcoming
+    if board.spawn_upcoming_kinds:
+        info["upcoming_kinds"] = {
+            f"zombie_type_{t} (identity unverified)": n
+            for t, n in sorted(board.spawn_upcoming_kinds.items(), key=lambda kv: -kv[1])
+        }
+    if board.spawnable_types is not None:
+        info["spawnable_type_ids"] = board.spawnable_types
+    return info
 
 
 def render_text(board: BoardState, book: PlantBook) -> str:

@@ -25,7 +25,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target
 
 MAX_CANDIDATES = 24
 MAX_PER_TYPE = 2          # 同一张卡最多出几条落点候选（见 generate_candidates 末尾）
@@ -37,6 +37,7 @@ MAX_PER_TYPE = 2          # 同一张卡最多出几条落点候选（见 genera
 # 血量还很满 → 没必要铲，不铲。铲子候选只在"这面墙快没了"时出现。
 RECLAIM_MIN_HP = 800      # 扣完 800 必须还 > 0 才变卡
 RECLAIM_MAX_HP = 2400     # 血量高于这个值时铲它纯属浪费（还能挡很久）
+RECLAIM_MAX_HP_BITTEN = 3600  # 正在被啃时的放宽上限：反正马上要跌破回收线，早铲早回收
 
 # ---- 经济护栏（2026-09-26 实测加的）------------------------------------
 # 实测故障：agent 开局 25 秒内连买 125 + 500 + 150 + 200 + 125，把阳光打到 0~100，
@@ -67,6 +68,7 @@ class Candidate:
     emergency: bool = False
     covers: tuple[int, ...] = ()
     supports_type: int | None = field(default=None, kw_only=True)
+    relocate_to: tuple[int,int] | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def describe(self, book: PlantBook) -> str:
@@ -127,6 +129,7 @@ def _free_cols(board: BoardState, occ, row: int, lo: int, hi: int) -> list[int]:
 # ---------------------------------------------------------------- 候选生成
 def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     """Enumerate role-aware placements; keep distinct plants competing for a cell."""
+    book.sync_field_copies(board.plants)
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     hot = sorted(range(board.rows), key=lambda r: -facts[r]["priority"])
     quiet = sorted(range(board.rows), key=lambda r: facts[r]["priority"])
@@ -140,6 +143,24 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
     plan = saving_plan(board, book)
     candidates = []
+
+    # 女王开局硬约束的配套逃生口（2026-09-26，对照基线修正）：储蓄期内出现
+    # 危急路 / 马上有植物被啃 / 有零防御路被压时，**只有便宜（≤150）的防御卡**
+    # 允许绕过储蓄闸门 —— 500 级的射手/爆发绕过会把女王积蓄一次烧光（泳池局
+    # 实测）。危急路本身会让 saving_plan 退出，这里主要兜 close_intercept 和
+    # 零防御路；价格上限是硬的。
+    close_intercept_any = any(
+        f['nearest_zombie_x'] is not None and any(
+            0 <= f['nearest_zombie_x'] - cell_x(p.col) <= 160
+            and not book.has_tag(p.type_id, T_WALL)
+            for p in board.plants_in_lane(f['lane']-1)) for f in facts)
+    zero_defence_pressure = any(
+        f['threat_level'] == 'high' and not f['blocking_walls']
+        and f['shooter_support'] == 0
+        and f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] < 400
+        for f in facts)
+    rescue_now = emergency or close_intercept_any or zero_defence_pressure
+    rescue_bypass_tags = {T_WALL, T_SHOOTER, T_INSTANT, T_SPLASH3, T_GLOBAL_FREEZE}
 
     # -- 兜底垫背（用户策略，2026-09-26）----------------------------------
     # 危急路上没有墙卡可用（都在冷却/买不起）时，用便宜植物垫在僵尸脚下拖时间，
@@ -193,11 +214,11 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     # 永远不进 emergency 池，分值封顶 45——危急水路的救场应该由
                     # 炸弹/垫背承担，荷叶只是给下一轮的防御铺地基。
                     candidates.append(Candidate('', 'plant', row, col, pad.index, pad.type_id,
-                        min(value * 0.2 if calm else value, 45),
+                        value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45),
                         f'First place Lily Pad to support {book.en(slot.type_id)} at this water cell; '
-                        'the pad itself does not attack or block (setup, NOT a rescue). '
-                        'Re-read before planting on top.',
-                        book.tags(pad.type_id), False, tuple(covers), supports_type=slot.type_id))
+                        'Execute as a continuous pad-then-plant transaction; only the completed wall blocks. '
+                        'Re-read and confirm both placements without another model call.',
+                        book.tags(pad.type_id), rescue and T_WALL in tags, tuple(covers), supports_type=slot.type_id))
             return
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value * 0.2 if calm else value,
@@ -213,14 +234,20 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if book.role(tid) == SUPPORT and T_CHARM not in tags:
             continue
         # A reservation also constrains repeated cheap purchases. Emergency cancels it.
-        if plan and tid != plan['type_id'] and sun - cost < plan['cost']:
+        # 女王储蓄期内只放行**便宜（≤150）救场卡**（见上方 rescue_now 的说明）。
+        if (plan and tid != plan['type_id'] and sun - cost < plan['cost']
+                and not (cost <= 150 and rescue_now
+                         and (rescue_bypass_tags & set(tags)))):
             continue
         close_intercept = T_WALL in tags and any(
             f['nearest_zombie_x'] is not None and any(
                 0 <= f['nearest_zombie_x'] - cell_x(p.col) <= 160
                 and not book.has_tag(p.type_id,T_WALL)
                 for p in board.plants_in_lane(f['lane']-1)) for f in facts)
-        if (producers < ECON_TARGET and not emergency and not close_intercept and T_PRODUCER not in tags
+        if (producers < ECON_TARGET
+                and not (emergency or close_intercept
+                         or (zero_defence_pressure and cost <= 150))
+                and T_PRODUCER not in tags
                 and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
             # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
@@ -229,14 +256,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # ---- 开局储蓄到账：女王（plan 目标）买得起就直接出高分候选 ----
         # 正常路径给不出她（平静期压分/无僵尸不出射手候选），必须显式生成，
         # 否则 merge 的"兑现升级"找不到候选、开局永远在等待。
+        # 落点 B/C/D 三列都允许（2026-09-26 扩展）：B/C 被垫背/救场占住时，
+        # 卡在 (1,2) 硬筛会让到账的女王永远出不了候选、储蓄死循环。
         if (plan and plan.get('slot') == slot.index
                 and (board.sun or 0) >= (plan.get('cost') or 10**9)):
-            for r in range(board.rows):
+            for r in sorted(range(board.rows),key=lambda r:(
+                    not (2 in rear_cols(board,book,r) and board.can_plant(r,2,tid,book)),
+                    facts[r]['priority'],abs(r-(board.rows-1)/2))):
                 cols = [c for c in rear_cols(board, book, r)
-                        if c in (1, 2) and board.can_plant(r, c, tid, book)]
+                        if c in (1, 2, 3) and board.can_plant(r, c, tid, book)]
                 if cols:
                     candidates.append(Candidate(
-                        '', 'plant', r, cols[0], slot.index, tid, 150,
+                        '', 'plant', r, min(cols,key=lambda c:abs(c-2)), slot.index, tid, 150,
                         'Opening save matured: plant the Sunflower Queen now '
                         '(producer + fighter + torch column); sunflowers follow behind her.',
                         tags, False))
@@ -398,7 +429,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if (facts[r]['threat_level'] == 'high'
                         and not facts[r]['blocking_walls']):
                     continue
-                add(slot,r,cols[0],85 if producers < ECON_TARGET else 25,
+                add(slot,r,cols[0],85 if producers < max(6,board.rows*2) else 25,
                     f'Safe rear economy; {producers} producers currently alive.')
                 break
             continue
@@ -434,14 +465,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 else:
                     torch = max((p.col for p in board.plants_in_lane(r)
                                  if book.has_tag(p.type_id, T_TORCH)), default=None)
-                    if not tracking and torch is not None:
+                    if book.combat(tid).get('torch_compatible') and torch is not None:
                         # 用户技巧：豌豆穿过向日葵女王（火炬柱）获火焰增益，
                         # 落点优先选女王身后（更靠房子一侧）最近的空位。
                         behind = [c for c in cols if c < torch]
                         col = max(behind) if behind else min(cols,key=lambda c: abs(c-2))
                     else:
                         # Prefer middle rear cells, preserving A/B for the economy.
-                        col = min(cols,key=lambda c: abs(c-2))
+                        col = min(cols,key=lambda c: abs(c-(1 if book.combat(tid).get('torch_compatible') else 2)))
                 cover = list(range(board.rows)) if tracking else [r]
                 value = 35 + max(facts[x]['priority'] for x in cover)*0.5
                 value -= facts[r]['shooter_support']*8
@@ -462,16 +493,27 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if not book.has_tag(p.type_id, T_WALL_REGEN):
             continue
         hp = p.hp
-        if hp is None or hp <= RECLAIM_MIN_HP or hp > RECLAIM_MAX_HP:
+        # 正在被啃时窗口放宽到 3600（2026-09-26）：100/s 的啃食速度下 2400 只
+        # 意味着几秒后必然跌破回收线，早铲早回收 = 少白给 800+ 血。
+        # 没被啃的墙维持 2400 —— 满血的墙还在值勤，铲它是送冷却。
+        max_hp = RECLAIM_MAX_HP_BITTEN if p.recently_eaten else RECLAIM_MAX_HP
+        f = facts[p.row]
+        # Tidy a rear emergency wall only after contact has ended.
+        reposition = p.col < 4 and not p.recently_eaten and (
+            f['nearest_zombie_x'] is None or f['nearest_zombie_x'] > cell_x(p.col)+160)
+        destination = relocation_target(board,book,p)
+        if destination is None:
+            continue
+        if hp is None or hp <= RECLAIM_MIN_HP or hp > max_hp and not reposition:
             # 血量未知/扣完 800 就没了/还很满 —— 三种情况都不值得铲。
             # 血量未知绝不猜：铲子候选宁可缺席，也不能拿垃圾血量赌。
             continue
         f = facts[p.row]
-        if not f["zombie_count"]:
+        if not f["zombie_count"] and not reposition:
             continue
         contact = (f["nearest_zombie_x"] is not None
                    and f["nearest_zombie_x"] <= cell_x(p.col) + 30)
-        if not contact and f["threat_level"] not in ("high", "critical"):
+        if not reposition and not contact and f["threat_level"] not in ("high", "critical"):
             # 没僵尸在啃它、路线也不告急 → 慢慢等它挡，铲它是送 800 血。
             continue
         urgent = f["threat_level"] == "critical"
@@ -488,8 +530,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
              f'can never be reclaimed again and is simply lost. '
              + ('It is being bitten right now and the reclaim window closes within seconds. '
                 if p.recently_eaten else '')
-             + 'Replant it where it helps more once ready.'),
-            book.tags(p.type_id), urgent, (p.row,), hp,
+             + f'Recover the dropped card and replant at lane {destination[0]+1}, column {destination[1]+1}; prepare water support first.'),
+            book.tags(p.type_id), urgent, (destination[0],), hp, relocate_to=destination,
         ))
 
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
@@ -608,21 +650,60 @@ def candidate_key(c):
     return c.kind, c.slot, c.type_id, c.row, c.col
 
 
+def board_active(board) -> bool:
+    """游戏真的在跑吗？—— 决策层唯一的"活体"判据。
+
+    ⚠️ 不能用 `Board+0x164`(paused)：agent.py 实测**杂交版时钟正常推进时它也
+    读 1，完全不可靠**（那是"莫名全轮等待"的根：所有候选被判 stale、收阳光
+    停摆）。可靠信号是 game_clock 是否在推进，由 agent 每轮写进
+    `board.clock_advancing`；读不到（None，比如合成战场/第一轮）按"在跑"处理，
+    执行层另有时钟闸兜底。
+    """
+    return board.clock_advancing is not False
+
+
+def escalate_emergency(candidate, board, book, bad_cells=None):
+    """执行前用**最新快照**重算威胁；出现危急路而原动作不是救场时，改交救场候选。
+
+    为什么需要：决策 -> Jev 返回 -> 动手之间隔着 1~6s，僵尸每周期走 40~80px。
+    merge_decision 的"fresh 重算"用的是决策前那张旧快照，只有这里拿的是
+    执行前刚读的 board —— 决策时 low 的路此刻可能已经 critical。
+    返回 None 表示无需升级（没有危急路，或原动作本来就是救场）。
+    """
+    if board is None or not board.ok or not board_active(board):
+        return None
+    facts = [lane_facts(board, r, book) for r in range(board.rows)]
+    if not any(f["threat_level"] == "critical" for f in facts):
+        return None
+    if candidate is not None and candidate.emergency:
+        return None
+    fresh = generate_candidates(board, book)
+    esc = [c for c in fresh if c.emergency and c.kind in ("plant", "shovel")
+           and not (bad_cells and c.kind == "plant"
+                    and (c.type_id, c.row, c.col) in bad_cells)]
+    if not esc:
+        return None
+    esc.sort(key=lambda c: (-c.score, c.row, c.col))
+    return esc[0]
+
+
 def action_is_current(candidate, board, book):
     """Re-evaluate legality AND tactical usefulness against a fresh snapshot."""
-    return board.ok and not board.paused and any(
+    return (board.ok and board_active(board) and any(
         candidate_key(c) == candidate_key(candidate)
-        for c in generate_candidates(board, book))
+        for c in generate_candidates(board, book)))
 
 
 def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: PlantBook) -> Decision:
-    fresh = {candidate_key(c): c for c in generate_candidates(board,book)} if board.ok and not board.paused else {}
+    active = board_active(board)
+    fresh = {candidate_key(c): c for c in generate_candidates(board,book)} if board.ok and active else {}
     valid = []
     for c in candidates:
         current = fresh.get(candidate_key(c))
         if c.kind == 'wait' or current is not None:
             if current is not None:
                 c.emergency, c.covers, c.score = current.emergency, current.covers, current.score
+                c.supports_type, c.relocate_to = current.supports_type, current.relocate_to
             valid.append(c)
     wait = next((c for c in valid if c.kind == 'wait'), Candidate('WAIT','wait'))
     # 铲子和种植是同一层"可执行动作"，一起参与择优与救场覆盖。
@@ -632,9 +713,22 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
     emergency = next((c for c in plants if c.emergency),None)
     d = Decision()
     if resp is None or not resp.ok:
-        chosen = best
         d.fallback = True
-        d.notes.append('Jev unavailable; use currently valid tactical fallback.')
+        err = (resp.error or '') if resp is not None else ''
+        timed_out = any(k in err.lower() for k in ('timed out', 'timeout', 'http 000', 'curl: (28'))
+        if timed_out:
+            # 超时兜底走**保守**方向：等待，让下一轮重新决策。
+            # 选 best（最高分）会在没有模型确认的情况下连续把钱花在最贵的卡上。
+            # 但危急路例外 —— 救场覆盖不能因为模型超时就缺席。
+            if emergency is not None:
+                chosen = emergency
+                d.notes.append(f'Jev timed out ({err[:80]}); rescue overrides the conservative wait.')
+            else:
+                chosen = wait
+                d.notes.append(f'Jev timed out ({err[:80]}); wait conservatively this cycle.')
+        else:
+            chosen = best
+            d.notes.append('Jev unavailable; use currently valid tactical fallback.')
     else:
         lane, urgency = resp.get('threat_lane'), resp.get('urgency')
         if lane and lane.choice:
@@ -657,6 +751,33 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             d.fallback = True
             d.notes.append('Immediate house threat overrides waiting or unrelated spending.')
     plan = saving_plan(board, book)
+    # ★★ 零防线路禁等（2026-09-26 泳池局实战教训）：L6 僵尸 223px、零墙零射手、
+    #    小推车状态未知，模型却选了 wait（conf 0.6），8 秒后僵尸进门。"危急"
+    #    定义只覆盖贴脸（<160px），中间存在无人防守的空档。补一道确定性兜底：
+    #    "有僵尸、零防御、推车不可用/未知、已过 400px 中线"的路**不允许等待**
+    #    —— 从已验证候选里挑覆盖该路的最高分防御动作。
+    #    ⚠️ 女王储蓄期内同样生效（配合生成侧 ≤150 的便宜绕过）：保命优先，
+    #       女王只推迟十几秒；但危急路仍走上面的 emergency 覆盖。
+    if chosen.kind == 'wait' and not emergency:
+        facts = [lane_facts(board, r, book) for r in range(board.rows)]
+        soft_rows = {
+            f['lane'] - 1 for f in facts
+            if f['threat_level'] == 'high' and not f['blocking_walls']
+            and f['shooter_support'] == 0
+            and f['mower_available'] is not True
+            and f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] < 400
+        }
+        if soft_rows:
+            soft_c = [c for c in plants if c.kind == 'plant' and c.covers
+                      and set(c.covers) & soft_rows]
+            if soft_c:
+                soft_c.sort(key=lambda c: (-c.score, c.row, c.col))
+                chosen = soft_c[0]
+                d.fallback = True
+                d.notes.append(
+                    'Lane(s) ' + str(sorted(r + 1 for r in soft_rows)) +
+                    ' have zombies but zero defenders and no ready mower; waiting is not allowed.')
+
     if chosen.kind == 'wait' and plan and plan['missing_sun'] == 0:
         upgrade = next((c for c in plants if c.type_id == plan['type_id'] or c.supports_type == plan['type_id']), None)
         if upgrade:
@@ -673,7 +794,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                 if c.kind != 'plant' or T_TEMPORARY in c.tags or T_INSTANT in c.tags:
                     continue
                 cost = book.cost(c.type_id)
-                reserve = 100 if T_PRODUCER in c.tags and producers < ECON_TARGET else ECON_RESERVE
+                reserve = 100 if T_PRODUCER in c.tags and producers < max(6,board.rows*2) else ECON_RESERVE
                 if cost is None or (board.sun or 0) - cost < reserve:
                     continue
                 economy = T_PRODUCER in c.tags and producers < max(6, board.rows*2)
@@ -685,6 +806,11 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                     d.fallback = True
                     d.notes.append('Safe development fills a missing formation role while keeping a sun reserve.')
                     break
+    if chosen.kind == 'wait' and not plan:
+        tidy = next((c for c in plants if c.kind=='shovel' and c.col<4 and c.relocate_to),None)
+        if tidy and not any(lane_facts(board,r,book)['threat_level'] in ('high','critical') for r in range(board.rows)):
+            chosen=tidy
+            d.notes.append('Move an idle rear reusable wall forward using verified recovery.')
     d.candidate, d.action_id = chosen, chosen.cid
     d.hold = chosen.kind == 'wait'
     return d

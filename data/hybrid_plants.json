@@ -40,7 +40,9 @@
         "aura_dps": 40,
         "aura_radius_cells": 1,
         "notes": "Torch column: peas passing through her get fire boost; 3x3 around her is immune to slow/freeze (v4.0 wiki; fire boost confirmed by user 2026-09-26). Aura only damages nearby 3x3 targets; homing fire covers the board.",
-        "torch": true
+        "torch": true,
+        "price_increment": 100,
+        "price_source": "User confirmed 2026-09-26: first 500, +100 per same plant on field"
       },
       "combat_source": "user_almanac_2026-09-26"
     },
@@ -94,7 +96,8 @@
         "hit_factor": 0.5,
         "coverage": "lane",
         "spread": true,
-        "notes": "200/s is the theoretical five-angle total; scoring discounts misses by 50%, not a measured hit rate."
+        "notes": "200/s is the theoretical five-angle total; scoring discounts misses by 50%, not a measured hit rate.",
+        "torch_compatible": true
       },
       "combat_source": "user_almanac_2026-09-26"
     },
@@ -454,7 +457,8 @@
       "combat": {
         "dps": 14.285714285714286,
         "coverage": "lane",
-        "notes": "Legacy catalogue estimate, not present in this image batch."
+        "notes": "Legacy catalogue estimate, not present in this image batch.",
+        "torch_compatible": true
       },
       "combat_source": "existing_catalogue"
     }

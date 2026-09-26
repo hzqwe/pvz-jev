@@ -147,14 +147,13 @@ def saving_plan(board, book):
     """Reserve for a usable upgrade, but release the reserve when defence is urgent."""
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
-    # Opening option（用户打法 2026-09-26：400 阳光开局先等天上掉阳光攒女王
-    # ——女王=产能+火力+火炬三合一，之后再持续铺向日葵）: 场上没僵尸、手里有
-    # 就绪女王时，**开局 30 秒内允许任意差价**（天上掉的阳光会补上）；超过 30 秒
-    # 仍差 >100 就放弃等待转正常运营——不能为女王把前期防线拖死。
+    # Opening option（★ 用户硬约束：女王开局必种；2026-09-26 实战对照后**回滚到
+    # 基线语义**）：场上没僵尸就一直攒（不限时钟）；僵尸上草坪后只在开局 30 秒
+    # 内且无危急路时继续攒，之后转正常运营先建防线，平静了再回来兑现女王。
+    # —— 泳池局实测教训：90s 宽限+只认危急路，让 agent 在 6 只僵尸进场时把
+    #    600 阳光全砸进女王、0 防御硬吃第一波。宽限不是越长越好。
     # Runtime prices are authoritative (some versions charge 600 rather than 500).
-    # 宽限期内即使首批僵尸出现也继续攒（实战 2026-09-26：僵尸 20 秒到场，
-    # 旧条件"无僵尸"让储蓄当场蒸发，阳光 550 够买女王却转手种了冰坚果）。
-    # 唯一放弃条件：出现危急路（僵尸贴脸）——保命优先于经济。
+    # 唯一放弃条件：出现危急路（僵尸贴脸）——保命优先于经济，但仅此一条。
     grace = (board.game_clock or 0) < 3000
     no_critical = not any(f['threat_level'] == 'critical' for f in facts)
     if (producers < 4 and not any(
@@ -166,12 +165,14 @@ def saving_plan(board, book):
             gap_ok = opening_grace or (board.sun or 0) >= cost-100
             if (slot.ready and book.has_tag(slot.type_id,T_TORCH)
                     and cost is not None and gap_ok
-                    and any(any(c in (1,2) for c in rear_cols(board,book,r)) for r in range(board.rows))):
+                    and any(any(c in (1,2,3) for c in rear_cols(board,book,r)) for r in range(board.rows))):
                 return dict(type_id=slot.type_id,slot=slot.index,plant=book.en(slot.type_id),
                             cost=cost,missing_sun=max(0,cost-(board.sun or 0)),
                             utility=upgrade_value(board,book,slot.type_id),
-                            reason='Opening: save for the Sunflower Queen (producer + fighter + torch column); '
-                                   'sky-dropped sun closes the gap, then fill sunflowers behind her.')
+                            reason='HARD CONSTRAINT (user-confirmed): the opening Sunflower Queen is '
+                                   'mandatory. Save while the board is calm; once zombies are on the '
+                                   'lawn past the opening grace, build minimum defence first and '
+                                   'return to her when calm.')
     if producers < 4 or not any(f['zombie_count'] for f in facts) or any(
             f['threat_level'] in ('critical', 'high') for f in facts):
         return None
@@ -229,3 +230,25 @@ def stall_window(board, book, row, type_id, col=None):
     if contact < kill <= contact+delay:
         return dict(delay=round(delay,1),kill=round(kill,1),contact=round(contact,1))
     return None
+
+
+def relocation_target(board, book, source):
+    """Choose a real destination before removing a reusable wall. E/F preferred."""
+    options=[]
+    for r in range(board.rows):
+        f=lane_facts(board,r,book)
+        nx=f['nearest_zombie_x']
+        for c in range(board.cols):
+            if (r,c)==source.cell or (r,c) in board.top_occupancy(book):
+                continue
+            if nx is not None and cell_x(c)>nx+30:
+                continue
+            if nx is None or nx>=cell_x(4):
+                if c<4:continue
+            if not board.can_plant(r,c,source.type_id,book):
+                if not board.is_water(r) or board.has_platform(r,c,book):continue
+                if not any(s.ready and book.has_tag(s.type_id,'platform')
+                           and book.cost(s.type_id) is not None
+                           and book.cost(s.type_id)<=(board.sun or 0) for s in board.slots):continue
+            options.append((-f['priority'],r!=source.row,abs(c-4),r,c))
+    return tuple(min(options)[-2:]) if options else None

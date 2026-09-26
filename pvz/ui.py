@@ -13,7 +13,7 @@ import os
 import time
 from dataclasses import dataclass, asdict, field
 
-from .win32 import Screen, WindowInfo, capture_window, post_click, post_rclick, sendinput_click
+from .win32 import Screen, WindowInfo, capture_window, post_click, post_rclick, sendinput_click, post_key
 
 LAYOUT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "layout.json")
 
@@ -115,6 +115,12 @@ class Layout:
         y = self.grid_top + (row + 0.5) * self.row_height()
         return int(x * sx), int(y * sy)
 
+    def dropped_seed_center(self, seed):
+        sx,sy=self.scale()
+        # Coin positions are logical board coordinates, independent of row spacing.
+        return (int((self.grid_left+(seed.x+seed.width/2-40)*self.cell_w/80)*sx),
+                int((self.grid_top+(seed.y+seed.height/2-80)*self.cell_h/100)*sy))
+
     def card_center(self, index: int) -> tuple[int, int]:
         sx, sy = self.scale()
         per_row = self.card_per_row
@@ -131,7 +137,11 @@ class Layout:
         y = self.card_y + r * (self.card_h + 4)
         return (int(x * sx), int(y * sy), int(self.card_w * sx), int(self.card_h * sy))
 
-    def lawn_rect(self, rows: int = 5, cols: int = 9) -> tuple[int, int, int, int]:
+    def lawn_rect(self, rows: int | None = None, cols: int = 9) -> tuple[int, int, int, int]:
+        # 行数默认取 configure_board() 同步进来的 board_rows（泳池=6）。
+        # ⚠️ 写死 5 的后果：泳池第 6 行的天降阳光永远不在扫描区里（2026-09-26 盲区）。
+        if rows is None:
+            rows = self.board_rows
         sx, sy = self.scale()
         return (
             int(self.grid_left * sx),
@@ -187,6 +197,9 @@ class Clicker:
         self.click_client(x, y, note or f"card {index}")
         return x, y
 
+    def shovel_hotkey(self):
+        post_key(self.win.hwnd,0x31)
+
     def click_shovel(self, layout: Layout, note: str = "pick up shovel") -> tuple[int, int]:
         """点铲子按钮。拿起成功与否由调用方读 `held_cursor == 6` 验证。"""
         x, y = layout.shovel_button()
@@ -229,6 +242,61 @@ class Clicker:
 
 
 # ---------------------------------------------------------------- 阳光
+class SunTracker:
+    """阳光收集的**回读验证与假阳性抑制**。
+
+    为什么需要：屏幕上不止阳光是亮黄色的——向日葵女王/阳光向日葵的贴图、
+    黄油、部分水面前照都过 `find_suns` 的颜色闸。2026-09-26 泳池局实测：
+    244 个循环点了 535 次"阳光"，阳光却几乎没涨 —— 大量点击反复砸在
+    持久黄色贴图上，真阳光反而轮不到额度。
+
+    原理：点击前后各读一次内存阳光差值。阳光**只会**因点击而增加（种植
+    扣钱，且收集与种植在主循环里顺序执行、不同帧），所以：
+      * `gained >= 25×点击数`  → 这批全是真阳光，清空可疑计数；
+      * `gained < 25`          → 这批全是假阳性，每个位置计一次 miss；
+      * 介于两者之间           → 混合，无法归因，不动计数（保守）。
+    同一位置累计 miss ≥ 3（约 3 个收集周期）→ 抑制 90s。真阳光被抑制的
+    代价（一颗 25）远小于假阳性每轮吃满额度的代价。
+    """
+
+    KEY_PX = 48          # 位置量化：key = (x//48, y//48)
+    MISS_LIMIT = 3
+    BAN_S = 90.0
+
+    def __init__(self, clock=None):
+        self._clock = clock or time.time
+        self._miss: dict[tuple[int, int], int] = {}
+        self._banned_until: dict[tuple[int, int], float] = {}
+
+    @classmethod
+    def key_of(cls, x: int, y: int) -> tuple[int, int]:
+        return (int(x) // cls.KEY_PX, int(y) // cls.KEY_PX)
+
+    def banned_keys(self) -> set:
+        now = self._clock()
+        self._banned_until = {k: t for k, t in self._banned_until.items() if t > now}
+        return set(self._banned_until)
+
+    def feedback(self, hits: list[tuple[int, int]], gained: int | None,
+                 per_sun: int = 25) -> None:
+        if gained is None or not hits:
+            return
+        keys = [self.key_of(x, y) for x, y, *_ in hits]
+        if gained >= per_sun * len(hits):
+            for k in keys:
+                self._miss.pop(k, None)
+            return
+        if gained >= per_sun:
+            return          # 混合命中，无法归因，不动计数
+        now = self._clock()
+        for k in keys:
+            n = self._miss.get(k, 0) + 1
+            self._miss[k] = n
+            if n >= self.MISS_LIMIT:
+                self._banned_until[k] = now + self.BAN_S
+                self._miss.pop(k, None)
+
+
 def find_suns(shot: Screen, layout: Layout, min_blob: int = 24) -> list[tuple[int, int, int]]:
     """在草坪区域找阳光（亮黄色团块）。返回客户区坐标的 [(x, y, 像素数), ...]。
 
@@ -287,20 +355,32 @@ def find_suns(shot: Screen, layout: Layout, min_blob: int = 24) -> list[tuple[in
             sy = sum(c // w for c in cells) / n
             blobs.append((x0 + int(sx * step), y0 + int(sy * step), n))
 
-    blobs.sort(key=lambda t: -t[2])
+    blobs.sort(key=lambda t: (-t[2], t[0]))
     # 合并过近的团块
     merged: list[tuple[int, int, int]] = []
     for bx, by, n in blobs:
         if all((bx - mx) ** 2 + (by - my) ** 2 > 40 ** 2 for mx, my, _ in merged):
             merged.append((bx, by, n))
+    # 合并过近的团块。按**团块大小**优先合并/收集（大的是真阳光，小的是噪声）：
+    # ⚠️ 不能按 x 排序——2026-09-26 泳池局实测：女王/向日葵都在左侧且是黄色
+    #    贴图，"从左到右"让假阳性每轮吃满点击额度，真阳光在右边烂掉。
+    merged.sort(key=lambda t: (-t[2], t[0]))
     return merged
 
 
-def collect_suns(shot: Screen, layout: Layout, clicker: Clicker, max_click: int = 4) -> list[tuple[int, int]]:
+def collect_suns(shot: Screen, layout: Layout, clicker: Clicker, max_click: int = 4,
+                 banned: set | None = None) -> list[tuple[int, int]]:
+    """点击收集阳光。`banned` 是被抑制的位置 key（(x//48, y//48)），见 agent 的
+    SunTracker：点了但阳光没涨的位置是持久黄色假阳性（植物贴图/黄油），
+    不能每轮反复浪费点击额度。"""
     hits = []
-    for x, y, _n in find_suns(shot, layout)[:max_click]:
+    for x, y, _n in find_suns(shot, layout):
+        if banned and (x // 48, y // 48) in banned:
+            continue
         clicker.click_client(x, y, "collect sun")
         hits.append((x, y))
+        if len(hits) >= max_click:
+            break
     return hits
 
 
