@@ -55,7 +55,9 @@ RECLAIM_MAX_HP_BITTEN = 3600  # 正在被啃时的放宽上限：反正马上要
 # 所以这里加一道确定性的护栏（不消耗 Jev 调用）：
 #   产阳光株数还没到 ECON_TARGET 时，**非产阳光的卡**不允许把阳光花到 ECON_RESERVE 以下；
 #   有路告急时例外（救场优先于经济）。
-ECON_TARGET = 4           # 期望先建起来的产阳光株数
+ECON_TARGET = 4           # 期望先建起来的产阳光株数（向日葵勤种的推力）
+PREMIUM_ECON_TARGET = 3   # 高价值卡允许出手的产阳光门槛（用户 2026-09-26：
+                          # 女王算一株，3 株就该攒第二个金卡增强前期强度）
 ECON_RESERVE = 300        # 经济未成型时，买非产阳光卡之后至少要留这么多
 ECON_CHEAP = 150          # 便宜到不值得拦的卡：急救就靠它们
                           # （实测那次失败是"阳光 750 时买 500 的卡"，花掉 67%；
@@ -188,6 +190,11 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     for lane_zs in (board.zombies_in_lane(x) for x in range(board.rows))
                     for z in lane_zs)
              or any(f.get('crush_zombies') for f in facts))
+    # 防撞墙现在是否"就绪且买得起"（决定撞车局面里炸弹与墙的分工）
+    anti_crush_ready = any(
+        s.ready and (book.combat(s.type_id).get('crush_hits')
+                     or book.combat(s.type_id).get('lethal_hit_burst'))
+        and (book.cost(s.type_id) or 10**9) <= sun for s in board.slots)
 
     # -- 兜底垫背（用户策略，2026-09-26）----------------------------------
     # 危急路上没有墙卡可用（都在冷却/买不起）时，用便宜植物垫在僵尸脚下拖时间，
@@ -275,7 +282,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 0 <= f['nearest_zombie_x'] - cell_x(p.col) <= 160
                 and not book.has_tag(p.type_id,T_WALL)
                 for p in board.plants_in_lane(f['lane']-1)) for f in facts)
-        if (producers < ECON_TARGET
+        if (producers < PREMIUM_ECON_TARGET
                 and not (emergency or close_intercept
                          or (zero_defence_pressure and cost <= 150)
                          or (eager and T_INSTANT in tags))
@@ -385,10 +392,19 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                                   'last moment.' if eager and not any(
                                       facts[x]['threat_level'] in ('high', 'critical')
                                       for x in cover) else '')
+                    # 用户 2026-09-26 实战：撞车僵尸进路而雷果子/高冰果都在冷却时，
+                    # **用阳光炸弹直接炸它** —— 这是没有防撞墙时的标准答案。
+                    crush_note = ''
+                    crush_bonus = 0
+                    if any(book.zombie_flag(z.type_id, 'crush') for z in hit):
+                        crush_bonus = 60 if not anti_crush_ready else 25
+                        crush_note = (' Crushing zombie in the blast - with no crush-resistant '
+                                      'wall ready, bombing it is the answer.')
                     add(slot,r,col,100 + sum(min(strength(z), 1800/270)*14 for z in hit) + sun_bonus
-                        + (40 if eager and mid_push else 0) + (1000 if urgent_hit else 0),
+                        + (40 if eager and mid_push else 0) + crush_bonus
+                        + (1000 if urgent_hit else 0),
                         f'Local burst reaches {len(hit)} zombie(s); damage may not kill heavy armor.'
-                        + sun_note + eager_note,
+                        + sun_note + eager_note + crush_note,
                         cover if urgent_hit else ())
             continue
 
@@ -407,6 +423,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if T_WALL in tags:
             for r in hot:
                 nx = facts[r]['nearest_zombie_x']
+                # ★ 用户 2026-09-26 实战（23:54 冰坚果种进冰车路送死）：普通墙
+                #   挡不住冰车——压扁后直接穿过去。最近僵尸就是撞车时，本路
+                #   只接受防撞墙（雷果子/高冰果）候选；都不在冷却时由灰烬
+                #   炸弹接管（见 T_INSTANT 分支的 crush 加成）。
+                if (facts[r].get('nearest_is_crush')
+                        and not (book.combat(tid).get('crush_hits')
+                                 or book.combat(tid).get('lethal_hit_burst'))):
+                    continue
                 if nx is None:
                     # 平静期预置：这路已有射手但没有墙 → 在射手前方预放一面墙，
                     # 下一波来的时候防线是完整的（保持各路阵型整齐）。

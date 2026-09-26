@@ -96,15 +96,24 @@ class AdvancedThreatTests(unittest.TestCase):
 
     # -- 3) 撞车僵尸：防撞墙优先，普通墙明示会被压扁 ----------------------
     def test_crush_zombie_prefers_crush_resistant_wall(self):
+        # 2026-09-26 实战修订（23:54 冰坚果种进冰车路送死）：最近僵尸=冰车时，
+        # 本路**不再生成**普通墙候选，只允许防撞墙；炸弹接管（见下一条）。
         b = self.board([WALL, ICE], [Zombie(0, 0, CRUSH_Z, x=500)], sun=1200)
         cands = generate_candidates(b, self.book)
-        wall = next(c for c in cands
-                    if c.kind == 'plant' and c.type_id == WALL and c.row == 0)
+        self.assertFalse([c for c in cands
+                          if c.kind == 'plant' and c.type_id == WALL and c.row == 0],
+                         '冰车是最近僵尸时不应给出普通墙候选（送死）')
         ice = next(c for c in cands
                    if c.kind == 'plant' and c.type_id == ICE and c.row == 0)
-        self.assertIn('WARNING', wall.why)
         self.assertIn('Crush-resistant', ice.why)
-        self.assertGreater(ice.score, wall.score, '防撞墙应比普通墙优先')
+
+    def test_bomb_targets_truck_when_no_anti_crush_ready(self):
+        # 雷果子/高冰果都在冷却 -> 阳光炸弹砸冰车是标准答案，加分并注明
+        b = self.board([BOMB], [Zombie(0, 0, CRUSH_Z, x=500)], sun=400)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == BOMB]
+        self.assertTrue(cs, '撞车无防撞墙时应给出炸弹候选')
+        self.assertTrue(any('Crushing zombie' in c.why for c in cs))
 
     # -- 4) 铲掉换阳光 -----------------------------------------------------
     def test_salvage_shovel_when_plant_nearly_eaten(self):
@@ -323,6 +332,39 @@ class StrandedPickAndPriceTests(unittest.TestCase):
         self.assertEqual(dec.candidate.kind, 'pick', '等待时应优先拾回 stranded 掉落卡')
         self.assertTrue(dec.fallback)
         self.assertTrue(any('stranded seed card' in n for n in dec.notes))
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+class PremiumEconomyTests(unittest.TestCase):
+    """金卡节奏（用户 2026-09-26）：3 株产阳光（含女王）就该允许高价值出手。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        for tid, name in ((430, '向日葵女王'), (431, '阳光向日葵'), (421, '高冰果')):
+            self.assertTrue(self.book.bind_one(tid, name))
+
+    def test_premium_allowed_with_three_producers(self):
+        # 女王+2向日葵=3 producer、僵尸在中圈、阳光 900：高冰果应能出手
+        plants = [Plant(0, 0, 2, 430), Plant(1, 1, 0, 431), Plant(2, 1, 1, 431)]
+        b = BoardState(ok=True, sun=700, rows=5, cols=9, game_clock=40000,
+                       slots=[SeedSlot(0, 421, 0, 1000)],
+                       plants=plants, zombies=[Zombie(0, 0, 0, x=700)])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 421]
+        self.assertTrue(cs, '3 株产阳光时高价值卡应允许出手')
+
+    def test_premium_still_blocked_with_two_producers(self):
+        # 只有 2 株产阳光：维持经济护栏（防死亡螺旋），高价值卡仍被拦
+        plants = [Plant(0, 0, 2, 430), Plant(1, 1, 0, 431)]
+        b = BoardState(ok=True, sun=700, rows=5, cols=9, game_clock=40000,
+                       slots=[SeedSlot(0, 421, 0, 1000)],
+                       plants=plants, zombies=[Zombie(0, 0, 0, x=700)])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 421]
+        self.assertFalse(cs, '2 株产阳光时高价值卡仍应被经济闸拦住')
 
 
 if __name__ == '__main__':

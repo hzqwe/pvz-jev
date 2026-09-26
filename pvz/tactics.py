@@ -143,6 +143,11 @@ def lane_facts(board, row, book=None):
     # ranged 来自 agent 的跨快照驻停观测；crush/eat_dps 来自 zombie_traits.json。
     ranged = sum(1 for z in zs if getattr(z, 'stationary', None))
     crush = sum(1 for z in zs if book is not None and book.zombie_flag(z.type_id, 'crush'))
+    # 最近的那只僵尸是不是撞车（2026-09-26 用户实战）：普通墙挡不住冰车，
+    # 最近僵尸=冰车时种普通墙=白给 —— policy 据此禁止该路的普通墙候选。
+    nearest_z = min(zs, key=lambda z: z.x) if zs else None
+    nearest_is_crush = bool(nearest_z is not None and book is not None
+                            and book.zombie_flag(nearest_z.type_id, 'crush'))
     eat_dps = max([book.zombie_trait(z.type_id, 'eat_dps') or 100
                    for z in zs] or [100]) if book is not None else 100.0
     return dict(lane=row + 1, zombie_count=len(zs), nearest_zombie_x=nx,
@@ -151,7 +156,8 @@ def lane_facts(board, row, book=None):
                 shooter_support=round(shooters, 2), reflect_support=round(reflect, 2),
                 blocking_walls=walls,
                 mower_available=mower, pressure=round(pressure, 2),
-                ranged_zombies=ranged, crush_zombies=crush, eat_dps=eat_dps)
+                ranged_zombies=ranged, crush_zombies=crush, eat_dps=eat_dps,
+                nearest_is_crush=nearest_is_crush)
 
 
 def saving_plan(board, book):
@@ -184,7 +190,9 @@ def saving_plan(board, book):
                                    'mandatory. Save while the board is calm; once zombies are on the '
                                    'lawn past the opening grace, build minimum defence first and '
                                    'return to her when calm.')
-    if producers < 4 or not any(f['zombie_count'] for f in facts) or any(
+    # 中段储蓄门槛 4→3（用户 2026-09-26：女王算一株产阳光，3 株就该开始攒
+    # 第二个高价值植物增强前期强度，向日葵保持勤奋补种即可）。
+    if producers < 3 or not any(f['zombie_count'] for f in facts) or any(
             f['threat_level'] in ('critical', 'high') for f in facts):
         return None
     heavy = sum(not p.asleep and book.has_tag(p.type_id, T_SHOOTER)
