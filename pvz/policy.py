@@ -127,6 +127,16 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             utility = upgrade_value(board,book,slot.type_id,row)
             value += utility
             reason += f' Capability fit={utility:g} (heuristic; damage/control/economy, not price).'
+        if T_BURN_AURA in tags:
+            # 光环只烧植物周围 3x3：只统计与落点同行/邻排、且还在光环射程内的僵尸，
+            # 不当全屏伤害计分（图鉴 aura_dps=40/s，仅对贴身目标成立）。
+            reach = cell_x(col) + 240
+            near = sum(1 for x in range(max(0, row-1), min(board.rows, row+2))
+                       for z in board.zombies_in_lane(x)
+                       if z.x is not None and z.x <= reach)
+            if near:
+                value += 3 * min(near, 6)
+                reason += f' Burn aura reaches {min(near, 6)} nearby zombie(s).'
         candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value, reason, tags, rescue, tuple(covers)))
 
@@ -152,8 +162,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             cells = [(r,c) for r in quiet for c in range(board.cols) if (r,c) not in occ]
             if cells:
                 r,c = cells[0]
-                add(slot,r,c,110 + sum(f['priority'] for f in facts)*0.4,
-                    'Board-wide control; buys time against the current threats.', range(board.rows))
+                per = book.combat(tid).get('sun_per_frozen', 0)
+                value = 110 + sum(f['priority'] for f in facts)*0.4
+                why = 'Board-wide control; buys time against the current threats.'
+                if per and total:
+                    value += per * 0.5 * total
+                    why += (f' Up to {per:g} sun per frozen zombie'
+                            ' (not guaranteed for already frozen or immune targets).')
+                add(slot,r,c,value, why, range(board.rows))
             continue
 
         if T_SPLASH3 in tags:
@@ -178,9 +194,16 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                         continue
                     urgent_hit = any(z.x < 160 or (board.mowers.get(z.row) is False and z.x < 240)
                                      for z in hit)
-                    add(slot,r,col,100 + sum(min(strength(z), 1800/270)*14 for z in hit)
+                    sun_note = ''
+                    sun_bonus = 0
+                    if T_SUN_ON_KILL in tags:
+                        # 阳光炸弹：受害者转化为阳光。图鉴没给具体返还数值，
+                        # 事实层不编造数字，只在启发式评分里按命中数给小额加成。
+                        sun_bonus = 8 * len(hit)
+                        sun_note = ' Victims convert to sun (refund unspecified; small scoring bonus).'
+                    add(slot,r,col,100 + sum(min(strength(z), 1800/270)*14 for z in hit) + sun_bonus
                         + (1000 if urgent_hit else 0),
-                        f'Local burst reaches {len(hit)} zombie(s); damage may not kill heavy armor.',
+                        f'Local burst reaches {len(hit)} zombie(s); damage may not kill heavy armor.'+sun_note,
                         cover if urgent_hit else ())
             continue
 
@@ -217,8 +240,19 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 front = max(defenders,default=-1)
                 preferred = [c for c in cols if c > front]
                 col = preferred[-1] if preferred else cols[-1]
-                add(slot,r,col,65+facts[r]['priority']*0.8,
-                    'Intercept on the house side of the zombie; shield the surviving rear plants.',[r])
+                profile = book.combat(tid)
+                bonus, extra = 0, ''
+                if T_FREEZE_ON_DEATH in tags:
+                    bonus += 6
+                    extra += ' If it falls, its death ripple freezes/slows nearby zombies.'
+                if T_WALL_REGEN in tags:
+                    bonus += 4
+                    extra += ' Reclaimable wall; low commitment (shovel action not implemented yet).'
+                if T_REFLECT in tags and facts[r]['zombie_count']:
+                    bonus += min(10.0, profile.get('reflect_dps', 0) * 0.1)
+                    extra += ' Reflects damage while being bitten.'
+                add(slot,r,col,65+facts[r]['priority']*0.8+bonus,
+                    'Intercept on the house side of the zombie; shield the surviving rear plants.'+extra,[r])
             continue
 
         if T_PRODUCER in tags and T_SHOOTER not in tags:

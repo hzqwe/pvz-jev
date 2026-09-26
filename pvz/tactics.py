@@ -61,6 +61,21 @@ def upgrade_value(board, book, type_id, row=None):
         income = sum(book.combat(p.type_id).get('sun_per_25s',0)
                      for p in board.plants if not p.asleep)
         value += profile['sun_per_25s'] * max(.1,.4-income/1500)
+    if profile.get('mature_sun_per_25s'):
+        # 会长大的产能（阳光向日葵）：成熟期收入不保证（生长年龄无法观测），
+        # 只给一个打折的小额信用，不当成确定收入。
+        value += profile['mature_sun_per_25s'] * .15
+    if profile.get('aura_dps'):
+        # 灼烧光环只打植物周围 3x3，不是全屏：只统计还在光环射程内
+        # （草坪左侧约三格，x<480）且与落点同行/邻排的僵尸。
+        radius = profile.get('aura_radius_cells', 1)
+        near = sum(1 for z in targets if z.x is not None and z.x < 480
+                   and abs(z.row - row) <= radius)
+        if near:
+            value += profile['aura_dps'] * .2 * min(near, 4)
+    if profile.get('death_freeze') and targets:
+        # 亡语控制：这面墙倒下时也会冻结/减速周围僵尸，属于免费的兜底控制。
+        value += 6
     copies = sum(p.type_id==type_id and not p.asleep for p in board.plants)
     return round(value/(1+.25*copies) - (book.cost(type_id) or 0)*.025,2)
 
@@ -81,7 +96,7 @@ def lane_facts(board, row, book=None):
     nx = min((z.x for z in zs if z.x is not None), default=None)
     power = sum(strength(z) for z in zs)
     mower = board.mowers.get(row)
-    shooters, walls = 0.0, 0
+    shooters, walls, reflect = 0.0, 0, 0.0
     if book:
         for p in board.plants:
             if p.asleep:
@@ -96,10 +111,14 @@ def lane_facts(board, row, book=None):
                 shooters += attack_dps(book,p.type_id)/20 * share
             if p.row == row and T_WALL in tags and (nx is None or cell_x(p.col) <= nx):
                 walls += 1
+                # 反伤只在僵尸真的啃到墙时生效：僵尸从右往左走，追上墙
+                # （nx <= 墙列 x + 少量容差）才算接触，远处还没走到的不算。
+                if nx is not None and nx <= cell_x(p.col) + 30:
+                    reflect += book.combat(p.type_id).get('reflect_dps', 0) / 20
     critical = bool(zs) and nx is not None and (nx < 160 or (mower is False and nx < 240 and walls == 0))
     high = bool(zs) and (critical or (nx is not None and nx < 320) or power > shooters * 3 + 5)
     level = 'critical' if critical else 'high' if high else 'low' if zs else 'none'
-    pressure = max(0, power - shooters * 1.5 - walls * 2)
+    pressure = max(0, power - shooters * 1.5 - walls * 2 - reflect * 1.0)
     proximity = max(0, (800 - nx) / 8) if nx is not None else 40
     priority = (1000 if critical else 200 if high else 0) + proximity + pressure * 8
     if mower is False:
@@ -109,7 +128,8 @@ def lane_facts(board, row, book=None):
     return dict(lane=row + 1, zombie_count=len(zs), nearest_zombie_x=nx,
                 nearest_closeness=level, plant_count=len(ps), threat_level=level,
                 priority=round(priority, 2), zombie_strength=round(power, 2),
-                shooter_support=round(shooters, 2), blocking_walls=walls,
+                shooter_support=round(shooters, 2), reflect_support=round(reflect, 2),
+                blocking_walls=walls,
                 mower_available=mower, pressure=round(pressure, 2))
 
 
