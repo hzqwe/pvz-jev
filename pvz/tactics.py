@@ -152,9 +152,15 @@ def saving_plan(board, book):
     # 就绪女王时，**开局 30 秒内允许任意差价**（天上掉的阳光会补上）；超过 30 秒
     # 仍差 >100 就放弃等待转正常运营——不能为女王把前期防线拖死。
     # Runtime prices are authoritative (some versions charge 600 rather than 500).
-    if not board.zombies and producers < 4 and not any(
-            book.has_tag(p.type_id,T_TORCH) for p in board.plants):
-        opening_grace = (board.game_clock or 0) < 3000
+    # 宽限期内即使首批僵尸出现也继续攒（实战 2026-09-26：僵尸 20 秒到场，
+    # 旧条件"无僵尸"让储蓄当场蒸发，阳光 550 够买女王却转手种了冰坚果）。
+    # 唯一放弃条件：出现危急路（僵尸贴脸）——保命优先于经济。
+    grace = (board.game_clock or 0) < 3000
+    no_critical = not any(f['threat_level'] == 'critical' for f in facts)
+    if (producers < 4 and not any(
+            book.has_tag(p.type_id,T_TORCH) for p in board.plants)
+            and (not board.zombies or (grace and no_critical))):
+        opening_grace = grace
         for slot in board.slots:
             cost = book.cost(slot.type_id)
             gap_ok = opening_grace or (board.sun or 0) >= cost-100

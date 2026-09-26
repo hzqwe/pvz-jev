@@ -289,3 +289,22 @@ class PlantKnowledgeTests(unittest.TestCase):
         self.assertIn(SUN, self.book.cost_mismatch)
         self.book.set_real_cost(SUN, 130)             # +30% 合法波动
         self.assertEqual(self.book.cost(SUN), 130)
+
+    def test_opening_save_survives_first_zombies(self):
+        # 实战 2026-09-26：僵尸 20 秒到场，旧条件让储蓄当场蒸发，
+        # 550 阳光够买女王却种了冰坚果。宽限期内无危急路必须继续攒并兑现。
+        b=self.board([SUN,QUEEN],[Zombie(0,4,0,x=700)],sun=550)
+        b.game_clock=2000
+        cs=[c for c in generate_candidates(b,self.book)
+            if c.kind=='plant' and c.type_id==QUEEN]
+        self.assertTrue(cs, '宽限期内储蓄不应因首批僵尸蒸发')
+        d=merge_decision(None,generate_candidates(b,self.book),b,self.book)
+        self.assertEqual(d.candidate.type_id,QUEEN)
+
+    def test_opening_save_abandoned_on_critical_lane(self):
+        # 危急路（僵尸贴脸）出现 -> 放弃储蓄，保命优先。
+        b=self.board([SUN,QUEEN],[Zombie(0,4,0,x=110)],sun=550)
+        b.game_clock=2000
+        # 储蓄路径放弃；但女王作为全屏射手仍可作为救场候选上场（她是战斗机）
+        self.assertIsNone(build_state(b,self.book)['saving_plan'],
+                          '危急路出现时储蓄应放弃')
