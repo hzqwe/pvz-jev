@@ -699,7 +699,7 @@ class PvZJevAgent:
                     cand = dec.candidate = rescue
                     dec.hold = False; dec.fallback = True; dec.action_id = rescue.cid
                     dec.notes.append('Fresh house threat overrides the earlier wait.')
-                    record.setdefault('decision',{}).update(action_id=rescue.cid,chosen=rescue.describe(self.book),fallback=True)
+                    record.setdefault('decision',{}).update(action_id=rescue.cid,chosen=rescue.describe(self.book),fallback=True,hold=False)
         if cand is None or cand.kind == "wait" or dec.hold:
             self.stats.holds += 1
             record["executed"] = {"kind": "hold"}
@@ -775,6 +775,7 @@ class PvZJevAgent:
                 record.setdefault("decision", {})["action_id"] = adapted.cid
                 record["decision"]["chosen"] = adapted.describe(self.book)
                 record["decision"]["fallback"] = True
+                record["decision"]["hold"] = False
                 if self.cfg.verbose:
                     print(f"  ♻️ {note}")
             else:
@@ -811,6 +812,7 @@ class PvZJevAgent:
             record["decision"]["action_id"] = esc.cid
             record["decision"]["chosen"] = esc.describe(self.book)
             record["decision"]["fallback"] = True
+            record["decision"]["hold"] = False
             if self.cfg.verbose:
                 print(f"  🚨 {note}")
 

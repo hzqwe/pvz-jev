@@ -162,10 +162,12 @@ class BattleReviewFixTests(unittest.TestCase):
         a.reader=SimpleNamespace(read=lambda:fresh);a.clicker=Mock();a.layout=Mock()
         a.layout.configure_board.side_effect=RuntimeError('verification stop before any input')
         d=Decision(candidate=Candidate('WAIT','wait'),hold=True)
+        record={'decision':{'hold':True}}
         with self.assertRaisesRegex(RuntimeError,'verification stop'):
-            a.execute(d,{},old)
+            a.execute(d,record,old)
         self.assertEqual(d.candidate.type_id,WALL)
         self.assertFalse(d.hold)
+        self.assertFalse(record['decision']['hold'])
         a.clicker.assert_not_called()
 
     def test_observation_suspicions_expire(self):
