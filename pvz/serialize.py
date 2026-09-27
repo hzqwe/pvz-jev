@@ -76,6 +76,13 @@ def lane_threat(board: BoardState, row: int, book=None) -> dict:
 def build_state(board: BoardState, book: PlantBook) -> dict:
     """产出给 Jev 的 state（JSON 友好、语义化）。"""
     book.sync_field_copies(board.plants)
+    # 性能（2026-09-27 审查）：occ/lane_threat 每路被重复全量计算 2~60 次
+    # —— 一次缓存，整个 build_state 复用。
+    occ_cache = board.top_occupancy(book)
+
+    def lane_threat_cached(r):
+        return lane_threat(board, r, book)
+
     lanes = []
     for r in range(board.rows):
         zs = board.zombies_in_lane(r)
@@ -84,7 +91,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             {
                 "lane": r + 1,
                 "terrain": "water: Lily Pad required below ordinary plants" if board.is_water(r) else "land",
-                "available_platform_columns": [COL_LABEL[c] for c in range(board.cols) if board.has_platform(r,c,book) and (r,c) not in board.top_occupancy(book)],
+                "available_platform_columns": [COL_LABEL[c] for c in range(board.cols) if board.has_platform(r,c,book) and (r,c) not in occ_cache],
                 "defenders": [
                     {
                         "plant": book.name(p.type_id),
@@ -108,8 +115,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                     }
                     for z in sorted(zs, key=lambda z: (z.x if z.x is not None else 9999))
                 ],
-                "threat_level": lane_threat(board, r, book)["threat_level"],
-                "tactical_assessment": lane_threat(board, r, book),
+                "tactical_assessment": lane_threat_cached(r),
             }
         )
 

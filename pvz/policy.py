@@ -29,7 +29,9 @@ from .plants import (
 from .serialize import COL_LABEL, lane_threat
 from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target
 
-MAX_CANDIDATES = 24
+MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
+                            # token 额度消耗的主因）。救场优先的排序保证重要的
+                            # 都在前；14 条足够覆盖"每类一张+备选落点"。
 
 
 def snow_blocked(board, row: int, col: int) -> bool:
@@ -82,7 +84,13 @@ class Candidate:
     salvage: bool = field(default=False, kw_only=True)   # 铲掉换阳光（不回收卡片）
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
-    def describe(self, book: PlantBook) -> str:
+    def describe(self, book: PlantBook, cap: int = 240) -> str:
+        """给 Jev 的候选描述。2026-09-27 起截断到 cap 字符：24 条完整描述曾占
+        单次请求的 ~40%（每小时百万级 token）；完整文本始终在决策日志里。"""
+        txt = self._describe_raw(book)
+        return txt if len(txt) <= cap else txt[:cap - 1].rstrip() + "…"
+
+    def _describe_raw(self, book: PlantBook) -> str:
         if self.kind == "wait":
             return (
                 "Wait / do nothing this cycle. Save the sun. Choose this when no "

@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+import traceback
 from dataclasses import dataclass, field
 
 from .board import BoardReader, BoardState, placement_delta
@@ -1274,49 +1275,56 @@ class PvZJevAgent:
             if (self._responsive
                     and now - self._last_decision >= self.cfg.decide_every_s):
                 self._last_decision = now
-                dec, record = self.decide(board)
-                self.stats.decisions += 1
-                if dec.fallback:
-                    self.stats.fallbacks += 1
-                self.execute(dec, record, board)
-                self.log.append(record)
-                # 连续 hold 观测（2026-09-26）：等待本身常常是对的（攒女王/攒大件），
-                # 但"阳光≥400 还一路等下去"曾连出 9 轮。这里只记录 + 周期性提醒，
-                # 决策层已有 bounded development / 兑现升级兜底，不在主循环里抢决策权。
-                if dec.hold:
-                    self._hold_streak += 1
-                    if (self._hold_streak >= 4 and (board.sun or 0) >= 400
-                            and now - self._hold_warned_at > 30.0):
-                        self._hold_warned_at = now
-                        msg = (f"已连续等待 {self._hold_streak} 轮而阳光 {(board.sun or 0)} "
-                               f"—— 若非攒大件（saving_plan），复盘时应关注这段")
-                        record.setdefault("warnings", []).append(msg)
-                        if self.cfg.verbose:
-                            print(f"  ⚠️ {msg}")
-                else:
-                    self._hold_streak = 0
-                if self.cfg.verbose:
-                    print(render_text(board, self.book))
-                    chosen = dec.candidate.describe(self.book) if dec.candidate else "-"
-                    print(f"  -> Jev 决定: {chosen}")
-                    ex = record.get("executed") or {}
-                    if ex.get("kind") == "click":
-                        print(f"  -> 落点 {'✅ 种上了' if ex.get('placed') else '❌ 没种上'}"
-                              f"  真实花费={ex.get('real_cost')}  植物 {ex.get('plants_before')} -> {ex.get('plants_after')}")
-                    elif ex.get("kind") == "pick_rejected":
-                        if not ex.get("slot_ready"):
-                            print("  -> 卡被拒：该卡仍在冷却，与价格无关，未记成本")
-                        elif ex.get("game_responsive"):
-                            print(f"  -> 卡被拒（阳光 {ex.get('sun')} 不够），已记下成本下界")
-                        else:
-                            print("  -> 点击无效：游戏时钟没走（暂停/失焦），本次不计成本")
-                    elif ex.get("kind") == "cooling":
-                        print(f"  -> 跳过：卡槽 {ex.get('slot')} 仍在冷却 "
-                              f"({ex.get('cd_left')}/{ex.get('cd_total')})")
-                    if dec.notes:
-                        for n in dec.notes:
-                            print(f"     · {n}")
-                    print(f"  {self.stats.summary()}")
+                # ★★ 异常安全网（2026-09-27 综合审查）：决策/执行链路现在很长
+                #   （事务/重评/学习/coin 读），任何一条意外异常都不该杀死
+                #   无人值守的整局 —— 打印堆栈、跳过本轮、循环继续。
+                try:
+                    dec, record = self.decide(board)
+                    self.stats.decisions += 1
+                    if dec.fallback:
+                        self.stats.fallbacks += 1
+                    self.execute(dec, record, board)
+                    self.log.append(record)
+                    # 连续 hold 观测（2026-09-26）：等待本身常常是对的（攒女王/攒大件），
+                    # 但"阳光≥400 还一路等下去"曾连出 9 轮。这里只记录 + 周期性提醒，
+                    # 决策层已有 bounded development / 兑现升级兜底，不在主循环里抢决策权。
+                    if dec.hold:
+                        self._hold_streak += 1
+                        if (self._hold_streak >= 4 and (board.sun or 0) >= 400
+                                and now - self._hold_warned_at > 30.0):
+                            self._hold_warned_at = now
+                            msg = (f"已连续等待 {self._hold_streak} 轮而阳光 {(board.sun or 0)} "
+                                   f"—— 若非攒大件（saving_plan），复盘时应关注这段")
+                            record.setdefault("warnings", []).append(msg)
+                            if self.cfg.verbose:
+                                print(f"  ⚠️ {msg}")
+                    else:
+                        self._hold_streak = 0
+                    if self.cfg.verbose:
+                        print(render_text(board, self.book))
+                        chosen = dec.candidate.describe(self.book) if dec.candidate else "-"
+                        print(f"  -> Jev 决定: {chosen}")
+                        ex = record.get("executed") or {}
+                        if ex.get("kind") == "click":
+                            print(f"  -> 落点 {'✅ 种上了' if ex.get('placed') else '❌ 没种上'}"
+                                  f"  真实花费={ex.get('real_cost')}  植物 {ex.get('plants_before')} -> {ex.get('plants_after')}")
+                        elif ex.get("kind") == "pick_rejected":
+                            if not ex.get("slot_ready"):
+                                print("  -> 卡被拒：该卡仍在冷却，与价格无关，未记成本")
+                            elif ex.get("game_responsive"):
+                                print(f"  -> 卡被拒（阳光 {ex.get('sun')} 不够），已记下成本下界")
+                            else:
+                                print("  -> 点击无效：游戏时钟没走（暂停/失焦），本次不计成本")
+                        elif ex.get("kind") == "cooling":
+                            print(f"  -> 跳过：卡槽 {ex.get('slot')} 仍在冷却 "
+                                  f"({ex.get('cd_left')}/{ex.get('cd_total')})")
+                        if dec.notes:
+                            for n in dec.notes:
+                                print(f"     · {n}")
+                        print(f"  {self.stats.summary()}")
+                except Exception:
+                    traceback.print_exc()
+                    print("[异常] 本轮决策/执行出错 —— 已跳过，循环继续")
             time.sleep(0.35)
         return self.stats
 

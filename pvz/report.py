@@ -86,16 +86,16 @@ def render_report(log_path: str, out_path: str) -> str:
     errs = sum(1 for r in records if not r.get("jev", {}).get("ok"))
     holds = sum(1 for r in records if r.get("decision", {}).get("hold"))
     fbs = sum(1 for r in records if r.get("decision", {}).get("fallback"))
-    lat = [r["jev"].get("latency_s", 0) for r in records if r.get("jev")]
+    lat = [r.get("jev", {}).get("latency_s", 0) for r in records if r.get("jev")]
     avg_lat = sum(lat) / len(lat) if lat else 0.0
-    confs = [r["decision"].get("confidence") for r in records]
+    confs = [r.get("decision", {}).get("confidence") for r in records]
     confs = [c for c in confs if isinstance(c, (int, float))]
     avg_conf = sum(confs) / len(confs) if confs else 0.0
     chosen = Counter(
         (r.get("decision", {}).get("chosen") or "无")[:70] for r in records
     )
     urgency = Counter(
-        r["jev"]["answers"].get("urgency", {}).get("summary", "-") for r in records if r.get("jev")
+        r.get("jev", {}).get("answers", {}).get("urgency", {}).get("summary", "-") for r in records if r.get("jev")
     )
 
     parts: list[str] = []
@@ -122,7 +122,11 @@ def render_report(log_path: str, out_path: str) -> str:
             parts.append(f"<tr><td>{_esc(k)}</td><td>{v}</td></tr>")
         parts.append("</table></div>")
 
-    for i, r in enumerate(records):
+    shown = records[-120:] if len(records) > 120 else records
+    skipped = len(records) - len(shown)
+    if skipped:
+        lines.append(f"<p>（前 {skipped} 条已聚合到上方统计，仅逐条展示最近 {len(shown)} 条）</p>")
+    for i, r in enumerate(shown):
         dec = r.get("decision", {})
         jev = r.get("jev", {})
         cls = "dec"

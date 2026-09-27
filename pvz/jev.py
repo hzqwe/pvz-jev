@@ -150,7 +150,7 @@ class JevClient:
         self,
         api_key: str | None = None,
         model: str = "jev-latest",
-        timeout: int = 45,
+        timeout: int = 20,   # 2026-09-27：45s×3次重试最坏阻塞主循环 5 分钟（审查项）
         retries: int = 3,
         curl: str = "curl",
     ):
@@ -219,7 +219,8 @@ class JevClient:
             last_err = f"HTTP {code}: {body[:300]}"
             if code in (400, 401, 403, 404):
                 break  # 认证/请求错误，重试无意义
-            time.sleep(0.6 * attempt)
+            if attempt < self.retries:
+                time.sleep(0.6 * attempt)  # 末次失败后不再白等（2026-09-27 审查）
 
         resp = JevResponse(error=last_err or "未知错误")
         self.last_response = resp

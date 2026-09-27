@@ -621,6 +621,9 @@ class BoardReader:
         观察天降阳光等是否也在 coin 池里（在的话收阳光可从像素扫描升级为
         内存驱动：精确、零假阳性）。tools/look_drops.py 会打印 type 分布。
         """
+        now = time.monotonic()
+        if now - getattr(self, '_coins_ts', 0.0) < 0.3 and getattr(self, '_coins_cache', None) is not None:
+            return self._coins_cache
         pm = self.pm
         board = self.board_ptr()
         if pm is None or not board:
@@ -643,6 +646,8 @@ class BoardReader:
             if t is None or x is None or y is None or w is None or h is None:
                 continue
             out.append({"index": i, "type": t, "x": x, "y": y, "w": w, "h": h})
+        self._coins_ts = now
+        self._coins_cache = out
         return out
 
     def _read_cursor(self, board: int, st: "BoardState") -> None:
