@@ -161,6 +161,7 @@ class BoardState:
     # None = 未观测。这也解释了部分"空格却种不上去"的现象——不是 agent 的错。
     snow_cells: dict[tuple[int, int], float] | None = None
     intentional_removals: set[tuple[int,int,int]] = field(default_factory=set)
+    rejected_cells: dict[tuple[int,int], float] = field(default_factory=dict)
 
     @property
     def holding_shovel(self) -> bool:
@@ -189,12 +190,16 @@ class BoardState:
     def can_plant(self, row, col, type_id, book):
         if not (0 <= row < self.rows and 0 <= col < self.cols):
             return False
+        if self.placement_blocked(row,col): return False
         stack = self.occupancy().get((row,col), [])
         if book.has_tag(type_id,'platform'):
             return self.is_water(row) and not stack
         if (row,col) in self.top_occupancy(book):
             return False
         return not self.is_water(row) or self.has_platform(row,col,book)
+
+    def placement_blocked(self,row,col):
+        return self.rejected_cells.get((row,col),0) > time.time()
 
     def empty_cells(self) -> list[tuple[int, int]]:
         occ = self.occupancy()

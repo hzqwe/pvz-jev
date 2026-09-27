@@ -7,18 +7,35 @@ import argparse
 import json
 import re
 import sys
+from dataclasses import fields
+from unittest.mock import patch
 from collections import Counter
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from pvz.agent import PvZJevAgent
-from pvz.board import BoardState,Plant,Zombie,SeedSlot
+from pvz.board import BoardState,Plant,Zombie,SeedSlot,DroppedSeed
 from pvz.plants import PlantBook
 from pvz.policy import generate_candidates,action_invalid_reason
 
 
 def snapshot(record,book):
+    raw=record.get('board')
+    if raw:
+        excluded={'plants','zombies','slots','dropped_seeds','row_types','mowers','snow_cells','rejected_cells'}
+        b=BoardState(**{f.name:raw[f.name] for f in fields(BoardState)
+                        if f.name in raw and f.name not in excluded})
+        for key,cls in [('plants',Plant),('zombies',Zombie),('slots',SeedSlot),('dropped_seeds',DroppedSeed)]:
+            setattr(b,key,[cls(**d) for d in raw.get(key,[])])
+        b.row_types={int(r):v for r,v in raw.get('row_types',{}).items()}
+        b.mowers={int(r):v for r,v in raw.get('mowers',{}).items()}
+        b.snow_cells={(r,c):t for r,c,t in raw.get('snow_cells',[])}
+        b.rejected_cells={(r,c):t for r,c,t in raw.get('rejected_cells',[])}
+        cursor=raw.get('cursor',{})
+        b.holding=cursor.get('holding',False);b.held_cursor=cursor.get('kind',0)
+        b.held_type=cursor.get('type_id',-1);b.held_slot=cursor.get('slot',-1)
+        return b
     state=record['state'];game=state['game']
     names={book.en(t):t for t in book.kb_by_id}
     names.update(book.bound_ids)
@@ -60,18 +77,20 @@ def replay(path):
                             board.intentional_removals.add((p.row,p.col,p.type_id))
             notes=PvZJevAgent.learn_crush_events(previous,board,book)
             count['soft_observations']+=len(notes)
-        for c in generate_candidates(board,book):
-            count['candidates']+=1
-            if 'Reason:' not in c.describe(book):count['missing_reasons']+=1
-            if len(c.describe(book))>360:count['overlong_descriptions']+=1
-            if c.kind=='plant':
-                count['plant_candidates']+=1
-                reason=action_invalid_reason(c,board,book)
-                if reason:invalid.append({'line':i+1,'type':c.type_id,'cell':[c.row,c.col],'reason':reason})
+        instant=record.get('timing',{}).get('snapshot_at') or float(record['t'])
+        with patch('pvz.board.time.time',return_value=instant):
+            for c in generate_candidates(board,book):
+                count['candidates']+=1
+                if 'Reason:' not in c.describe(book):count['missing_reasons']+=1
+                if len(c.describe(book))>360:count['overlong_descriptions']+=1
+                if c.kind=='plant':
+                    count['plant_candidates']+=1
+                    reason=action_invalid_reason(c,board,book)
+                    if reason:invalid.append({'line':i+1,'type':c.type_id,'cell':[c.row,c.col],'reason':reason})
         previous,previous_record=board,record
     return dict(snapshots=len(records),**count,invalid_plant_candidates=invalid,
                 hard_runtime_crush_types=sorted(book.runtime_crush),
-                limitation='Reconstructed rounded snapshots; no live Jev or game simulation.')
+                limitation='Current policy and plant book replay; legacy positions are rounded. No live Jev, input, or match outcome simulation.')
 
 
 if __name__=='__main__':

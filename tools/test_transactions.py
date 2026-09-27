@@ -65,6 +65,46 @@ class TransactionTests(unittest.TestCase):
         with patch('pvz.transactions.time.sleep'):
             result=run_transaction(a,b,candidate=Candidate('x','shovel',0,1,type_id=WALL))
         self.assertFalse(result['completed']);self.assertNotIn('shovel',g.actions)
+
+    def test_recovered_card_retargets_when_zombie_passes_during_pickup(self):
+        class MovingGame(FakeGame):
+            def click_client(self,*args):
+                super().click_client(*args)
+                self.state.zombies=[Zombie(0,2,0,x=100,hp=1000)]
+        g=MovingGame();g.state.zombies=[Zombie(0,2,0,x=650,hp=1000)]
+        with patch('pvz.transactions.time.sleep'):
+            result=run_transaction(self.agent(g),g.read(),
+                candidate=Candidate('x','shovel',0,1,type_id=WALL))
+        self.assertTrue(result['completed'],result)
+        self.assertTrue(any(s['step']=='recovery_retargeted' for s in result['steps']))
+        wall=next(p for p in g.state.plants if p.type_id==WALL)
+        self.assertNotEqual(wall.cell,(2,4))
+        self.assertFalse(wall.row in (2,3))
+        self.assertNotIn('pick_pad',g.actions[g.actions.index('pick_drop'):])
+
+    def test_failed_transaction_keeps_last_cursor_evidence(self):
+        g=FakeGame();g.frozen=True
+        with patch('pvz.transactions.time.sleep'):
+            result=run_transaction(self.agent(g),g.read(),
+                candidate=Candidate('x','shovel',0,1,type_id=WALL))
+        self.assertIn('last_board',result)
+        self.assertIn('cursor',result['last_board'])
+
+    def test_pad_followup_retargets_same_lane_before_buying_defender(self):
+        class BankGame(FakeGame):
+            def click_card(self,index,*args):
+                super().click_card(index,*args)
+                self.state.held_type=self.state.slots[index].type_id
+        g=BankGame();g.state.sun=500
+        g.state.plants=[Plant(1,2,2,PAD),Plant(2,2,4,PAD)]
+        g.state.slots=[SeedSlot(0,WALL,0,1000)]
+        g.state.zombies=[Zombie(1,2,0,x=300,hp=1000)]
+        with patch('pvz.transactions.time.sleep'):
+            result=run_transaction(self.agent(g),g.read(),followup=(WALL,2,4))
+        self.assertTrue(result['completed'],result)
+        self.assertTrue(any(s['step']=='followup_retargeted' for s in result['steps']))
+        self.assertTrue(any(p.type_id==WALL and p.cell==(2,2) for p in g.state.plants))
+        self.assertEqual(len([p for p in g.state.plants if p.type_id==PAD]),2)
     def test_zombie_passes_destination_before_shovel_keeps_source(self):
         g=FakeGame();g.cross=True;g.state.zombies=[Zombie(0,2,0,x=650)]
         with patch('pvz.transactions.time.sleep'):

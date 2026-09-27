@@ -178,7 +178,7 @@ def t2_game_gone_exits_fast() -> None:
 
     try:
         agent = PvZJevAgent(AgentConfig(dry_run=True, allow_window_ops=False,
-                                        verbose=False))
+                                        verbose=False,game_missing_timeout_s=0))
         agent.reader = StubReader()
         t0 = time.time()
         agent.run(duration_s=30.0, wait_play_s=900.0)

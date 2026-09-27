@@ -3,6 +3,7 @@ import time
 from types import SimpleNamespace
 from .board import placement_delta
 from .tactics import cell_x,relocation_target
+from .serialize import board_snapshot
 
 class TransactionStopped(RuntimeError):
     pass
@@ -16,10 +17,13 @@ class PlantTransaction:
         for _ in range(tries):
             time.sleep(.12)
             b=self.agent.reader.read()
+            self.last_observed=b
             if not b.ok or (b.pid,b.board,b.level,b.scene,b.rows)!=self.identity:
                 raise TransactionStopped('Board changed during transaction')
             if b.game_clock is not None and previous is not None and b.game_clock>previous:
                 b.snow_cells = dict(getattr(self.agent,'_snow_cells',None) or self.board.snow_cells or {})
+                apply=getattr(self.agent,'apply_placement_evidence',None)
+                if apply: apply(b)
                 self.board=b
                 self.agent.book.sync_field_copies(b.plants)
                 if predicate(b):return b
@@ -53,6 +57,21 @@ class PlantTransaction:
         self.read(completed)
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
         self.steps.append({'step':'plant_confirmed','type_id':tid,'cell':[row,col]})
+
+    def place_recovered(self,tid,row,col,source):
+        if self.board.held_cursor!=2 or self.board.held_type!=tid:
+            raise TransactionStopped('Recovered seed no longer in hand')
+        try:
+            self.cell_valid(tid,row,col)
+        except TransactionStopped as exc:
+            if getattr(self.agent,'_geometry_error',None): raise
+            destination=relocation_target(self.board,self.agent.book,source,ready_only=True)
+            if destination is None: raise
+            self.steps.append({'step':'recovery_retargeted','from':[row,col],
+                               'to':list(destination),'reason':str(exc),
+                               'clock':self.board.game_clock})
+            row,col=destination
+        self.place_held(tid,row,col)
     def bank(self,tid,row,col):
         self.read();self.cell_valid(tid,row,col)
         slot=next((s for s in self.board.slots if s.type_id==tid and s.ready),None)
@@ -64,6 +83,22 @@ class PlantTransaction:
         self.agent.clicker.click_card(slot.index,self.agent.layout,'transaction pick')
         self.read(lambda b:b.held_cursor==1 and b.held_slot==slot.index and b.held_type==tid)
         self.place_held(tid,row,col)
+
+    def followup(self,tid,row,col):
+        self.read()
+        try:
+            self.cell_valid(tid,row,col)
+        except TransactionStopped as exc:
+            # Preserve the intended defender and threatened lane. A new pad
+            # purchase would break the continuous action and its budget.
+            if not self.agent.book.has_tag(tid,'wall') or getattr(self.agent,'_geometry_error',None): raise
+            source=SimpleNamespace(type_id=tid,cell=(row,col),row=row)
+            dest=relocation_target(self.board,self.agent.book,source,ready_only=True,rows=(row,))
+            if dest is None: raise
+            self.steps.append({'step':'followup_retargeted','from':[row,col],
+                               'to':list(dest),'reason':str(exc),'clock':self.board.game_clock})
+            row,col=dest
+        self.bank(tid,row,col)
     def support(self,tid,row,col):
         if self.board.can_plant(row,col,tid,self.agent.book):return
         if not self.board.is_water(row):raise TransactionStopped('Blocked land destination')
@@ -107,7 +142,7 @@ class PlantTransaction:
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
         self.steps.append({'step':'source_removed','cell':list(source.cell)})
         if self.board.held_cursor==2 and self.board.held_type==source.type_id:
-            self.place_held(source.type_id,row,col);return
+            self.place_recovered(source.type_id,row,col,source);return
         self.agent.clicker.cancel_seed('clear shovel before dropped card')
         self.read(lambda b:not b.holding)
         def find_drop(b):
@@ -121,19 +156,22 @@ class PlantTransaction:
         self.agent.clicker.click_client(x,y,'pick recovered seed')
         self.read(lambda b:b.held_cursor==2 and b.held_type==source.type_id)
         self.steps.append({'step':'recovered_seed_in_hand','type_id':source.type_id})
-        self.place_held(source.type_id,row,col)
+        self.place_recovered(source.type_id,row,col,source)
 
     def pick_drop(self,candidate):
         """拾回草坪上的掉落卡（2026-09-26 新增）：回收事务被对局中断时，
         已铲掉的墙会以卡片形式躺在草坪上 —— 没有这一步它就一直丢在那
         （夜战实测两次 source_removed 后中断，7000 血墙 stranded）。"""
         self.read()
-        drop=next((d for d in self.board.dropped_seeds if d.type_id==candidate.type_id),None)
+        def find_drop():
+            return next((d for d in self.board.dropped_seeds if d.type_id==candidate.type_id
+                         and (candidate.drop_index is None or d.index==candidate.drop_index)),None)
+        drop=find_drop()
         if drop is None:
             raise TransactionStopped('Dropped seed is gone')
         self.agent.clicker.cancel_seed('pre-pick reset')
         self.read(lambda b:not b.holding,tries=14)
-        drop=next((d for d in self.board.dropped_seeds if d.type_id==candidate.type_id),None)
+        drop=find_drop()
         if drop is None:
             raise TransactionStopped('Dropped seed vanished after reset')
         x,y=self.agent.layout.dropped_seed_center(drop)
@@ -146,8 +184,9 @@ class PlantTransaction:
         # 没有就回原格（卡片躺着的格子本来就是合法位置之一）。
         pseudo=SimpleNamespace(cell=(candidate.row,candidate.col),
                                type_id=candidate.type_id,row=candidate.row,col=candidate.col)
-        dest=relocation_target(self.board,self.agent.book,pseudo) or (candidate.row,candidate.col)
-        self.place_held(candidate.type_id,dest[0],dest[1])
+        dest=relocation_target(self.board,self.agent.book,pseudo,ready_only=True)
+        if dest is None:raise TransactionStopped('No supported destination for held seed')
+        self.place_recovered(candidate.type_id,*dest,pseudo)
 
     def salvage(self,candidate):
         """铲掉换阳光（用户高级技巧 2026-09-26）：植物快被啃死/即将被压扁时，
@@ -205,9 +244,12 @@ def run_transaction(agent,board,*,candidate=None,followup=None,pick=None):
         if pick is not None:
             tx.pick_drop(pick)
             return {'kind':'pick_drop','completed':True,'steps':tx.steps}
-        tx.bank(*followup)
+        tx.followup(*followup)
         return {'kind':'support_followup','completed':True,'steps':tx.steps}
     except TransactionStopped as exc:
         # Never let later sun collection place a held plant or use a held shovel.
-        agent.clicker.cancel_seed('transaction stopped')
-        return {'kind':'transaction_incomplete','completed':False,'steps':tx.steps,'note':str(exc)}
+        last=getattr(tx,'last_observed',tx.board)
+        if last.ok and (last.pid,last.board,last.level,last.scene,last.rows)==tx.identity:
+            agent.clicker.cancel_seed('transaction stopped')
+        return {'kind':'transaction_incomplete','completed':False,'steps':tx.steps,
+                'note':str(exc),'last_board':board_snapshot(last)}

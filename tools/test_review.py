@@ -57,7 +57,7 @@ class ReviewTests(unittest.TestCase):
         self.assertIn("39", kinds["决策节奏空档"])
 
     def test_economy_collapse_and_zero_producer_window(self):
-        recs = [rec(100 + i * 2, sun=60, clock=3000, producers=0) for i in range(6)]
+        recs = [rec(100 + i * 2, sun=60, clock=20000, producers=0) for i in range(6)]
         kinds = {f["kind"] for f in detect(recs)}
         self.assertIn("经济崩盘（中盘赤字）", kinds)
         self.assertIn("零产出窗口", kinds)

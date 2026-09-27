@@ -90,7 +90,7 @@ def rear_cols(board, book, row, producer=False):
     hi = min(3 if producer else 5, wall - 1)
     occ = board.top_occupancy(book)
     cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx
-            and not board.snow_blocked(row, c)]   # 积雪格融化前不可种植
+            and not board.snow_blocked(row,c) and not board.placement_blocked(row,c)]
     if board.is_water(row):
         pads = [c for c in cols if board.has_platform(row,c,book)]
         # Reuse a paid platform before planning another one.
@@ -254,7 +254,7 @@ def stall_window(board, book, row, type_id, col=None):
     return None
 
 
-def relocation_target(board, book, source):
+def relocation_target(board, book, source, *, ready_only=False, rows=None):
     """Choose a real destination before removing a reusable wall. E/F preferred."""
     options=[]
     snow=getattr(board,'snow_cells',None) or {}
@@ -264,12 +264,13 @@ def relocation_target(board, book, source):
     # 才允许进撞车路当路障。
     src_anti = bool(book.combat(source.type_id).get('crush_hits')
                     or book.combat(source.type_id).get('lethal_hit_burst'))
-    for r in range(board.rows):
+    for r in (range(board.rows) if rows is None else rows):
         f=lane_facts(board,r,book)
         if f['crush_zombies'] and not src_anti:
             continue
         nx=f['nearest_zombie_x']
         for c in range(board.cols):
+            if board.placement_blocked(r,c): continue
             if (r,c)==source.cell or (r,c) in board.top_occupancy(book):
                 continue
             if snow.get((r,c),0)>now:
@@ -279,6 +280,7 @@ def relocation_target(board, book, source):
             if nx is None or nx>=cell_x(4):
                 if c<4:continue
             if not board.can_plant(r,c,source.type_id,book):
+                if ready_only: continue
                 if not board.is_water(r) or board.has_platform(r,c,book):continue
                 if not any(s.ready and book.has_tag(s.type_id,'platform')
                            and book.cost(s.type_id) is not None

@@ -10,13 +10,13 @@ import os
 import threading
 import time
 import traceback
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
 from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate
-from .serialize import COL_LABEL, build_state, render_text
+from .serialize import COL_LABEL, build_state, render_text, board_snapshot
 from .tactics import cell_x
 from .transactions import run_transaction
 from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab, memory_sun_positions
@@ -87,6 +87,7 @@ class AgentConfig:
     # 所以默认只做**只读**的事（读内存、抓屏、PostMessage 点击），
     # 绝不碰窗口状态。需要时用 `--allow-window-ops` 显式打开。
     allow_window_ops: bool = False
+    game_missing_timeout_s: float = 120.0
 
 
 @dataclass
@@ -108,7 +109,7 @@ class AgentStats:
         dt = time.time() - self.started
         return (
             f"运行 {dt:.0f}s | 循环 {self.cycles} | 决策 {self.decisions} "
-            f"| 种成 {self.executed} | 落点失败 {self.failed_actions} "
+            f"| 完成操作 {self.executed} | 操作失败/中断 {self.failed_actions} "
             f"| 卡被拒 {self.pick_rejected} | 点击无效(游戏没跑) {self.input_ignored} "
             f"| 冷却中跳过 {self.cooling} | 保留阳光 {self.holds} | 兜底 {self.fallbacks} "
             f"| Jev 失败 {self.jev_errors} | 收阳光 {self.suns_collected}"
@@ -165,6 +166,9 @@ class PvZJevAgent:
         )
         # 最近落点失败的格子 -> 时间戳。见 execute() 末尾的说明。
         self._bad_cells: dict[tuple[int, int, int], float] = {}
+        self._blocked_cells: dict[tuple[int, int], float] = {}
+        self._missing_since = None
+        self._exit_reason = None
         self._geometry_error = None
         self._terrain_context = None
         self._last_decision_clock = None
@@ -297,14 +301,18 @@ class PvZJevAgent:
             self._need_focus = True
         self._warned_minimized = False
         size_changed = self.win is None or self.win.client_size != win.client_size
+        window_changed = self.win is None or (self.win.hwnd,self.win.pid)!=(win.hwnd,win.pid)
         self.win = win
         if size_changed or self.layout is None:
             self.layout = Layout.load(client_size=win.client_size)
+        if size_changed or window_changed or self.clicker is None:
             self.clicker = Clicker(win, foreground=self.cfg.foreground)
             if self.cfg.verbose:
                 sx, sy = self.layout.scale()
                 print(f"[窗口] client={win.client_size} 缩放=({sx:.3f},{sy:.3f}) "
                       f"卡0中心={self.layout.card_center(0)} 格(0,0)中心={self.layout.cell_center(0, 0)}")
+        else:
+            self.clicker.win = win
         if self._need_focus and self.cfg.allow_window_ops:
             # ⚠️ 抢焦点**只在允许动窗口时**才做。
             #    它唯一的作用是让 PvZ 重新开始处理输入 —— 但实测**后台
@@ -558,6 +566,11 @@ class PvZJevAgent:
         restarted = previous is not None and board.game_clock is not None and board.game_clock < previous
         if context != getattr(self,'_terrain_context',None) or restarted:
             self._bad_cells.clear()
+            self._blocked_cells = {}
+            self._battle_serial = getattr(self,'_battle_serial',0)+1
+            self._battle_id = f'{self.run_id()}-b{self._battle_serial}'
+            self.log_event('battle_start',battle_id=self._battle_id,
+                           pid=board.pid, board=board.board, scene=board.scene, level=board.level)
             self.book.min_cost.clear(); self.book.min_cost_ts.clear()
             self.book.runtime_crush.clear(); self.book.crush_evidence.clear()
             self._zombie_track = {}; self._snow_cells = {}
@@ -568,7 +581,9 @@ class PvZJevAgent:
         self._last_decision_clock = board.game_clock
 
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
+        input_at = time.time()
         self.reset_battle_context(board)
+        self.apply_placement_evidence(board)
         self.book.sync_field_copies(board.plants)
         board.clock_advancing = self._responsive
         self._track_zombie_station(board)
@@ -592,11 +607,19 @@ class PvZJevAgent:
             ]
             cands = keep
         questions = build_questions(cands, board, self.book)
+        self._decision_sequence = getattr(self,'_decision_sequence',0)+1
+        self.log_event('decision_started',battle_id=self._battle_id,
+                       sequence=self._decision_sequence,clock=board.game_clock)
         resp = self.jev.ask(state, questions)
+        returned_at = time.time()
         if not resp.ok:
             self.stats.jev_errors += 1
         dec = merge_decision(resp, cands, board, self.book)
         record = {
+            'record_type':'decision', 'schema_version':2, 'run_id':self.run_id(),
+            'battle_id':self._battle_id, 'sequence':self._decision_sequence,
+            'timing':{'snapshot_at':input_at, 'jev_returned_at':returned_at},
+            'board':board_snapshot(board),
             "t": time.time(),
             "iso": time.strftime("%Y-%m-%d %H:%M:%S"),
             "board_text": render_text(board, self.book),
@@ -617,7 +640,8 @@ class PvZJevAgent:
                  "desc": c.describe(self.book), "full_desc": c._describe_raw(self.book),
                  "why": c.why, "covers": list(c.covers), "emergency": c.emergency,
                  "salvage": c.salvage, "intercept": c.intercept, "supports_type": c.supports_type,
-                 "total_cost": c.total_cost(self.book), "relocate_to": c.relocate_to}
+                 "total_cost": c.total_cost(self.book), "relocate_to": c.relocate_to,
+                 "drop_index": c.drop_index}
                 for c in cands
             ],
             "jev": {
@@ -644,6 +668,19 @@ class PvZJevAgent:
         }
         return dec, record
 
+    def apply_placement_evidence(self,board):
+        self._blocked_cells = {cell:until for cell,until in getattr(self,'_blocked_cells',{}).items()
+                               if until>time.time()}
+        board.rejected_cells = dict(self._blocked_cells)
+
+    def note_placement_failure(self,candidate,after):
+        self._bad_cells[(candidate.type_id,candidate.row,candidate.col)] = time.time()
+        # Only a seed still in hand proves rejection. An instant plant may have
+        # triggered or been eaten between reads; that does not condemn the cell.
+        if (after.holding and after.held_cursor in (1,2)
+                and after.held_type == candidate.type_id):
+            self._blocked_cells[(candidate.row,candidate.col)] = time.time()+15.0
+
     # -- 执行 -----------------------------------------------------------
     def execute(self, dec: Decision, record: dict, board: BoardState) -> None:
         """把决定落地。分三步，每步都要有"确实生效了"的证据。
@@ -657,6 +694,7 @@ class PvZJevAgent:
           3. 没掉 = 游戏拒绝了这张卡（太贵/冷却）→ 记下成本下界，这轮不点格子
         """
         assert self.clicker and self.layout
+        record.setdefault('timing',{})['execution_started_at'] = time.time()
         # ★★ 兜底闸（2026-09-26 第二次修复）：**只在"时钟确实在走"时才注入点击。**
         #
         # `_frozen_hits` 是 `note_clock()` 用"本轮读到的 game_clock 和上一轮相同"
@@ -690,6 +728,7 @@ class PvZJevAgent:
         if cand is not None and (cand.kind == 'wait' or dec.hold) and not self.cfg.dry_run:
             # A model wait is also stale if a house threat emerged during inference.
             fresh = self.reader.read()
+            self.apply_placement_evidence(fresh)
             same = ((fresh.pid,fresh.board,fresh.level,fresh.scene,fresh.rows)
                     == (board.pid,board.board,board.level,board.scene,board.rows))
             if same and fresh.game_clock is not None and board.game_clock is not None and fresh.game_clock > board.game_clock:
@@ -750,6 +789,8 @@ class PvZJevAgent:
         #    ⚠️ 位置很关键：必须在**任何注入之前** —— 包括下面 `cancel_seed`
         #    那一下右键。只要时钟没走，就连一条鼠标消息都不往游戏里塞。
         chk = self.reader.read()
+        self.apply_placement_evidence(chk)
+        record.setdefault('execution_evidence',{})['before'] = board_snapshot(chk)
         context_same = ((chk.pid, chk.board, chk.level, chk.scene, chk.rows)
                         == (board.pid, board.board, board.level, board.scene, board.rows))
         if context_same:
@@ -817,6 +858,7 @@ class PvZJevAgent:
                 print(f"  🚨 {note}")
 
         self.layout.configure_board(chk)
+        record['executed_candidate']=asdict(cand)
         geometry = (chk.scene,chk.rows,self.layout.client_w,self.layout.client_h,
                     self.layout.grid_left,self.layout.grid_top,self.layout.cell_w,self.layout.row_height())
         x,y = self.layout.cell_center(cand.row,cand.col)
@@ -862,6 +904,7 @@ class PvZJevAgent:
         # ⚠️ 阳光基线在 `cancel_seed` **之后**取（取消手持种子可能让阳光变化，
         #    在它之前取会污染"真实成本"的差值）。
         pre = self.reader.read()
+        self.apply_placement_evidence(pre)
         pre.snow_cells = dict(getattr(self,'_snow_cells',None) or chk.snow_cells or {})
         if ((pre.pid, pre.board, pre.level) != (board.pid, board.board, board.level)
                 or pre.scene != board.scene or pre.rows != board.rows
@@ -872,6 +915,10 @@ class PvZJevAgent:
         self.clicker.click_card(cand.slot, self.layout, f"pick card {cand.slot}")
         time.sleep(0.3)
         mid = self.reader.read()
+        record.setdefault('execution_evidence',{})['after_card_pick'] = {
+            't':time.time(),'clock':mid.game_clock,'sun':mid.sun,
+            'cursor':board_snapshot(mid)['cursor'],
+            'slots':[vars(s).copy() for s in mid.slots]}
         picked = bool(mid.holding) and mid.held_cursor == 1 and mid.held_slot == cand.slot and mid.held_type == cand.type_id
 
         if not picked:
@@ -971,7 +1018,9 @@ class PvZJevAgent:
         # 3) 落点 + 回读验证
         self.clicker.click_grid(cand.row, cand.col, self.layout, f"place r{cand.row}c{cand.col}")
         self._action_times.append(now)
-        time.sleep(0.7)
+        # Confirm a compound action's platform promptly, leaving time to block
+        # a moving enemy. The delayed re-read below still handles late updates.
+        time.sleep(0.12 if cand.supports_type is not None else 0.7)
         after = self.reader.read()
         target = (cand.row, cand.col)
         placed, misplaced = placement_delta(mid,after,cand.type_id,cand.row,cand.col)
@@ -982,6 +1031,7 @@ class PvZJevAgent:
             #    目标格上出现同类植物即为种上，比 index 追踪更本质。
             time.sleep(0.45)
             after2 = self.reader.read()
+            if after2.ok: after = after2
             if after2.ok and any(p.cell == target and p.type_id == cand.type_id
                                  for p in after2.plants):
                 placed = True
@@ -1009,13 +1059,19 @@ class PvZJevAgent:
             "plants_after": len(after.plants),
             "card_xy": f"slot {cand.slot}",
             "grid": f"r{cand.row}c{cand.col}",
+            'plant':self.book.name(cand.type_id), 'type_id':cand.type_id,
         }
         if placed:
-            self.stats.executed += 1
             self._bad_cells.pop((cand.type_id,*target), None)
             if cand.supports_type is not None:
                 record['followup']=run_transaction(self,after,
                     followup=(cand.supports_type,cand.row,cand.col))
+                if record['followup']['completed']:
+                    self.stats.executed += 1
+                else:
+                    self.stats.failed_actions += 1
+            else:
+                self.stats.executed += 1
         else:
             self.stats.failed_actions += 1
             # ⚠️ 记住这个落点，短时间内不再选它（见 decide() 里的过滤）。
@@ -1023,7 +1079,10 @@ class PvZJevAgent:
             #    （r2c3）—— 因为那一轮战场没变化，候选生成器每次都给出同一个"最优"，
             #    于是反复"点卡->落空->取消"，白烧阳光、还挤掉了别的有效动作。
             #    代码侧确定性兜底比指望 Jev 换选项可靠得多。
-            self._bad_cells[(cand.type_id,*target)] = time.time()
+            self.note_placement_failure(cand,after)
+            record.setdefault('execution_evidence',{})['after_failure'] = board_snapshot(after)
+            record['executed']['failure_class'] = (
+                'seed_still_held_rejection' if target in self._blocked_cells else 'unconfirmed_disappearance')
             # 落点没生效时种子可能还举在手上（实测：位置非法时游戏拒绝落点、
             # 但阳光不扣、种子继续跟随光标），必须显式取消，否则下一次
             # "收阳光"的点击会把它随手种到某个阳光的位置上。
@@ -1055,28 +1114,70 @@ class PvZJevAgent:
             self.stats.failed_actions+=1
 
     # -- 主循环 ---------------------------------------------------------
-    def run(self, duration_s: float = 120.0, on_cycle=None,
+    def run(self, duration_s: float = 0.0, on_cycle=None,
             wait_play_s: float = 900.0) -> AgentStats:
-        """跑 `duration_s` 秒。
+        """0 means continuous. Menus between matches never use the startup deadline.
 
-        ⚠️ **等待进入对局的时间不计入 `duration_s`**，最多等 `wait_play_s`。
-        为什么：实测用户在选卡界面慢慢挑卡，300 秒的时长能被等掉一大半，
-        真正在玩的时间所剩无几。等待期间把 `end` 顺延即可。
+        wait_play_s bounds initial process discovery; game_missing_timeout_s bounds
+        a previously seen process's absence. Explicit positive durations remain available.
         """
         # 启动前先确认游戏真的在跑。暂停状态下开局的话，前几轮的点卡
         # 会被游戏无视，而旧代码会把它记成"植物太贵"，把成本模型污染掉。
         if self.refresh_window():
             self.ensure_running()
-        end = time.time() + duration_s
+        end = time.time() + duration_s if duration_s > 0 else float('inf')
         give_up = time.time() + wait_play_s
+        self._missing_since = None
+        self._exit_reason = None
+        self.log_event('session_start', duration_s=duration_s,
+                       game_missing_timeout_s=self.cfg.game_missing_timeout_s)
         if self.cfg.verbose:
             print(f"[提示] 想停就按 Ctrl+C；万一没反应，新建一个空文件 "
                   f"{self._stop_path} 即可（看门狗会在 10 秒内强制结束进程）。")
         self._start_watchdog()
         try:
             return self._loop(end, give_up, wait_play_s)
+        except KeyboardInterrupt:
+            self._exit_reason = 'keyboard_interrupt'
+            raise
         finally:
             self._wd_stop.set()
+            self.log_event('session_end', reason=self._exit_reason or 'duration_elapsed',
+                           stats=vars(self.stats))
+
+    def log_event(self, name, **details):
+        if callable(getattr(getattr(self,'log',None),'event',None)):
+            self.log.event(name, run_id=self.run_id(), **details)
+
+    def run_id(self):
+        if not getattr(self, '_run_id', None):
+            from uuid import uuid4
+            self._run_id = uuid4().hex
+        return self._run_id
+
+    def wait_for_missing_game(self, give_up):
+        """Wait read-only for a restarted process; never touch a vanished window."""
+        now = time.time()
+        if getattr(self, '_missing_since', None) is None:
+            self._missing_since = now
+            self.log_event('game_missing', last_pid=self._seen_pid)
+        deadline = (self._missing_since + self.cfg.game_missing_timeout_s
+                    if self._seen_pid is not None else give_up)
+        if now >= deadline:
+            self._exit_reason = 'game_missing_timeout'
+            if self.cfg.verbose:
+                print('[退出] 持续未检测到游戏，等待超时。')
+            return False
+        return True
+
+    def runtime_phase(self,phase,board=None):
+        """Persist transitions without logging every idle polling cycle."""
+        if phase!=getattr(self,'_runtime_phase',None):
+            self._runtime_phase=phase
+            self.log_event('runtime_phase',phase=phase,
+                           battle_id=getattr(self,'_battle_id',None),
+                           ui=board.ui if board else None,
+                           clock=board.game_clock if board else None)
 
     def _loop(self, end: float, give_up: float,
               wait_play_s: float) -> AgentStats:
@@ -1084,13 +1185,21 @@ class PvZJevAgent:
             self.stats.cycles += 1
             self._heartbeat = time.time()
             if self._stop_requested():
+                self._exit_reason = 'user_stop'
                 print(f"\n[停止] 检测到 {self._stop_path} —— 本轮结束。")
                 break
             # ★★ 每轮第一件事：**确认游戏进程还在**（2026-09-26 新增）。
             #    必须放在所有窗口操作和 Jev 调用**之前**，理由见 _game_still_there()。
             if not self._game_still_there():
-                break
+                self.runtime_phase('game_missing')
+                if not self.wait_for_missing_game(give_up): break
+                time.sleep(1.5)
+                continue
+            if getattr(self, '_missing_since', None) is not None and self._seen_pid is not None:
+                self.log_event('game_reconnected', pid=self._seen_pid)
+                self._missing_since = None
             if not self.ensure_window():
+                self.runtime_phase('window_unavailable')
                 self._window_miss += 1
                 # ★★ 关键修复（2026-09-26）：**游戏进程已经没了就必须立刻收手**。
                 #    旧代码在这里无限重试"重新附着 + 恢复窗口"，而窗口一旦属于
@@ -1103,17 +1212,13 @@ class PvZJevAgent:
                 #       `attach()` 失败时会把 pid 清成 None，用它判会把"游戏刚被
                 #       关掉"误判成"游戏从没出现过"，于是傻等到 --wait-play 超时。
                 if self._seen_pid is not None and not is_process_alive(self._seen_pid):
-                    self._dead_misses += 1
-                    if self._dead_misses == 1 and self.cfg.verbose:
-                        print("[退出] 游戏进程已消失 —— 不再尝试恢复窗口")
-                    if self._dead_misses >= 2:
-                        print("\n[退出] 游戏已关闭，本轮结束（未做任何窗口操作）。")
-                        break
+                    if not self.wait_for_missing_game(give_up): break
                     time.sleep(1.0)
                     continue
                 self._dead_misses = 0
                 # 游戏从头到尾没出现过 → 由 --wait-play 决定等多久
                 if self._seen_pid is None and time.time() > give_up:
+                    self._exit_reason = 'game_missing_timeout'
                     if self.cfg.verbose:
                         print(f"[等待] 已等 {wait_play_s:.0f}s 仍未找到游戏，退出")
                     break
@@ -1140,10 +1245,7 @@ class PvZJevAgent:
 
             board = self.reader.read()
             if not board.ok:
-                if time.time() > give_up:
-                    if self.cfg.verbose:
-                        print(f"[等待] 已等 {wait_play_s:.0f}s 仍未进入对局，退出")
-                    break
+                self.runtime_phase('menu_or_selection',board)
                 # 不在对局中（选卡界面 ui=2 / 主菜单 ui=1）→ 把 end 顺延，
                 # 这样用户慢慢选卡不会把"实际游玩时长"耗光
                 end = max(end, time.time() + 2.0)
@@ -1157,6 +1259,7 @@ class PvZJevAgent:
             #    很常见（第一次点击可能落在菜单刚弹出的动画帧上），
             #    而放弃的代价是整局都卡在菜单前面（曾经 150 秒一次没种上）。
             if self.note_clock(board):
+                self.runtime_phase('clock_stopped',board)
                 # ★★ 宽限期（2026-09-26 第二次修复）：时钟**刚**冻住的头
                 #    PAUSE_GRACE_S 秒里，**什么都不做** —— 不抓屏、不找菜单、
                 #    不点任何东西，只安静地读内存。
@@ -1232,6 +1335,7 @@ class PvZJevAgent:
                 # （用户每切屏进一次游戏，游戏就会自己卡几秒）。
                 self._frozen_since = None
                 self._grace_notified = False
+                self.runtime_phase('playing' if self._responsive else 'warming_up',board)
 
             # 第一轮就把卡槽绑好：没有名字和功能，Jev 后面所有的判断都是瞎猜
             if not self._binding_checked:
@@ -1306,10 +1410,11 @@ class PvZJevAgent:
                 try:
                     dec, record = self.decide(board)
                     self.stats.decisions += 1
+                    proposed=record.get('decision',{})
+                    record['proposed_decision']={**proposed,'notes':list(proposed.get('notes',[]))}
+                    self.execute(dec, record, board)
                     if dec.fallback:
                         self.stats.fallbacks += 1
-                    self.execute(dec, record, board)
-                    self.log.append(record)
                     # 连续 hold 观测（2026-09-26）：等待本身常常是对的（攒女王/攒大件），
                     # 但"阳光≥400 还一路等下去"曾连出 9 轮。这里只记录 + 周期性提醒，
                     # 决策层已有 bounded development / 兑现升级兜底，不在主循环里抢决策权。
@@ -1325,6 +1430,14 @@ class PvZJevAgent:
                                 print(f"  ⚠️ {msg}")
                     else:
                         self._hold_streak = 0
+                    record.setdefault('timing', {})['execution_finished_at'] = time.time()
+                    record.setdefault('decision',{}).update(hold=dec.hold, action_id=dec.action_id,
+                        chosen=dec.candidate.describe(self.book) if dec.candidate else None,
+                        notes=dec.notes, fallback=dec.fallback)
+                    self.log.append(record)
+                    self.log_event('decision_finished',battle_id=getattr(self,'_battle_id',None),
+                        sequence=record.get('sequence'),clock=board.game_clock,
+                        executed_kind=(record.get('executed') or {}).get('kind'))
                     if self.cfg.verbose:
                         print(render_text(board, self.book))
                         chosen = dec.candidate.describe(self.book) if dec.candidate else "-"
@@ -1346,8 +1459,15 @@ class PvZJevAgent:
                         if dec.notes:
                             for n in dec.notes:
                                 print(f"     · {n}")
+                        if record.get('followup'):
+                            followup=record['followup']
+                            print('  -> 荷叶后续：'+('✅ 防守植物落地' if followup['completed']
+                                else '中断：'+followup.get('note','未确认完成')))
                         print(f"  {self.stats.summary()}")
-                except Exception:
+                except Exception as exc:
+                    self.log_event('cycle_error', error_type=type(exc).__name__,
+                                   battle_id=getattr(self, '_battle_id', None),
+                                   clock=board.game_clock)
                     traceback.print_exc()
                     print("[异常] 本轮决策/执行出错 —— 已跳过，循环继续")
             time.sleep(0.35)
@@ -1381,15 +1501,13 @@ class PvZJevAgent:
         # 只重新附着，**不做任何窗口操作**。
         self._dead_misses += 1
         if self._dead_misses == 1 and self.cfg.verbose:
-            print(f"[退出] 游戏进程 pid={self._seen_pid} 已消失 —— 不再尝试恢复窗口")
+            print(f"[等待] 游戏进程 pid={self._seen_pid} 已消失 —— 等待重启，不操作旧窗口")
         if self.reader.attach():
             self._seen_pid = self.reader.pid
             self._dead_misses = 0
             if self.cfg.verbose:
-                print(f"[退出] 发现新的游戏进程 pid={self._seen_pid} —— 继续运行")
+                print(f"[重连] 发现新的游戏进程 pid={self._seen_pid} —— 继续运行")
             return True
-        print(f"\n[退出] 游戏已关闭（pid={self._seen_pid}），本轮结束"
-              f"（未做任何窗口操作）。")
         return False
 
     def _start_watchdog(self) -> None:

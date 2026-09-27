@@ -267,6 +267,7 @@ class DecisionLog:
 
     def __init__(self, path: str):
         self.path = path
+        self.event_path = os.path.splitext(path)[0] + '.events.jsonl'
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
     def append(self, record: dict) -> None:
@@ -284,3 +285,9 @@ class DecisionLog:
         except (OSError, ValueError):
             pass
         return out
+
+    def event(self, name, **details):
+        record = dict(record_type='event', schema_version=2, event=name,
+                      t=time.time(), iso=time.strftime('%Y-%m-%d %H:%M:%S'), **details)
+        with open(self.event_path, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + '\n')

@@ -85,10 +85,12 @@ def main() -> int:
     ap.add_argument("--allow-window-ops", action="store_true",
                     help="允许改变游戏窗口状态（恢复最小化 / 抢焦点 / minimize-restore 唤醒）。"
                          "⚠️ 默认关闭：对 DirectDraw 游戏这些动作可能把游戏连同桌面一起卡死")
-    ap.add_argument("--duration", type=float, default=120.0, help="运行秒数")
+    ap.add_argument("--duration", type=float, default=0.0, help="运行秒数；0 为持续运行（默认）")
     ap.add_argument("--interval", type=float, default=3.0, help="每隔多少秒向 Jev 要一次决策")
     ap.add_argument("--wait-play", type=float, default=900.0,
-                    help="最多等多少秒进入对局（选卡界面的等待**不计入** --duration）")
+                    help="启动时最多等多少秒找到游戏进程；已有游戏的菜单/选卡不会超时")
+    ap.add_argument("--game-missing-timeout", type=float, default=120.0,
+                    help="曾检测到的游戏进程持续消失多少秒后退出（默认 120）")
     ap.add_argument("--log", default=os.path.join(ROOT, "out", "decisions.jsonl"))
     ap.add_argument("--console-log", default=None,
                     help="把控制台输出同时写进这个文件（默认 out/console_<时间戳>.log）。"
@@ -137,11 +139,13 @@ def _run(args) -> int:
         allow_window_ops=args.allow_window_ops,
         decide_every_s=args.interval,
         log_path=args.log,
+        game_missing_timeout_s=max(0.0,args.game_missing_timeout),
     )
     agent = PvZJevAgent(cfg)
     mode = "真实操作" if args.live else "试运行（不点击）"
     win_mode = "可动窗口" if args.allow_window_ops else "安全模式（不动窗口）"
-    print(f"=== PvZ × Jev 启动 | 模式: {mode} | {win_mode} | 时长: {args.duration:.0f}s ===")
+    duration = f'{args.duration:.0f}s' if args.duration > 0 else '持续运行'
+    print(f"=== PvZ × Jev 启动 | 模式: {mode} | {win_mode} | 时长: {duration} ===")
     try:
         stats = agent.run(duration_s=args.duration, wait_play_s=args.wait_play)
         print("\n" + stats.summary())

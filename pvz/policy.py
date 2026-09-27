@@ -83,6 +83,7 @@ class Candidate:
     relocate_to: tuple[int,int] | None = field(default=None, kw_only=True)
     salvage: bool = field(default=False, kw_only=True)   # 铲掉换阳光（不回收卡片）
     intercept: bool = field(default=False, kw_only=True)  # deliberate sacrificial blocker
+    drop_index: int | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def total_cost(self, book):
@@ -250,6 +251,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 stall_lanes.append((r, cell))
 
     def add(slot, row, col, value, reason, covers=(), *, intercept=False):
+        if board.placement_blocked(row,col): return
         nx = facts[row]['nearest_zombie_x']
         if intercept and nx is not None and cell_x(col)>nx+40:
             return  # The lead enemy already passed this interception cell.
@@ -669,25 +671,11 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # 正在被啃时窗口放宽到 3600（2026-09-26）：100/s 的啃食速度下 2400 只
         # 意味着几秒后必然跌破回收线，早铲早回收 = 少白给 800+ 血。
         # 没被啃的墙维持 2400 —— 满血的墙还在值勤，铲它是送冷却。
-        max_hp = RECLAIM_MAX_HP_BITTEN if p.recently_eaten else RECLAIM_MAX_HP
         f = facts[p.row]
-        # Tidy a rear emergency wall only after contact has ended.
-        reposition = p.col < 4 and not p.recently_eaten and (
-            f['nearest_zombie_x'] is None or f['nearest_zombie_x'] > cell_x(p.col)+160)
+        eligible,reposition = recovery_status(p,f)
+        if not eligible: continue
         destination = relocation_target(board,book,p)
         if destination is None:
-            continue
-        if hp is None or hp <= RECLAIM_MIN_HP or hp > max_hp and not reposition:
-            # 血量未知/扣完 800 就没了/还很满 —— 三种情况都不值得铲。
-            # 血量未知绝不猜：铲子候选宁可缺席，也不能拿垃圾血量赌。
-            continue
-        f = facts[p.row]
-        if not f["zombie_count"] and not reposition:
-            continue
-        contact = (f["nearest_zombie_x"] is not None
-                   and f["nearest_zombie_x"] <= cell_x(p.col) + 30)
-        if not reposition and not contact and f["threat_level"] not in ("high", "critical"):
-            # 没僵尸在啃它、路线也不告急 → 慢慢等它挡，铲它是送 800 血。
             continue
         urgent = f["threat_level"] == "critical"
         # 回收窗口即将关闭也算紧急：僵尸啃食 100/s，一个决策周期约 3 秒。
@@ -808,14 +796,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             row = max(0, min(board.rows - 1, int((d.y + d.height / 2 - 80) // 100)))
             col = max(0, min(board.cols - 1, int((d.x + d.width / 2 - 40) // 80)))
             pseudo = SimpleNamespace(cell=(row, col), type_id=d.type_id, row=row, col=col)
-            if relocation_target(board, book, pseudo) is None:
+            if relocation_target(board, book, pseudo,ready_only=True) is None:
                 continue
             candidates.append(Candidate(
                 '', 'pick', row, col, -1, d.type_id,
                 90, (f'A {book.en(d.type_id)} seed card is lying on the lawn at lane '
                      f'{row+1}, column {col+1} (an interrupted recovery left it there). '
                      'Pick it up and replant it at a valid spot.'),
-                book.tags(d.type_id), False, (row,),
+                book.tags(d.type_id), False, (row,), drop_index=d.index,
             ))
 
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
@@ -933,7 +921,19 @@ HOLD_THRESHOLD = 0.6
 
 
 def candidate_key(c):
-    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept
+    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept, c.drop_index
+
+
+def recovery_status(p,f):
+    """Shared purpose test; ranking truncation cannot invalidate a safe recovery."""
+    nx=f['nearest_zombie_x']
+    reposition = p.col<4 and not p.recently_eaten and (nx is None or nx>cell_x(p.col)+160)
+    limit=RECLAIM_MAX_HP_BITTEN if p.recently_eaten else RECLAIM_MAX_HP
+    contact=nx is not None and nx<=cell_x(p.col)+30
+    eligible=(p.hp is not None and p.hp>RECLAIM_MIN_HP and (p.hp<=limit or reposition)
+              and (f['zombie_count'] or reposition)
+              and (reposition or contact or f['threat_level'] in ('high','critical')))
+    return bool(eligible),reposition
 
 
 def burst_targets(candidate, board, book):
@@ -1052,6 +1052,22 @@ def action_invalid_reason(candidate, board, book):
     """Hard placement and purpose checks, independent of shortlist ranking."""
     if not board.ok or not board_active(board): return 'board inactive'
     if candidate.kind == 'wait': return None
+    if candidate.kind == 'pick':
+        drop=next((d for d in board.dropped_seeds if d.type_id==candidate.type_id
+                   and (candidate.drop_index is None or d.index==candidate.drop_index)),None)
+        if drop is None: return 'dropped seed disappeared'
+        from types import SimpleNamespace
+        source=SimpleNamespace(cell=(candidate.row,candidate.col),row=candidate.row,
+                               type_id=candidate.type_id)
+        return None if relocation_target(board,book,source,ready_only=True) is not None else 'no supported recovery destination'
+    if candidate.kind == 'shovel' and not candidate.salvage:
+        source=next((p for p in board.plants if p.cell==(candidate.row,candidate.col)
+                     and p.type_id==candidate.type_id),None)
+        if source is None or not book.has_tag(source.type_id,T_WALL_REGEN): return 'recovery source changed'
+        if source.hp is None or source.hp<=800: return 'recovery health window closed'
+        if not recovery_status(source,lane_facts(board,source.row,book))[0]:
+            return 'recovery purpose no longer valid'
+        return None if relocation_target(board,book,source) is not None else 'no relocation destination'
     if candidate.kind != 'plant':
         return None if any(candidate_key(c)==candidate_key(candidate) for c in generate_candidates(board,book)) else 'recovery target or purpose changed'
     book.sync_field_copies(board.plants)
@@ -1071,7 +1087,7 @@ def action_invalid_reason(candidate, board, book):
             book.combat(tid).get('crush_hits') or book.combat(tid).get('lethal_hit_burst')):
         return 'blocker cannot stop confirmed crusher'
     if not c.intercept and not any(t in tags for t in (T_WALL,T_INSTANT,T_GLOBAL_FREEZE,T_SPLASH3,T_TEMPORARY)):
-        if c.col not in rear_cols(board,book,c.row,producer=T_PRODUCER in tags): return 'rear placement no longer safe'
+        if c.col not in rear_cols(board,book,c.row,producer=T_PRODUCER in tags and T_SHOOTER not in tags): return 'rear placement no longer safe'
     if any(t in tags for t in (T_INSTANT,T_SPLASH3,T_GLOBAL_FREEZE)) and not burst_targets(c,board,book):
         return 'no targets remain in affected area'
     return None

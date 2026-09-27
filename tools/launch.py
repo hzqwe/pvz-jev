@@ -57,14 +57,14 @@ def clear_stop() -> None:
 #   实测"按回车瞬间卡死"就是 agent 去 ShowWindow 一个 DirectDraw 窗口造成的，
 #   所以安全模式是**默认**。
 MENU: list[tuple[str, str, dict | None]] = [
-    ("1", "实战运行 30 分钟   （安全模式：绝不动游戏窗口）",
-     {"live": True, "duration": 1800, "window_ops": False}),
+    ("1", "持续实战运行       （安全模式：游戏在就一直运行）",
+     {"live": True, "duration": 0, "window_ops": False}),
     ("2", "实战运行 5 分钟    （安全模式）",
      {"live": True, "duration": 300, "window_ops": False}),
     ("3", "试运行：只看 Jev 怎么决策，不点鼠标",
      {"live": False, "duration": 180, "window_ops": False}),
     ("4", "完整模式（允许恢复最小化/抢焦点 —— 有卡死风险，需手打 YES）",
-     {"live": True, "duration": 1800, "window_ops": True}),
+     {"live": True, "duration": 0, "window_ops": True}),
     ("0", "退出", None),
 ]
 DEFAULT_KEY = "1"

@@ -21,12 +21,13 @@ import sys
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out")
 STALL_S = 15.0          # 两次决策间隔超过它 = 节奏空档
-COLLAPSE_CLOCK = 90.0   # 游戏进行多久后还出现"赤字"才算经济崩盘（开局穷是正常的）
+COLLAPSE_CLOCK = 9000   # 100 ticks/s：开局 90 秒以后才评估中盘赤字
 STARVE_WINDOW = 6       # 连续这么多条记录 producers==0 才算"零产出窗口"
 
 
 def latest_decisions() -> str | None:
-    files = sorted(glob.glob(os.path.join(OUT_DIR, "decisions_*.jsonl")))
+    files = sorted(p for p in glob.glob(os.path.join(OUT_DIR, "decisions_*.jsonl"))
+                   if not p.endswith('.events.jsonl'))
     return files[-1] if files else None
 
 
@@ -38,7 +39,9 @@ def load_records(path: str) -> list[dict]:
             if not line:
                 continue
             try:
-                recs.append(json.loads(line))
+                record = json.loads(line)
+                if isinstance(record,dict) and record.get('record_type') != 'event':
+                    recs.append(record)
             except ValueError:
                 continue
     return recs
@@ -68,7 +71,7 @@ def _max_threat(rec) -> str:
     lanes = _g(rec, "state", "lanes", default=[]) or []
     level = "none"
     for lane in lanes:
-        t = lane.get("threat_level") or "none"
+        t = _g(lane,'tactical_assessment','threat_level') or lane.get("threat_level") or "none"
         if t == "critical":
             return "critical"
         if t == "high":
@@ -92,7 +95,27 @@ def _plant_name(rec) -> str:
     return m.group(1) if m else "unknown"
 
 
+def split_battles(recs):
+    groups=[]
+    previous=None
+    for rec in recs:
+        clock=_g(rec,'state','game','clock')
+        prev_clock=_g(previous,'state','game','clock')
+        battle=rec.get('battle_id'); prev_battle=(previous or {}).get('battle_id')
+        changed = previous is not None and (
+            (battle is not None and prev_battle is not None and battle!=prev_battle)
+            or (clock is not None and prev_clock is not None and clock<prev_clock)
+            or _g(rec,'state','game','scene')!=_g(previous,'state','game','scene'))
+        if not groups or changed: groups.append([])
+        groups[-1].append(rec);previous=rec
+    return groups
+
+
 def detect(recs: list[dict]) -> list[dict]:
+    groups=split_battles(recs)
+    if len(groups)>1:
+        return [{**f,'battle':i,'evidence':f"第 {i} 局：{f['evidence']}"}
+                for i,group in enumerate(groups,1) for f in detect(group)]
     findings: list[dict] = []
 
     def add(severity, kind, evidence, suggestion):
@@ -103,6 +126,7 @@ def detect(recs: list[dict]) -> list[dict]:
     #    实测（泳池局 2026-09-26）：落点未生效时游戏**仍可能扣阳光**——
     #    这是最贵的失败模式，浪费量必须单独量化报出来。
     fails: dict[tuple, int] = {}
+    cell_failures={}
     wasted = 0
     wasted_n = 0
     misplaced: list[str] = []
@@ -116,6 +140,8 @@ def detect(recs: list[dict]) -> list[dict]:
                 cell = None
             key = (_plant_name(rec), cell)
             fails[key] = fails.get(key, 0) + 1
+            if cell is not None and ex.get('kind')=='click':
+                cell_failures.setdefault(cell,[]).append((float(rec.get('t',0)),_plant_name(rec)))
             loss = (ex.get("sun_before") or 0) - (ex.get("sun_after") or 0)
             if loss > 0:
                 wasted += loss
@@ -131,9 +157,16 @@ def detect(recs: list[dict]) -> list[dict]:
     for (plant, cell), n in sorted(fails.items(), key=lambda kv: -kv[1]):
         if n >= 2:
             add("high", "落点反复失败",
-                f"{plant} 在 {cell} 连续 {n} 次种不上",
+                f"{plant} 在 {cell} 累计 {n} 次未确认种植成功",
                 "先跑一次该格点击校准（tools/measure_layout.py）；若格子本身合法，"
                 "检查是否被障碍/荷叶层规则拦截")
+    for cell,attempts in cell_failures.items():
+        if any(t2-t1<=15 and name1!=name2
+               for (t1,name1),(t2,name2) in zip(attempts,attempts[1:])):
+            add('high','同格换卡仍失败',
+                f"格 {cell} 在 15 秒内出现不同植物落点失败，共 {len(attempts)} 次未确认种植成功",
+                "看 after_failure 的光标：同类种子仍在手中才确认格子被拒，短暂避让该格；"
+                "若种子已消失，还需区分瞬发效果和快速被吃，不能直接认定种歪或扣款浪费")
     if misplaced:
         add("critical", "种歪（落到了别的格）",
             "；".join(misplaced[:5]) + (f" 等共 {len(misplaced)} 次" if len(misplaced) > 5 else ""),
@@ -154,17 +187,18 @@ def detect(recs: list[dict]) -> list[dict]:
         add("medium" if total < 60 else "high", "决策节奏空档",
             f"{len(gaps)} 次空档共 {total:.0f}s，最长的："
             + "；".join(f"{iso} 停 {dt}s" for iso, dt in gaps[:3]),
-            "几乎都是游戏失焦/最小化（PvZ 失焦即暂停，安全模式不抢焦点）。"
-            "别最小化游戏窗口；需要自动唤醒用 --allow-window-ops 完整模式")
+            "对照同名 .events.jsonl 的运行阶段、decision_started/finished 和异常记录，"
+            "区分暂停、窗口不可用、请求变慢与执行耗时；旧日志不能仅凭间隔确定原因")
 
     # 3) 经济崩盘：中盘还在赤字
     poor = [(r.get("iso"), _g(r, "state", "game", "clock"), _producers(r))
             for r in recs
             if (_g(r, "state", "game", "sun") or 0) < 100
+            and _producers(r)<2
             and (_g(r, "state", "game", "clock") or 0) > COLLAPSE_CLOCK]
     if len(poor) >= 3:
         add("high", "经济崩盘（中盘赤字）",
-            f"{len(poor)} 条记录阳光<100：首个 {poor[0][0]}（clock={poor[0][1]}, "
+            f"{len(poor)} 条记录同时阳光<100 且产阳光株数<2：首个 {poor[0][0]}（clock={poor[0][1]}, "
             f"产阳光={poor[0][2]}）",
             "检查当时产阳光株数：若已被吃光，说明防线该更早建立；"
             "若从没建起来，对照 playbook 的开局教条复核 opening 决策")
@@ -173,7 +207,7 @@ def detect(recs: list[dict]) -> list[dict]:
     run = best = 0
     start_iso = None
     for rec in recs:
-        if (_g(rec, "state", "game", "clock") or 0) > 120 and _producers(rec) == 0:
+        if (_g(rec, "state", "game", "clock") or 0) > 12000 and _producers(rec) == 0:
             run += 1
             if run == 1:
                 start_iso = rec.get("iso")
@@ -275,7 +309,12 @@ def detect(recs: list[dict]) -> list[dict]:
 
 def kpis(recs: list[dict]) -> dict:
     placed = sum(1 for r in recs if _g(r, "executed", "placed") is True)
-    shovels = sum(1 for r in recs if _g(r, "executed", "removed") is True)
+    shovels = sum(1 for r in recs if _g(r,'executed','removed') is True
+                  or any(s.get('step') in ('source_removed','salvaged')
+                         for s in (_g(r,'executed','steps',default=[]) or [])))
+    transaction_placements=sum(s.get('step')=='plant_confirmed' for r in recs
+                              for key in ('executed','followup')
+                              for s in (_g(r,key,'steps',default=[]) or []))
     holds = sum(1 for r in recs if _g(r, "executed", "kind") == "hold")
     fallbacks = sum(1 for r in recs if _g(r, "decision", "fallback") is True)
     lat = [_g(r, "jev", "latency_s") for r in recs if _g(r, "jev", "ok") is True]
@@ -283,6 +322,9 @@ def kpis(recs: list[dict]) -> dict:
     return dict(
         decisions=len(recs),
         placed=placed,
+        placement_failures=sum(_g(r,'executed','kind')=='click' and _g(r,'executed','placed') is False for r in recs),
+        transaction_placements=transaction_placements,
+        incomplete_transactions=sum(_g(r,k,'kind')=='transaction_incomplete' for r in recs for k in ('executed','followup')),
         shovels=shovels,
         holds=holds,
         fallbacks=fallbacks,
@@ -301,13 +343,20 @@ def render(recs: list[dict], path: str, findings: list[dict]) -> str:
         f"# 战斗复盘 · {os.path.basename(path)}",
         "",
         f"- 场景：{k['scene']}　最后 clock：{k['clock_last']}　阳光：{k['sun_first']} → {k['sun_last']}",
-        f"- 决策 {k['decisions']} 条｜种上 {k['placed']}｜铲除 {k['shovels']}｜"
+        f"- 决策 {k['decisions']} 条｜普通种植确认 {k['placed']}｜铲除 {k['shovels']}｜"
         f"等待 {k['holds']}｜兜底 {k['fallbacks']}",
         f"- Jev 可用 {k['jev_ok']}/{k['decisions']}，平均延迟 {k['jev_latency_avg']}s",
+        f"- 普通落点未确认 {k['placement_failures']}｜事务种植确认 {k['transaction_placements']}｜事务中断 {k['incomplete_transactions']}",
         "",
         "## 发现（按严重度）",
         "",
     ]
+    summaries=[]
+    for i,group in enumerate(split_battles(recs),1):
+        b=kpis(group)
+        summaries.append(f"- 第 {i} 局：决策 {b['decisions']}｜种上 {b['placed']}｜等待 {b['holds']}｜"
+                         f"阳光 {b['sun_first']} → {b['sun_last']}｜末帧 clock {b['clock_last']}")
+    lines[7:7]=['## 分局统计','']+summaries+['']
     if not findings:
         lines.append("本局没有触发任何已知坏决策模式。👍")
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3}

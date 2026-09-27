@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import asdict
 
 from .board import BoardState
 from .plants import PlantBook
@@ -24,6 +25,22 @@ SCENE_NAMES = {
 }
 
 COL_LABEL = "ABCDEFGHI"
+
+
+def board_snapshot(board):
+    """Lossless entity evidence for offline replay, separate from model state."""
+    return {**{k: getattr(board,k) for k in (
+        'ok','reason','pid','board','ui','scene','level','sun','game_clock',
+        'rows','cols','clock_advancing','spawn_total','spawn_spawned','spawn_upcoming')},
+        'cursor': {'holding':board.holding, 'kind':board.held_cursor,
+                   'slot':board.held_slot, 'type_id':board.held_type},
+        'plants':[asdict(p) for p in board.plants],
+        'zombies':[asdict(z) for z in board.zombies],
+        'slots':[asdict(s) for s in board.slots],
+        'dropped_seeds':[asdict(d) for d in board.dropped_seeds],
+        'row_types':dict(board.row_types), 'mowers':dict(board.mowers),
+        'snow_cells':[[r,c,t] for (r,c),t in (board.snow_cells or {}).items()],
+        'rejected_cells':[[r,c,t] for (r,c),t in (getattr(board,'rejected_cells',None) or {}).items()]}
 
 # -- 作战教条（2026-09-26 新增，纯信息层）--------------------------------
 # data/plant_playbook.json 存放 14 株登记植物的使用教条、全局原则和敌人应对
