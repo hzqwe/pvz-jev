@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching
 
 MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -82,6 +82,7 @@ class Candidate:
     supports_type: int | None = field(default=None, kw_only=True)
     relocate_to: tuple[int,int] | None = field(default=None, kw_only=True)
     salvage: bool = field(default=False, kw_only=True)   # 铲掉换阳光（不回收卡片）
+    crush_recovery: bool = field(default=False, kw_only=True)  # recover before instant crushing
     intercept: bool = field(default=False, kw_only=True)  # deliberate sacrificial blocker
     drop_index: int | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
@@ -103,6 +104,10 @@ class Candidate:
         at = f'lane {self.row+1}, column {col}'
         if self.kind == 'shovel':
             mode = 'salvage for dropped sun (no returned seed card)' if self.salvage else 'recover seed card and relocate'
+            if self.crush_recovery:
+                mode = 'recover seed card before crusher; replant using existing support'
+            if self.crush_recovery and self.relocate_to is None:
+                mode = 'recover seed card; leave it on lawn for later safe planting'
             # Salvage must never imply the plant can be replanted.
             if self.salvage: mode = 'salvage for dropped sun; removes this plant'
             head = f'Shovel up "{book.en(self.type_id)}" at {at}: {mode}, hp={self.hp}.'
@@ -130,9 +135,12 @@ class Candidate:
         if self.kind == "shovel":
             col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
             hp_txt = f"about {self.hp} hp left" if self.hp is not None else "hp unknown"
+            purpose = ('to salvage dropped sun (plant removed)' if self.salvage else
+                       'to recover its seed card for later safe planting' if self.crush_recovery and self.relocate_to is None else
+                       'to recover and relocate its seed card')
             return (
                 f"Shovel up \"{book.en(self.type_id)}\" at lane {self.row + 1}, column {col} "
-                f"({hp_txt}) {'to salvage dropped sun (plant removed)' if self.salvage else 'to recover and relocate its seed card'}. Reason: {self.why}"
+                f"({hp_txt}) {purpose}. Reason: {self.why}"
             )
         if self.kind == "pick":
             col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
@@ -672,10 +680,11 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # 意味着几秒后必然跌破回收线，早铲早回收 = 少白给 800+ 血。
         # 没被啃的墙维持 2400 —— 满血的墙还在值勤，铲它是送冷却。
         f = facts[p.row]
-        eligible,reposition = recovery_status(p,f)
+        crush_recovery = crusher_approaching(board,book,p)
+        eligible,reposition = recovery_status(p,f,crush_threat=crush_recovery)
         if not eligible: continue
-        destination = relocation_target(board,book,p)
-        if destination is None:
+        destination = relocation_target(board,book,p,ready_only=crush_recovery)
+        if destination is None and not crush_recovery:
             continue
         urgent = f["threat_level"] == "critical"
         # 回收窗口即将关闭也算紧急：僵尸啃食 100/s，一个决策周期约 3 秒。
@@ -685,14 +694,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             urgent = True
         candidates.append(Candidate(
             '', 'shovel', p.row, p.col, -1, p.type_id,
-            (150 if urgent else 60) + f["priority"] * 0.5,
+            (500 if crush_recovery else 150 if urgent else 60) + f["priority"] * 0.5,
             (f'Reclaim it before zombies finish it: shoveling costs 800 hp, the returned '
              f'card keeps the remaining {hp - 800}; once its hp drops to 800 or below it '
              f'can never be reclaimed again and is simply lost. '
              + ('It is being bitten right now and the reclaim window closes within seconds. '
                 if p.recently_eaten else '')
-             + f'Recover the dropped card and replant at lane {destination[0]+1}, column {destination[1]+1}; prepare water support first.'),
-            book.tags(p.type_id), False, (destination[0],), hp, relocate_to=destination,
+             + ('Confirmed crusher within two cells: recover now even at full health. ' if crush_recovery else '')
+             + (f'Replant at lane {destination[0]+1}, column {destination[1]+1}; '
+                + ('use existing support, do not delay shoveling to buy a pad.' if crush_recovery else 'prepare water support first.')
+                if destination else 'No safe supported cell: leave the verified returned card on the lawn for later.')),
+            book.tags(p.type_id), False, (() if crush_recovery else (destination[0],)), hp,
+            relocate_to=destination, crush_recovery=crush_recovery,
         ))
 
     # -- 高级技巧（用户 2026-09-26）：铲掉换阳光 --------------------------
@@ -921,15 +934,17 @@ HOLD_THRESHOLD = 0.6
 
 
 def candidate_key(c):
-    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept, c.drop_index
+    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept, c.drop_index, c.crush_recovery
 
 
-def recovery_status(p,f):
+def recovery_status(p,f,*,crush_threat=False):
     """Shared purpose test; ranking truncation cannot invalidate a safe recovery."""
     nx=f['nearest_zombie_x']
     reposition = p.col<4 and not p.recently_eaten and (nx is None or nx>cell_x(p.col)+160)
     limit=RECLAIM_MAX_HP_BITTEN if p.recently_eaten else RECLAIM_MAX_HP
     contact=nx is not None and nx<=cell_x(p.col)+30
+    if crush_threat:
+        return p.hp is not None and p.hp>RECLAIM_MIN_HP, False
     eligible=(p.hp is not None and p.hp>RECLAIM_MIN_HP and (p.hp<=limit or reposition)
               and (f['zombie_count'] or reposition)
               and (reposition or contact or f['threat_level'] in ('high','critical')))
@@ -1024,28 +1039,29 @@ def adapt_stale_candidate(candidate, board, book, bad_cells=None):
 
 
 def escalate_emergency(candidate, board, book, bad_cells=None):
-    """执行前用**最新快照**重算威胁；出现危急路而原动作不是救场时，改交救场候选。
+    """Refresh house rescue first, then protect a reusable wall from instant crushing.
 
     为什么需要：决策 -> Jev 返回 -> 动手之间隔着 1~6s，僵尸每周期走 40~80px。
     merge_decision 的"fresh 重算"用的是决策前那张旧快照，只有这里拿的是
     执行前刚读的 board —— 决策时 low 的路此刻可能已经 critical。
-    返回 None 表示无需升级（没有危急路，或原动作本来就是救场）。
+    返回 None 表示无需升级；防压回收保全资产，不算房屋救场。
     """
     if board is None or not board.ok or not board_active(board):
         return None
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
-    if not any(f["threat_level"] == "critical" for f in facts):
-        return None
     if candidate is not None and candidate.emergency and rescue_is_effective(candidate,board,book):
         return None
     fresh = generate_candidates(board, book)
     esc = [c for c in fresh if c.emergency and c.kind in ("plant", "shovel")
            and not (bad_cells and c.kind == "plant"
                     and (c.type_id, c.row, c.col) in bad_cells)]
-    if not esc:
-        return None
-    esc.sort(key=lambda c: (-c.score, c.row, c.col))
-    return esc[0]
+    if esc and any(f['threat_level']=='critical' for f in facts):
+        esc.sort(key=lambda c: (-c.score, c.row, c.col))
+        return esc[0]
+    recovery = next((c for c in fresh if c.crush_recovery), None)
+    if recovery is not None and (candidate is None or candidate_key(candidate)!=candidate_key(recovery)):
+        return recovery
+    return None
 
 
 def action_invalid_reason(candidate, board, book):
@@ -1065,8 +1081,11 @@ def action_invalid_reason(candidate, board, book):
                      and p.type_id==candidate.type_id),None)
         if source is None or not book.has_tag(source.type_id,T_WALL_REGEN): return 'recovery source changed'
         if source.hp is None or source.hp<=800: return 'recovery health window closed'
-        if not recovery_status(source,lane_facts(board,source.row,book))[0]:
+        crush_threat=crusher_approaching(board,book,source)
+        if candidate.crush_recovery and not crush_threat: return 'crusher no longer approaching source'
+        if not recovery_status(source,lane_facts(board,source.row,book),crush_threat=crush_threat)[0]:
             return 'recovery purpose no longer valid'
+        if candidate.crush_recovery: return None  # Missing destination means verified recovery for later.
         return None if relocation_target(board,book,source) is not None else 'no relocation destination'
     if candidate.kind != 'plant':
         return None if any(candidate_key(c)==candidate_key(candidate) for c in generate_candidates(board,book)) else 'recovery target or purpose changed'
@@ -1236,6 +1255,11 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
         if tidy and not any(lane_facts(board,r,book)['threat_level'] in ('high','critical') for r in range(board.rows)):
             chosen=tidy
             d.notes.append('Move an idle rear reusable wall forward using verified recovery.')
+    recovery = next((c for c in plants if c.crush_recovery),None)
+    if recovery is not None and not chosen.emergency and chosen is not recovery:
+        chosen=recovery
+        d.fallback=True
+        d.notes.append('Confirmed crusher approaching reusable wall: recover before instant loss; house rescue retains priority.')
     d.candidate, d.action_id = chosen, chosen.cid
     d.hold = chosen.kind == 'wait'
     return d

@@ -8,6 +8,22 @@ def cell_x(col):
     return 80 + 80 * col
 
 
+def crusher_approaching(board, book, source):
+    """Source-specific asset-loss warning, independent of nearest-enemy ranking.
+
+    A confirmed hostile crusher within two cells may instantly destroy even a
+    full-health wall. The contact margin permits recovery as overlap begins;
+    trucks already past the plant must not cause pointless healthy-wall removal.
+    """
+    profile = book.combat(source.type_id)
+    if profile.get('crush_hits') or profile.get('lethal_hit_burst'):
+        return False
+    return any(z.x is not None and not z.friendly
+               and book.zombie_flag(z.type_id, 'crush')
+               and -40 <= z.x - cell_x(source.col) <= 160
+               for z in board.zombies_in_lane(source.row))
+
+
 def strength(z):
     # Unknown hybrid IDs are never translated using the plant catalogue.
     return max(1.0, min(30.0, ((z.hp if z.hp is not None else 270) +

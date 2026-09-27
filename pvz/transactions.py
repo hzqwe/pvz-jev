@@ -2,7 +2,7 @@
 import time
 from types import SimpleNamespace
 from .board import placement_delta
-from .tactics import cell_x,relocation_target
+from .tactics import cell_x,relocation_target,crusher_approaching
 from .serialize import board_snapshot
 
 class TransactionStopped(RuntimeError):
@@ -62,6 +62,11 @@ class PlantTransaction:
         if self.board.held_cursor!=2 or self.board.held_type!=tid:
             raise TransactionStopped('Recovered seed no longer in hand')
         try:
+            profile=self.agent.book.combat(tid)
+            if not (profile.get('crush_hits') or profile.get('lethal_hit_burst')) and any(
+                    self.agent.book.zombie_flag(z.type_id,'crush')
+                    for z in self.board.zombies_in_lane(row)):
+                raise TransactionStopped('Confirmed crusher entered recovery destination lane')
             self.cell_valid(tid,row,col)
         except TransactionStopped as exc:
             if getattr(self.agent,'_geometry_error',None): raise
@@ -111,12 +116,19 @@ class PlantTransaction:
                      and p.type_id==candidate.type_id),None)
         if source is None or source.hp is None or source.hp<=800:
             raise TransactionStopped('Source cannot return a viable card')
-        destination=relocation_target(self.board,self.agent.book,source)
-        if destination is None:raise TransactionStopped('No relocation destination')
-        row,col=destination
-        # Prepare water first: never leave a recovered seed in hand while selecting a pad.
-        self.support(source.type_id,row,col)
-        self.read();self.cell_valid(source.type_id,row,col)
+        urgent=bool(getattr(candidate,'crush_recovery',False))
+        if urgent and not crusher_approaching(self.board,self.agent.book,source):
+            raise TransactionStopped('Crusher no longer approaching source')
+        if urgent:
+            self.steps.append({'step':'crush_recovery_started','cell':list(source.cell),
+                               'source_hp':source.hp,'expected_returned_hp':source.hp-800,
+                               'clock':self.board.game_clock})
+        destination=relocation_target(self.board,self.agent.book,source,ready_only=urgent)
+        if destination is None and not urgent:raise TransactionStopped('No relocation destination')
+        if not urgent:
+            # Ordinary relocation can prepare water before taking the seed.
+            self.support(source.type_id,*destination)
+            self.read();self.cell_valid(source.type_id,*destination)
         source=next((p for p in self.board.plants if p.cell==source.cell and p.type_id==source.type_id),None)
         if source is None or source.hp is None or source.hp<=800:
             raise TransactionStopped('Source changed before shovel')
@@ -133,7 +145,18 @@ class PlantTransaction:
         current=next((p for p in self.board.plants if p.cell==source.cell and p.type_id==source.type_id),None)
         if current is None or current.hp is None or current.hp<=800:
             raise TransactionStopped('Recovery health window closed before shovel hit')
-        self.cell_valid(source.type_id,row,col)
+        if urgent:
+            if not crusher_approaching(self.board,self.agent.book,current):
+                raise TransactionStopped('Crusher threat cleared before shovel hit')
+            # Never delay removal to buy a pad. A vanished destination is okay:
+            # retain a verified drop on the lawn instead of planting under a truck.
+            destination=relocation_target(self.board,self.agent.book,current,ready_only=True)
+        else:
+            self.cell_valid(source.type_id,*destination)
+        self.agent.layout.configure_board(self.board)
+        x,y=self.agent.layout.cell_center(source.row,source.col)
+        if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
+            raise TransactionStopped('Recovery source outside client')
         removals = getattr(self.agent, '_intentional_removals', set())
         removals.add((source.row, source.col, source.type_id))
         self.agent._intentional_removals = removals
@@ -142,7 +165,9 @@ class PlantTransaction:
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
         self.steps.append({'step':'source_removed','cell':list(source.cell)})
         if self.board.held_cursor==2 and self.board.held_type==source.type_id:
-            self.place_recovered(source.type_id,row,col,source);return
+            destination=relocation_target(self.board,self.agent.book,source,ready_only=True) if urgent else destination
+            if destination is None:raise TransactionStopped('Returned card in hand but no supported destination')
+            self.place_recovered(source.type_id,*destination,source);return 'relocated'
         self.agent.clicker.cancel_seed('clear shovel before dropped card')
         self.read(lambda b:not b.holding)
         def find_drop(b):
@@ -150,13 +175,21 @@ class PlantTransaction:
                          and (d.index,d.type_id) not in old_drops),None)
         self.read(lambda b:find_drop(b) is not None,tries=20)
         drop=find_drop(self.board)
+        if urgent:
+            destination=relocation_target(self.board,self.agent.book,source,ready_only=True)
+            if destination is None:
+                self.steps.append({'step':'recovered_card_parked','drop_index':drop.index,
+                                   'type_id':drop.type_id,'source_hp_before_shovel':current.hp,
+                                   'clock':self.board.game_clock})
+                return 'recovered_for_later'
         x,y=self.agent.layout.dropped_seed_center(drop)
         if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
             raise TransactionStopped('Dropped card outside client')
         self.agent.clicker.click_client(x,y,'pick recovered seed')
         self.read(lambda b:b.held_cursor==2 and b.held_type==source.type_id)
         self.steps.append({'step':'recovered_seed_in_hand','type_id':source.type_id})
-        self.place_recovered(source.type_id,row,col,source)
+        self.place_recovered(source.type_id,*destination,source)
+        return 'relocated'
 
     def pick_drop(self,candidate):
         """拾回草坪上的掉落卡（2026-09-26 新增）：回收事务被对局中断时，
@@ -239,8 +272,8 @@ def run_transaction(agent,board,*,candidate=None,followup=None,pick=None):
             if getattr(candidate,'salvage',False):
                 tx.salvage(candidate)
                 return {'kind':'salvaged','completed':True,'steps':tx.steps}
-            tx.relocate(candidate)
-            return {'kind':'relocated','completed':True,'steps':tx.steps}
+            kind=tx.relocate(candidate)
+            return {'kind':kind,'completed':True,'steps':tx.steps}
         if pick is not None:
             tx.pick_drop(pick)
             return {'kind':'pick_drop','completed':True,'steps':tx.steps}

@@ -324,6 +324,10 @@ def kpis(recs: list[dict]) -> dict:
         placed=placed,
         placement_failures=sum(_g(r,'executed','kind')=='click' and _g(r,'executed','placed') is False for r in recs),
         transaction_placements=transaction_placements,
+        crusher_recovery_attempts=sum(any(s.get('step')=='crush_recovery_started'
+                                         for s in (_g(r,'executed','steps',default=[]) or [])) for r in recs),
+        parked_recovery_cards=sum(_g(r,'executed','kind')=='recovered_for_later'
+                                  and _g(r,'executed','completed') is True for r in recs),
         incomplete_transactions=sum(_g(r,k,'kind')=='transaction_incomplete' for r in recs for k in ('executed','followup')),
         shovels=shovels,
         holds=holds,
@@ -347,6 +351,7 @@ def render(recs: list[dict], path: str, findings: list[dict]) -> str:
         f"等待 {k['holds']}｜兜底 {k['fallbacks']}",
         f"- Jev 可用 {k['jev_ok']}/{k['decisions']}，平均延迟 {k['jev_latency_avg']}s",
         f"- 普通落点未确认 {k['placement_failures']}｜事务种植确认 {k['transaction_placements']}｜事务中断 {k['incomplete_transactions']}",
+        f"- 防压回收启动 {k['crusher_recovery_attempts']}｜已回收留卡待种 {k['parked_recovery_cards']}（未计为种植成功）",
         "",
         "## 发现（按严重度）",
         "",
@@ -356,7 +361,7 @@ def render(recs: list[dict], path: str, findings: list[dict]) -> str:
         b=kpis(group)
         summaries.append(f"- 第 {i} 局：决策 {b['decisions']}｜种上 {b['placed']}｜等待 {b['holds']}｜"
                          f"阳光 {b['sun_first']} → {b['sun_last']}｜末帧 clock {b['clock_last']}")
-    lines[7:7]=['## 分局统计','']+summaries+['']
+    lines[8:8]=['## 分局统计','']+summaries+['']
     if not findings:
         lines.append("本局没有触发任何已知坏决策模式。👍")
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3}

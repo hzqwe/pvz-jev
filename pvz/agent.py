@@ -641,7 +641,7 @@ class PvZJevAgent:
                  "why": c.why, "covers": list(c.covers), "emergency": c.emergency,
                  "salvage": c.salvage, "intercept": c.intercept, "supports_type": c.supports_type,
                  "total_cost": c.total_cost(self.book), "relocate_to": c.relocate_to,
-                 "drop_index": c.drop_index}
+                 "drop_index": c.drop_index, "crush_recovery": c.crush_recovery}
                 for c in cands
             ],
             "jev": {
@@ -737,7 +737,8 @@ class PvZJevAgent:
                     validation_board = fresh
                     cand = dec.candidate = rescue
                     dec.hold = False; dec.fallback = True; dec.action_id = rescue.cid
-                    dec.notes.append('Fresh house threat overrides the earlier wait.')
+                    dec.notes.append('Fresh crusher threat overrides the earlier wait.' if rescue.crush_recovery
+                                     else 'Fresh house threat overrides the earlier wait.')
                     record.setdefault('decision',{}).update(action_id=rescue.cid,chosen=rescue.describe(self.book),fallback=True,hold=False)
         if cand is None or cand.kind == "wait" or dec.hold:
             self.stats.holds += 1
@@ -842,7 +843,8 @@ class PvZJevAgent:
         #    直接改交救场候选 —— 不让"过期威胁"骗过执行层。
         esc = escalate_emergency(cand, chk, self.book, getattr(self, '_bad_cells', None))
         if esc is not None:
-            note = (f"Execution-time re-eval: a lane just turned critical; "
+            reason = 'a crusher threatens a reusable wall' if esc.crush_recovery else 'a lane just turned critical'
+            note = (f"Execution-time re-eval: {reason}; "
                     f"switched to rescue ({self.book.en(esc.type_id)} r{esc.row + 1}"
                     f"{COL_LABEL[esc.col] if 0 <= esc.col < len(COL_LABEL) else esc.col}).")
             dec.candidate = esc
