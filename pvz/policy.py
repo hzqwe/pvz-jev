@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps
 
 MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -82,13 +82,43 @@ class Candidate:
     supports_type: int | None = field(default=None, kw_only=True)
     relocate_to: tuple[int,int] | None = field(default=None, kw_only=True)
     salvage: bool = field(default=False, kw_only=True)   # 铲掉换阳光（不回收卡片）
+    intercept: bool = field(default=False, kw_only=True)  # deliberate sacrificial blocker
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
-    def describe(self, book: PlantBook, cap: int = 240) -> str:
-        """给 Jev 的候选描述。2026-09-27 起截断到 cap 字符：24 条完整描述曾占
-        单次请求的 ~40%（每小时百万级 token）；完整文本始终在决策日志里。"""
-        txt = self._describe_raw(book)
-        return txt if len(txt) <= cap else txt[:cap - 1].rstrip() + "…"
+    def total_cost(self, book):
+        if self.kind != 'plant':
+            return 0
+        cost = book.cost(self.type_id)
+        if self.supports_type is not None:
+            extra = book.cost(self.supports_type)
+            return None if cost is None or extra is None else cost + extra
+        return cost
+
+    def describe(self, book: PlantBook, cap: int = 360) -> str:
+        """Keep action semantics and current reason; shared almanac lives in state."""
+        if self.kind == 'wait':
+            return 'Wait / save sun. Reason: ' + self.why[:max(0,cap-25)]
+        col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
+        at = f'lane {self.row+1}, column {col}'
+        if self.kind == 'shovel':
+            mode = 'salvage for dropped sun (no returned seed card)' if self.salvage else 'recover seed card and relocate'
+            # Salvage must never imply the plant can be replanted.
+            if self.salvage: mode = 'salvage for dropped sun; removes this plant'
+            head = f'Shovel up "{book.en(self.type_id)}" at {at}: {mode}, hp={self.hp}.'
+        elif self.kind == 'pick':
+            head = f'Pick up "{book.en(self.type_id)}" seed card lying on the lawn at {at}; replant free.'
+        elif self.supports_type is not None:
+            head = (f'Plant "{book.en(self.type_id)}" + "{book.en(self.supports_type)}" at {at}; '
+                    f'total cost {self.total_cost(book)} sun; continuous pad-then-defender.')
+        else:
+            head = f'Plant "{book.en(self.type_id)}" at {at}; cost {self.total_cost(book)} sun.'
+        coverage = ' Covers lanes ' + str([r+1 for r in self.covers]) + '.' if self.covers else ''
+        reason = ' Reason: ' + self.why[:max(0,min(110,cap-len(head)-len(coverage)-9))]
+        text = head + reason + coverage
+        # Drop optional effect first, never trim away the reason to fit almanac prose.
+        room = max(0,cap-len(text)-9)
+        effect = book.effect(self.supports_type if self.supports_type is not None else self.type_id)
+        return text + (' Effect: ' + effect[:room] if room and effect else '')
 
     def _describe_raw(self, book: PlantBook) -> str:
         if self.kind == "wait":
@@ -101,7 +131,7 @@ class Candidate:
             hp_txt = f"about {self.hp} hp left" if self.hp is not None else "hp unknown"
             return (
                 f"Shovel up \"{book.en(self.type_id)}\" at lane {self.row + 1}, column {col} "
-                f"({hp_txt}) and take it back as a seed card. Reason: {self.why}"
+                f"({hp_txt}) {'to salvage dropped sun (plant removed)' if self.salvage else 'to recover and relocate its seed card'}. Reason: {self.why}"
             )
         if self.kind == "pick":
             col = COL_LABEL[self.col] if 0 <= self.col < len(COL_LABEL) else str(self.col)
@@ -219,7 +249,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             if cell is not None:
                 stall_lanes.append((r, cell))
 
-    def add(slot, row, col, value, reason, covers=()):
+    def add(slot, row, col, value, reason, covers=(), *, intercept=False):
+        nx = facts[row]['nearest_zombie_x']
+        if intercept and nx is not None and cell_x(col)>nx+40:
+            return  # The lead enemy already passed this interception cell.
         # 积雪格（撞车僵尸压过）在融化前不能种植 —— 种了也种不上，主动避开
         # （用户 2026-09-26 补充；这也解释了部分"空格却种不上去"）。
         if snow_blocked(board, row, col):
@@ -259,17 +292,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     #   结果荷叶后面接的是豌豆/阳光菇 —— 水路防线形同虚设。
                     #   现在在所有"就绪且买得起（含荷叶钱）"的卡里挑最适合上荷叶
                     #   的：墙系 > 高价射手 > 其他，顺序即优先级。
-                    supporters = [s for s in board.slots if s.ready
-                                  and book.cost(s.type_id) is not None
-                                  and not book.has_tag(s.type_id, T_PLATFORM)
-                                  and not book.has_tag(s.type_id, T_PRODUCER)
-                                  and sun >= book.cost(s.type_id) + 25]
-                    supporters.sort(key=lambda s: (
-                        not book.has_tag(s.type_id, T_WALL),
-                        -(book.cost(s.type_id) or 0)))
-                    best = next((s for s in supporters
-                                 if sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)),
-                                slot)
+                    # Preserve the specific intended defender. Replacing it by the
+                    # most expensive available wall changes the action after scoring.
+                    best = slot
                     # 压力升级：受压水路（high/critical）且本路无荷叶时，荷叶+
                     # 连锁种植就是救场本体（一个事务里荷叶+墙一起落地），
                     # 不再固定封顶 45 —— 封顶曾让挨打的水路永远排不进来。
@@ -286,17 +311,21 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     else:
                         score = value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45)
                         tag = 'First place Lily Pad to support'
-                    candidates.append(Candidate('', 'plant', row, col, pad.index, pad.type_id,
+                    c = Candidate('', 'plant', row, col, pad.index, pad.type_id,
                         score,
                         f'{tag} {book.en(best.type_id)} at this water cell; '
-                        'Execute as a continuous pad-then-plant transaction; only the completed wall blocks. '
+                        'Execute as a continuous pad-then-plant transaction; only the completed defender helps. '
                         'Re-read and confirm both placements without another model call.',
                         book.tags(pad.type_id), rescue and T_WALL in tags, tuple(covers),
-                        supports_type=best.type_id))
+                        supports_type=best.type_id, intercept=intercept)
+                    c.emergency = rescue and rescue_is_effective(c,board,book)
+                    candidates.append(c)
             return
-        candidates.append(Candidate('', 'plant', row, col, slot.index, slot.type_id,
+        c = Candidate('', 'plant', row, col, slot.index, slot.type_id,
                                     value * 0.2 if calm else value,
-                                    reason, tags, rescue, tuple(covers)))
+                                    reason, tags, rescue, tuple(covers), intercept=intercept)
+        c.emergency = rescue and rescue_is_effective(c,board,book)
+        candidates.append(c)
 
     for slot in board.slots:
         tid = slot.type_id
@@ -363,13 +392,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     continue
                 if (r, cell) in occ:
                     continue
+                prior_count = len(candidates)
                 add(slot,r,cell,120 + facts[r]['priority']*0.4,
                     'Sacrificial speed bump: no wall card is ready on this critical lane; '
                     'buy time for defence. '
                     + (f'Estimated firing window: {estimate}; assumes 8 px/s walking and '
                        '100 hp/s biting per nearby enemy, not live measurements.' if estimate else
-                       'Last-resort house rescue; no verified kill or cooldown timing.'), [r])
-                added_stall = True
+                       'Last-resort house rescue; no verified kill or cooldown timing.'), [r], intercept=True)
+                added_stall = added_stall or len(candidates)>prior_count
             if added_stall:
                 continue
 
@@ -674,7 +704,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
              + ('It is being bitten right now and the reclaim window closes within seconds. '
                 if p.recently_eaten else '')
              + f'Recover the dropped card and replant at lane {destination[0]+1}, column {destination[1]+1}; prepare water support first.'),
-            book.tags(p.type_id), urgent, (destination[0],), hp, relocate_to=destination,
+            book.tags(p.type_id), False, (destination[0],), hp, relocate_to=destination,
         ))
 
     # -- 高级技巧（用户 2026-09-26）：铲掉换阳光 --------------------------
@@ -707,7 +737,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                  f'(biters chew ~{bite_dps:.0f}/s here) - shoveling refunds sun instead '
                  'of letting zombies destroy it for nothing. Do this immediately.'),
                 book.tags(p.type_id),
-                f["threat_level"] == "critical" or dying, (p.row,),
+                False, (p.row,),
                 salvage=True, hp=p.hp,
             ))
         # b) 压扁前预铲：撞车僵尸两格内的前排不可防撞植物（还没被啃到）
@@ -795,18 +825,20 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # placements cannot hide a distinct expensive capability from Jev.
     first, alternatives, represented = [], [], set()
     for c in candidates:
-        if c.type_id not in represented:
+        capability = (c.kind,c.type_id,c.supports_type)
+        if capability not in represented:
             first.append(c)
-            represented.add(c.type_id)
+            represented.add(capability)
         else:
             alternatives.append(c)
     for c in first + alternatives:
-        key = (c.slot,c.row,c.col)
-        if key in seen or counts.get(c.type_id,0) >= MAX_PER_TYPE:
+        key = candidate_key(c)
+        capability = (c.kind,c.type_id,c.supports_type)
+        if key in seen or counts.get(capability,0) >= MAX_PER_TYPE:
             continue
         selected.append(c)
         seen.add(key)
-        counts[c.type_id] = counts.get(c.type_id,0)+1
+        counts[capability] = counts.get(capability,0)+1
         if len(selected) >= MAX_CANDIDATES:
             break
     for i,c in enumerate(selected):
@@ -875,7 +907,7 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "sun reserve is small ONLY if that solves the actual danger. Follow saving_plan "
                 "when safe; avoid repeated cheap spending that delays its target. Rescue near-house "
                 "threats first, especially without a mower. Do not assume unknown mower status is safe. "
-                "A shovel option removes an existing plant and returns it as a card; choose it only "
+                "Shovel options state whether they salvage sun or recover a reusable seed card; choose one only "
                 "when reclaiming it now clearly beats letting zombies destroy it. "
                 "Be careful with long-cooldown one-shot plants "
                 "when the board is still calm."
@@ -901,7 +933,60 @@ HOLD_THRESHOLD = 0.6
 
 
 def candidate_key(c):
-    return c.kind, c.slot, c.type_id, c.row, c.col
+    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept
+
+
+def burst_targets(candidate, board, book):
+    tid = candidate.supports_type if candidate.supports_type is not None else candidate.type_id
+    if book.has_tag(tid,T_GLOBAL_FREEZE):
+        return [z for r in range(board.rows) for z in board.zombies_in_lane(r)]
+    if book.has_tag(tid,T_SPLASH3):
+        return [z for r in range(max(0,candidate.row-1),min(board.rows,candidate.row+2))
+                for z in board.zombies_in_lane(r)]
+    return [z for r in range(board.rows) for z in board.zombies_in_lane(r)
+            if z.x is not None and ((z.x-cell_x(candidate.col))/80)**2+(z.row-candidate.row)**2<=2.25]
+
+
+def rescue_is_effective(candidate, board, book):
+    """Conservative screening, not a simulator: can this action affect the lead threat
+    before it reaches the house? Shared trackers get only their estimated damage share.
+    Unknown timings and movement use explicit margins; do not promise an instant save.
+    """
+    if candidate.kind != 'plant': return False
+    tid = candidate.supports_type if candidate.supports_type is not None else candidate.type_id
+    tags, profile = book.tags(tid), book.combat(tid)
+    critical = [r for r in candidate.covers if lane_facts(board,r,book)['threat_level']=='critical']
+    for row in critical:
+        zs = [z for z in board.zombies_in_lane(row) if z.x is not None]
+        if not zs: continue
+        lead = min(zs,key=lambda z:z.x)
+        # Walk speed is not measured yet; default to a conservative 12 px/s.
+        speed = max(12,book.zombie_trait(lead.type_id,'speed_px_s') or 0)
+        available = max(0,lead.x/speed-1)
+        setup = 1.0 + (1.0 if candidate.supports_type is not None else 0)
+        if available <= setup: continue
+        if T_WALL in tags or candidate.intercept:
+            anti = bool(profile.get('crush_hits') or profile.get('lethal_hit_burst'))
+            if row==candidate.row and cell_x(candidate.col)<=lead.x+40 and (
+                    not book.zombie_flag(lead.type_id,'crush') or anti): return True
+        elif T_GLOBAL_FREEZE in tags:
+            if setup + profile.get('freeze_delay_s',0) < available: return True
+        elif T_INSTANT in tags or T_SPLASH3 in tags:
+            if lead in burst_targets(candidate,board,book) and (
+                    profile.get('burst_damage',0) >= (lead.hp or 270)+(lead.armor_hp or 0)): return True
+        elif T_SHOOTER in tags:
+            dps = attack_dps(book,tid)
+            if T_TRACKING in tags:
+                total = sum(strength(z) for r in range(board.rows) for z in board.zombies_in_lane(r))
+                dps *= strength(lead)/max(1,total)
+            elif row!=candidate.row or cell_x(candidate.col)>lead.x: continue
+            rng = book.range_cells(tid)
+            if rng is not None and lead.x-cell_x(candidate.col)>rng*80: continue
+            # Allow for the first firing interval and projectile travel.
+            first_hit = 1.5 + abs(lead.x-cell_x(candidate.col))/200
+            if dps>0 and setup+first_hit+((lead.hp or 270)+(lead.armor_hp or 0))/dps < available:
+                return True
+    return False
 
 
 def board_active(board) -> bool:
@@ -930,7 +1015,7 @@ def adapt_stale_candidate(candidate, board, book, bad_cells=None):
         return None
     fresh = [c for c in generate_candidates(board, book)
              if c.kind == 'plant' and c.type_id == candidate.type_id
-             and c.row == candidate.row
+             and c.row == candidate.row and c.supports_type == candidate.supports_type
              and not (bad_cells and (c.type_id, c.row, c.col) in bad_cells)]
     if not fresh:
         return None
@@ -951,7 +1036,7 @@ def escalate_emergency(candidate, board, book, bad_cells=None):
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
     if not any(f["threat_level"] == "critical" for f in facts):
         return None
-    if candidate is not None and candidate.emergency:
+    if candidate is not None and candidate.emergency and rescue_is_effective(candidate,board,book):
         return None
     fresh = generate_candidates(board, book)
     esc = [c for c in fresh if c.emergency and c.kind in ("plant", "shovel")
@@ -963,11 +1048,37 @@ def escalate_emergency(candidate, board, book, bad_cells=None):
     return esc[0]
 
 
+def action_invalid_reason(candidate, board, book):
+    """Hard placement and purpose checks, independent of shortlist ranking."""
+    if not board.ok or not board_active(board): return 'board inactive'
+    if candidate.kind == 'wait': return None
+    if candidate.kind != 'plant':
+        return None if any(candidate_key(c)==candidate_key(candidate) for c in generate_candidates(board,book)) else 'recovery target or purpose changed'
+    book.sync_field_copies(board.plants)
+    c = candidate
+    slot = next((s for s in board.slots if s.index==c.slot and s.type_id==c.type_id),None)
+    if slot is None or not slot.ready: return 'slot changed or cooling'
+    if c.total_cost(book) is None or c.total_cost(book) > (board.sun or 0): return 'insufficient sun for complete action'
+    if board.snow_blocked(c.row,c.col): return 'confirmed ice trail'
+    if not board.can_plant(c.row,c.col,c.type_id,book): return 'occupied or unsupported cell'
+    tid = c.supports_type if c.supports_type is not None else c.type_id
+    tags = book.tags(tid)
+    if c.supports_type is not None and not any(s.ready and s.type_id==tid for s in board.slots):
+        return 'followup card changed or cooling'
+    nx = lane_facts(board,c.row,book)['nearest_zombie_x']
+    if (T_WALL in tags or c.intercept) and nx is not None and cell_x(c.col)>nx+40: return 'zombie passed blocking cell'
+    if T_WALL in tags and lane_facts(board,c.row,book)['nearest_is_crush'] and not (
+            book.combat(tid).get('crush_hits') or book.combat(tid).get('lethal_hit_burst')):
+        return 'blocker cannot stop confirmed crusher'
+    if not c.intercept and not any(t in tags for t in (T_WALL,T_INSTANT,T_GLOBAL_FREEZE,T_SPLASH3,T_TEMPORARY)):
+        if c.col not in rear_cols(board,book,c.row,producer=T_PRODUCER in tags): return 'rear placement no longer safe'
+    if any(t in tags for t in (T_INSTANT,T_SPLASH3,T_GLOBAL_FREEZE)) and not burst_targets(c,board,book):
+        return 'no targets remain in affected area'
+    return None
+
+
 def action_is_current(candidate, board, book):
-    """Re-evaluate legality AND tactical usefulness against a fresh snapshot."""
-    return (board.ok and board_active(board) and any(
-        candidate_key(c) == candidate_key(candidate)
-        for c in generate_candidates(board, book)))
+    return action_invalid_reason(candidate,board,book) is None
 
 
 def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: PlantBook) -> Decision:
@@ -1084,17 +1195,18 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                                  and not board.snow_blocked(r, c)
                                  for r in range(board.rows) for c in range(4)))
             for c in plants:
-                if c.kind != 'plant' or T_TEMPORARY in c.tags or T_INSTANT in c.tags:
+                effective_tags = book.tags(c.supports_type) if c.supports_type is not None else c.tags
+                if c.kind != 'plant' or T_TEMPORARY in effective_tags or T_INSTANT in effective_tags:
                     continue
-                cost = book.cost(c.type_id)
-                reserve = 100 if T_PRODUCER in c.tags and producers < max(6,board.rows*2) else ECON_RESERVE
+                cost = c.total_cost(book)
+                reserve = 50 if T_PRODUCER in effective_tags and producers < 4 else (100 if T_PRODUCER in effective_tags and producers < max(6,board.rows*2) else ECON_RESERVE)
                 if cost is None or (board.sun or 0) - cost < reserve:
                     continue
                 producer_cap = max(6,board.rows*2) + (board.rows*2 if calm_fill else 0)
-                economy = T_PRODUCER in c.tags and producers < producer_cap
-                missing_fire = T_SHOOTER in c.tags and not any(
+                economy = T_PRODUCER in effective_tags and producers < producer_cap
+                missing_fire = T_SHOOTER in effective_tags and not any(
                     book.has_tag(p.type_id,T_SHOOTER) for p in board.plants_in_lane(c.row))
-                missing_wall = T_WALL in c.tags and not facts[c.row]['blocking_walls']
+                missing_wall = T_WALL in effective_tags and not facts[c.row]['blocking_walls']
                 if economy or missing_fire or missing_wall or c.supports_type is not None \
                         or calm_fill:
                     chosen = c

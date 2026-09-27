@@ -188,6 +188,12 @@ def _zombie_traits(book: PlantBook, z) -> dict:
     if book.zombie_flag(z.type_id, 'crush'):
         tr['crush'] = True
         tr['note'] = 'Crushes (squashes) plants outright; only crush-resistant walls hold it.'
+    samples = book.crush_evidence.get(z.type_id, [])
+    if samples and not tr.get('crush'):
+        tr['suspected_crush_unverified'] = True
+        tr['independent_losses'] = len(samples)
+        tr['note'] = ('Unexplained plant losses are observational suspicion only; '
+                      'do not assume crushing or ice trails, and do not ban ordinary walls.')
     if getattr(z, 'stationary', None):
         tr['stationary_maybe_ranged'] = True
         tr.setdefault('note', 'Standing still while the clock advances: likely a ranged '

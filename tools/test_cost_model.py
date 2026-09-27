@@ -320,12 +320,14 @@ class ZeroDefenceLaneTests(unittest.TestCase):
         self.assertFalse(dec.hold, '零防线路不允许等待（即使正在攒女王）')
         self.assertTrue(set(dec.candidate.covers) & {0})
 
-    def test_far_zombie_on_zero_defence_lane_can_wait(self):
-        # 僵尸还在 865px 刚出屏：不构成禁等
+    def test_far_zombie_permits_safe_economy_development(self):
+        # Far zombies do not force a rescue, but missing economy should develop.
         b = self.board([PEA, SUN], [Zombie(0, 0, 0, x=865)], sun=190)
         cands = generate_candidates(b, self.book)
         dec = merge_decision(self.wait_answer(cands), cands, b, self.book)
-        self.assertTrue(dec.hold)
+        self.assertFalse(dec.hold)
+        self.assertIn('producer', dec.candidate.tags)
+        self.assertFalse(dec.candidate.emergency)
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ from pvz.transactions import run_transaction
 from pvz.ui import Layout
 
 QUEEN, ICE = range(420, 422)      # 420=向日葵女王 421=高冰果
-CRUSH_Z, FAST_Z = 12, 7           # zombie_traits.json 里的候选 id（crush/快啃）
+CRUSH_Z, FAST_Z = 5, 7            # confirmed ice truck / confirmed fast eater
 
 
 class FakeGameAgent:
@@ -168,13 +168,14 @@ class AdvancedThreatTests(unittest.TestCase):
               if c.kind == 'shovel' and c.salvage]
         self.assertTrue(cs, '贴身+血量≤咬速×4 时即使没采样到 eaten 位也应触发')
 
-    def test_dying_salvage_escalates_to_emergency(self):
+    def test_dying_salvage_is_asset_recovery_not_house_rescue(self):
         z = Zombie(0, 0, 0, x=280)
         b = self.board([PEA], [z],
                        [Plant(0, 0, 3, PEA, hp=120, recently_eaten=True)], sun=50)
         cs = [c for c in generate_candidates(b, self.book)
               if c.kind == 'shovel' and c.salvage]
-        self.assertTrue(cs and cs[0].emergency, '≤咬速×1.5s 的抢救应升级 emergency')
+        self.assertTrue(cs, 'Dying plants can be salvaged while no rescue is needed')
+        self.assertFalse(cs[0].emergency, 'Salvage does not stop a house breach')
 
     def test_relocation_never_targets_crush_lane_with_plain_wall(self):
         # 夜战教训：回收高坚果（非防撞）被搬进撞车路 = 白给（7000 血一压就没）。
@@ -383,21 +384,22 @@ class CrushLearningTests(unittest.TestCase):
                        plants=list(plants), zombies=list(zombies))
         return b
 
-    def test_instant_vanish_learns_crush(self):
+    def test_instant_vanish_records_unconfirmed_suspicion(self):
         from pvz.agent import PvZJevAgent
         prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=3000)])
         cur = self.board(zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
-        # 上一拍的豌豆（3000 血，不可能一个周期被啃完）消失了，
-        # 一只 9 号僵尸正好推进到该格 —— 9 号会压扁。
+        cur.game_clock = 1350
+        # A high-HP disappearance warrants observation, not a hard attack trait.
         notes = PvZJevAgent.learn_crush_events(prev, cur, self.book)
         self.assertTrue(notes)
-        self.assertTrue(self.book.zombie_flag(9, 'crush'))
-        self.assertIn(9, self.book.runtime_crush)
+        self.assertFalse(self.book.zombie_flag(9, 'crush'))
+        self.assertIn(9, self.book.crush_evidence)
 
     def test_low_hp_vanish_is_eating_not_crush(self):
         from pvz.agent import PvZJevAgent
         prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=200)])
         cur = self.board(zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
+        cur.game_clock = 1350
         notes = PvZJevAgent.learn_crush_events(prev, cur, self.book)
         self.assertFalse(notes)
         self.assertFalse(self.book.zombie_flag(9, 'crush'), '低血消失=被啃，不学 crush')
@@ -407,5 +409,6 @@ class CrushLearningTests(unittest.TestCase):
         prev = self.board(plants=[Plant(0, 0, 2, PEA, hp=3000)])
         cur = self.board(plants=[Plant(0, 0, 2, PEA, hp=2900)],
                          zombies=[Zombie(0, 0, 9, x=40 + 80 * 2 + 20)])
+        cur.game_clock = 1350
         self.assertFalse(PvZJevAgent.learn_crush_events(prev, cur, self.book))
         self.assertFalse(self.book.zombie_flag(9, 'crush'))

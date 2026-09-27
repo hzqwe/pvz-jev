@@ -240,9 +240,10 @@ class PlantBook:
         # 杂交版可能就地替换 id：标了 confirmed 的才硬性可信，其余是候选。
         self.zombie_traits = {"defaults": {"eat_dps": 100, "speed_px_s": 8}, "types": {}}
         # 实战学到的压扁僵尸 type（植物瞬移消失事件的观察结果）—— 与静态
-        # 特征表并行生效：即使表里的 id 猜错了，第一辆真冰车也会教会 agent；
-        # 反过来表里错标的 id 也可以在这里被将来的"观测否决"机制兜住。
+        # Reserved for explicitly verified runtime traits. Unexplained plant loss
+        # goes into soft evidence and never promotes itself into this hard set.
         self.runtime_crush: set[int] = set()
+        self.crush_evidence: dict[int, list] = {}
 
         self.load()            # plant_names.json（原版重复项，保持兼容）
         self.load_kb()         # hybrid_plants.json（功能知识库）
@@ -271,12 +272,12 @@ class PlantBook:
         if key == 'crush' and type_id in self.runtime_crush:
             return True
         ent = self.zombie_traits["types"].get(type_id) or {}
-        return bool(ent.get(key))
+        return bool(ent.get(key)) and (key not in ("crush", "ice_trail") or ent.get("confirmed") is True)
 
     def zombie_trait(self, type_id: int, key: str) -> float | None:
-        """数值型特征（eat_dps / speed_px_s）。未登记回落到 defaults。"""
+        """Confirmed numeric traits; unverified IDs use labelled default estimates."""
         ent = self.zombie_traits["types"].get(type_id) or {}
-        v = ent.get(key, self.zombie_traits["defaults"].get(key))
+        v = ent.get(key, self.zombie_traits["defaults"].get(key)) if ent.get('confirmed') is True else self.zombie_traits['defaults'].get(key)
         try:
             return float(v) if v is not None else None
         except (TypeError, ValueError):

@@ -205,9 +205,11 @@ class WaterLanePadTests(unittest.TestCase):
         self.assertTrue(pads, '受压水路应出荷叶候选')
         pressured = [c for c in pads if c.score >= 70]
         self.assertTrue(pressured, '受压水路的荷叶不应被 45 封顶')
-        for c in pressured:
-            self.assertTrue(self.book.has_tag(c.supports_type, 'wall'),
-                            f'荷叶连锁的应是墙系而不是 {c.supports_type}')
+        best=max(pressured,key=lambda c:c.score)
+        self.assertTrue(self.book.has_tag(best.supports_type, 'wall'),
+                        'The best pressured-water compound must still be a blocker')
+        self.assertTrue(all(c.supports_type is not None for c in pressured),
+                        'Every alternative preserves its scored followup; no bare pad')
 
     def test_calm_water_pad_stays_cheap(self):
         # 平静期的水路荷叶维持低价（铺地基，不是救场）

@@ -68,7 +68,8 @@ class PoolTests(unittest.TestCase):
         cs=generate_candidates(b,self.book)
         pads=[c for c in cs if c.type_id==PAD]
         self.assertTrue(pads)
-        self.assertTrue(all(not c.emergency for c in pads))
+        self.assertTrue(all(c.supports_type is not None for c in pads if c.emergency),
+                        'Only a completed compound interception can rescue; bare pads cannot')
         # 手里只有豌豆时也要链接（最优可用卡）；墙优先见 test_strategy_tips.WaterLanePadTests
         self.assertTrue(all(c.supports_type is not None and c.supports_type != PAD
                             for c in pads),

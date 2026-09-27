@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
-from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, escalate_emergency, adapt_stale_candidate
+from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate
 from .serialize import COL_LABEL, build_state, render_text
 from .tactics import cell_x
 from .transactions import run_transaction
@@ -483,12 +483,10 @@ class PvZJevAgent:
                 self._zombie_track.pop(key, None)
 
     def _track_snow_cells(self, board: BoardState) -> None:
-        """撞车僵尸压过的格子有积雪，融化前**不能种植**（用户 2026-09-26 补充）。
+        """Only confirmed ice-trail abilities block swept cells, not crushing alone.
 
-        用 Crush 僵尸（zombie_traits.json crush=true）的位移轨迹标记被压格子：
-        它从 x_max 走到当前 x 之间扫过的格子都算。融化时长 unverified，默认
-        30s（zombie_traits.json 的 ice_trail_melt_s）。这也解释了部分
-        "空格却种不上去"的现象 —— 不是 agent 的错，policy 会主动避开这些格。
+        The catalogue's melt duration is an estimate; never infer a trail from a
+        disappearing plant or an unconfirmed zombie ID.
         """
         if not hasattr(self, "_snow_cells"):
             self._snow_cells: dict[tuple[int, int], float] = {}
@@ -496,7 +494,7 @@ class PvZJevAgent:
         self._snow_cells = {c: t for c, t in self._snow_cells.items() if t > now}
         melt = float(self.book.zombie_traits["defaults"].get("ice_trail_melt_s") or 30)
         for z in board.zombies:
-            if z.friendly or z.x is None or not self.book.zombie_flag(z.type_id, "crush"):
+            if z.friendly or z.x is None or not self.book.zombie_flag(z.type_id, "ice_trail"):
                 continue
             hist = self._zombie_track.get((z.index, z.type_id)) or []
             xs = [x for _, x in hist] + [z.x]
@@ -514,72 +512,71 @@ class PvZJevAgent:
 
     @staticmethod
     def learn_crush_events(prev: BoardState, cur: BoardState, book: PlantBook) -> list[str]:
-        """实战学习"谁是压扁僵尸"（2026-09-27 基线对照审计的产物）。
-
-        背景：禁普通墙进撞车路的规则依赖 type id 的静态猜测——猜错了的
-        后果是"该路拒绝种任何墙"（基线版本从不拒绝，最坏也只是墙被压），
-        方向性风险比基线大。这里用行为证据自我纠偏：
-
-          植物在上一拍还在、且血量 >700（一个决策周期内不可能被啃完）、
-          这一拍消失了，同时一只 type T 的僵尸正好推进到该格 —— T 会压扁。
-          观察 ≥1 次即把 T 写进 book.runtime_crush，与静态特征表并行生效。
-
-        反向（僵尸贴着植物啃、血量渐减 = 非压扁）刻意不做否决：啃食中的
-        植物被第二只冰车压掉的情形会污染样本，宁多勿漏。
-        """
-        notes: list[str] = []
-        if prev is None or cur is None or not cur.ok or not prev.ok:
-            return notes
-        if (cur.pid, cur.board, cur.level) != (prev.pid, prev.board, prev.level):
-            return notes
-        cur_cells = {(p.row, p.col, p.type_id) for p in cur.plants}
+        """Record independent loss evidence; never learn from our own shovel."""
+        if prev is None or not cur.ok or not prev.ok:
+            return []
+        if (cur.pid, cur.board, cur.level, cur.scene) != (prev.pid, prev.board, prev.level, prev.scene):
+            return []
+        dt = (cur.game_clock or 0) - (prev.game_clock or 0)
+        if not 0 < dt <= 500:
+            return []  # A long gap cannot distinguish eating, projectiles and crushing.
+        removed = getattr(cur, 'intentional_removals', set())
+        alive = {(p.row,p.col,p.type_id) for p in cur.plants}
+        notes = []
+        evidence = book.crush_evidence
+        for tid in list(evidence):
+            evidence[tid] = [v for v in evidence[tid] if 0 <= (cur.game_clock or 0)-v[0] <= 6000]
+            if not evidence[tid]: del evidence[tid]
         for p in prev.plants:
-            if (p.row, p.col, p.type_id) in cur_cells:
+            key = (p.row,p.col,p.type_id)
+            if key in alive or key in removed or p.hp is None or p.recently_eaten:
                 continue
-            if p.hp is None or p.hp <= 700:
-                continue      # 低血消失 = 被啃死的，不是压扁
-            culprit = None
-            for z in cur.zombies_in_lane(p.row):
-                if z.x is None or z.friendly:
-                    continue
-                if cell_x(p.col) - 20 <= z.x <= cell_x(p.col) + 60:
-                    culprit = z
-                    break
-            if culprit is None or book.zombie_flag(culprit.type_id, 'crush'):
+            enemies = [z for z in cur.zombies_in_lane(p.row) if z.x is not None and not z.friendly]
+            possible = [z for z in enemies if cell_x(p.col)-20 <= z.x <= cell_x(p.col)+60]
+            if len(possible) != 1 or any(z.stationary or book.zombie_flag(z.type_id,'crush') for z in enemies):
                 continue
-            book.runtime_crush.add(culprit.type_id)
-            notes.append(f"Learned: zombie_type_{culprit.type_id} CRUSHES plants "
-                         f"(a {book.en(p.type_id)} vanished instantly under it) — "
-                         "crush-resistant walls only.")
+            eating = sum(book.zombie_trait(z.type_id,'eat_dps') or 100 for z in enemies)
+            if p.hp <= max(700, eating * dt / 100 * 2):
+                continue  # Conservative allowance for multiple mouths and unobserved damage.
+            culprit = possible[0]
+            samples = evidence.setdefault(culprit.type_id, [])
+            samples[:] = [v for v in samples if 0 <= (cur.game_clock or 0)-v[0] <= 6000]
+            source = (p.index,p.row,p.col,p.type_id)
+            if any(v[1] == source for v in samples):
+                continue
+            samples.append((cur.game_clock or 0, source))
+            # Loss is observational, not proof of attack mechanism. Keep suspicion soft;
+            # confirmed catalogue traits alone are allowed to ban walls or predict trails.
+            notes.append(f'Suspected crush: zombie_type_{culprit.type_id}; independent losses={len(samples)}. '
+                         'Unverified; ordinary walls remain allowed.')
         return notes
 
+    def reset_battle_context(self, board):
+        """Reset observations before processing the first snapshot of a new battle."""
+        context = (board.pid,board.board,board.level,board.scene,board.rows)
+        previous = getattr(self,'_last_decision_clock',None)
+        restarted = previous is not None and board.game_clock is not None and board.game_clock < previous
+        if context != getattr(self,'_terrain_context',None) or restarted:
+            self._bad_cells.clear()
+            self.book.min_cost.clear(); self.book.min_cost_ts.clear()
+            self.book.runtime_crush.clear(); self.book.crush_evidence.clear()
+            self._zombie_track = {}; self._snow_cells = {}
+            self._prev_decision_board = None
+            self._intentional_removals = set()
+            self._geometry_error = None
+            self._terrain_context = context
+        self._last_decision_clock = board.game_clock
+
     def decide(self, board: BoardState) -> tuple[Decision, dict]:
-        # 动态涨价按场上株数生效（图鉴 price_increment；见 PlantBook.cost）
+        self.reset_battle_context(board)
         self.book.sync_field_copies(board.plants)
-        # 决策层的"活体"判据统一用时钟推进（0x164 paused 不可靠，见 note_clock）
         board.clock_advancing = self._responsive
         self._track_zombie_station(board)
         self._track_snow_cells(board)
-        # 实战学习压扁僵尸（对照基线审计的产物，见 learn_crush_events）
-        crush_notes = self.learn_crush_events(getattr(self, '_prev_decision_board', None),
-                                              board, self.book)
+        board.intentional_removals = set(getattr(self,'_intentional_removals',set()))
+        crush_notes = self.learn_crush_events(getattr(self,'_prev_decision_board',None),board,self.book)
+        self._intentional_removals = set()
         self._prev_decision_board = board
-        context = (board.pid,board.board,board.scene,board.rows)
-        restarted = (self._last_decision_clock is not None and board.game_clock is not None
-                     and board.game_clock < self._last_decision_clock)
-        self._last_decision_clock = board.game_clock
-        if context != self._terrain_context or restarted:
-            self._bad_cells.clear()
-            self.book.min_cost.clear()
-            self.book.min_cost_ts.clear()
-            self._geometry_error = None
-            self._terrain_context = context
-            if restarted:
-                # ★ 新一局：行为观测的短期状态全部作废 —— 上一局的僵尸驻停
-                #   记录和积雪格对新局毫无意义；带着它们开局会把新局当旧局处理
-                #   （用户 2026-09-26 报告"第二局像降智商"的嫌疑之一）。
-                self._zombie_track.clear()
-                self._snow_cells.clear()
         state = build_state(board, self.book)
         cands = generate_candidates(board, self.book)
         # 过滤掉"刚试过、落不下去"的格子（见 execute() 里 _bad_cells 的说明）。
@@ -604,6 +601,10 @@ class PvZJevAgent:
             "iso": time.strftime("%Y-%m-%d %H:%M:%S"),
             "board_text": render_text(board, self.book),
             "state": state,
+            "observations": {"intentional_removals": sorted(board.intentional_removals),
+                "suspected_crush_types": sorted(self.book.crush_evidence),
+                "snow_cells": [[r,c,max(0,round(until-time.time(),1))]
+                               for (r,c),until in (board.snow_cells or {}).items()]},
             # coin 池全量快照（2026-09-26）：用于离线确认"天降阳光 = 哪个
             # type"—— 和 recent_sun_hits 的像素位置对上即可定号，之后收阳光
             # 可升级为内存驱动。read_coins_raw 只读、每决策周期一次。
@@ -613,7 +614,10 @@ class PvZJevAgent:
             "candidates": [
                 {"cid": c.cid, "kind": c.kind, "row": c.row, "col": c.col,
                  "slot": c.slot, "type_id": c.type_id, "score": round(c.score, 1),
-                 "desc": c.describe(self.book)}
+                 "desc": c.describe(self.book), "full_desc": c._describe_raw(self.book),
+                 "why": c.why, "covers": list(c.covers), "emergency": c.emergency,
+                 "salvage": c.salvage, "intercept": c.intercept, "supports_type": c.supports_type,
+                 "total_cost": c.total_cost(self.book), "relocate_to": c.relocate_to}
                 for c in cands
             ],
             "jev": {
@@ -682,6 +686,20 @@ class PvZJevAgent:
                       f"{self._advances} 轮）→ 本轮不注入任何点击")
             return
         cand = dec.candidate
+        validation_board = board
+        if cand is not None and (cand.kind == 'wait' or dec.hold) and not self.cfg.dry_run:
+            # A model wait is also stale if a house threat emerged during inference.
+            fresh = self.reader.read()
+            same = ((fresh.pid,fresh.board,fresh.level,fresh.scene,fresh.rows)
+                    == (board.pid,board.board,board.level,board.scene,board.rows))
+            if same and fresh.game_clock is not None and board.game_clock is not None and fresh.game_clock > board.game_clock:
+                rescue = escalate_emergency(cand,fresh,self.book,getattr(self,'_bad_cells',None))
+                if rescue is not None:
+                    validation_board = fresh
+                    cand = dec.candidate = rescue
+                    dec.hold = False; dec.fallback = True; dec.action_id = rescue.cid
+                    dec.notes.append('Fresh house threat overrides the earlier wait.')
+                    record.setdefault('decision',{}).update(action_id=rescue.cid,chosen=rescue.describe(self.book),fallback=True)
         if cand is None or cand.kind == "wait" or dec.hold:
             self.stats.holds += 1
             record["executed"] = {"kind": "hold"}
@@ -705,7 +723,7 @@ class PvZJevAgent:
         #    这些卡全被记成"要 900 阳光"，后续决策一路"保留阳光"。
         #    光靠候选生成过滤不够：卡槽冷却读数的可信度受读取时机影响，
         #    在真正点击前再核一次，是最便宜也最可靠的一道闸。
-        pre_slot = next((s for s in board.slots if s.index == cand.slot), None)
+        pre_slot = next((s for s in validation_board.slots if s.index == cand.slot), None)
         if pre_slot is not None and not pre_slot.ready:
             self.stats.cooling += 1
             record["executed"] = {
@@ -734,13 +752,17 @@ class PvZJevAgent:
         chk = self.reader.read()
         context_same = ((chk.pid, chk.board, chk.level, chk.scene, chk.rows)
                         == (board.pid, board.board, board.level, board.scene, board.rows))
+        if context_same:
+            chk.snow_cells = dict(getattr(self,'_snow_cells',None) or board.snow_cells or {})
         if not context_same or not action_is_current(cand, chk, self.book):
             # 过期候选先尝试**同卡同路适配**（第二局实测 36 次 stale 浪费了
             # 三分之一决策周期 —— 僵尸移动让原落点失效，但"用这张卡守这条路"
             # 的意图还在，落点交给代码按新快照重选）。
-            adapted = (adapt_stale_candidate(cand, chk, self.book,
-                                             getattr(self, '_bad_cells', None))
-                       if context_same else None)
+            advancing = chk.game_clock is not None and board.game_clock is not None and chk.game_clock > board.game_clock
+            adapted = (escalate_emergency(None,chk,self.book,getattr(self,'_bad_cells',None))
+                       if context_same and advancing else None)
+            if adapted is None and context_same:
+                adapted = adapt_stale_candidate(cand,chk,self.book,getattr(self,'_bad_cells',None))
             if adapted is not None:
                 note = (f"Stale candidate adapted to the fresh board: "
                         f"{self.book.en(adapted.type_id)} r{adapted.row + 1}"
@@ -756,10 +778,10 @@ class PvZJevAgent:
                 if self.cfg.verbose:
                     print(f"  ♻️ {note}")
             else:
-                record["executed"] = {"kind": "stale_action", "note": "战场或卡槽已变化，重新决策后再操作"}
+                record["executed"] = {"kind": "stale_action", "reason": action_invalid_reason(cand,chk,self.book) if context_same else 'battle identity changed', "note": "战场或卡槽已变化，重新决策后再操作"}
                 return
         if (chk.game_clock is None or board.game_clock is None
-                or chk.game_clock == board.game_clock):
+                or chk.game_clock <= board.game_clock):
             self.stats.input_ignored += 1
             record["executed"] = {
                 "kind": "skipped_not_responsive",
@@ -838,10 +860,11 @@ class PvZJevAgent:
         # ⚠️ 阳光基线在 `cancel_seed` **之后**取（取消手持种子可能让阳光变化，
         #    在它之前取会污染"真实成本"的差值）。
         pre = self.reader.read()
+        pre.snow_cells = dict(getattr(self,'_snow_cells',None) or chk.snow_cells or {})
         if ((pre.pid, pre.board, pre.level) != (board.pid, board.board, board.level)
                 or pre.scene != board.scene or pre.rows != board.rows
                 or not action_is_current(cand, pre, self.book)):
-            record["executed"] = {"kind": "stale_action", "note": "选卡前复核失败，未购买植物"}
+            record["executed"] = {"kind": "stale_action", "reason": action_invalid_reason(cand,pre,self.book), "note": "选卡前复核失败，未购买植物"}
             return
         sun0 = pre.sun
         self.clicker.click_card(cand.slot, self.layout, f"pick card {cand.slot}")

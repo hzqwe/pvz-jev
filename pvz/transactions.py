@@ -10,15 +10,16 @@ class TransactionStopped(RuntimeError):
 class PlantTransaction:
     def __init__(self,agent,board):
         self.agent=agent;self.board=board;self.steps=[]
-        self.identity=(board.pid,board.board,board.scene,board.rows)
+        self.identity=(board.pid,board.board,board.level,board.scene,board.rows)
     def read(self,predicate=lambda b:True,tries=6):
         previous=self.board.game_clock
         for _ in range(tries):
             time.sleep(.12)
             b=self.agent.reader.read()
-            if not b.ok or (b.pid,b.board,b.scene,b.rows)!=self.identity:
+            if not b.ok or (b.pid,b.board,b.level,b.scene,b.rows)!=self.identity:
                 raise TransactionStopped('Board changed during transaction')
             if b.game_clock is not None and previous is not None and b.game_clock>previous:
+                b.snow_cells = dict(getattr(self.agent,'_snow_cells',None) or self.board.snow_cells or {})
                 self.board=b
                 self.agent.book.sync_field_copies(b.plants)
                 if predicate(b):return b
@@ -98,6 +99,9 @@ class PlantTransaction:
         if current is None or current.hp is None or current.hp<=800:
             raise TransactionStopped('Recovery health window closed before shovel hit')
         self.cell_valid(source.type_id,row,col)
+        removals = getattr(self.agent, '_intentional_removals', set())
+        removals.add((source.row, source.col, source.type_id))
+        self.agent._intentional_removals = removals
         self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'recover wall')
         self.read(lambda b:not any(p.cell==source.cell and p.type_id==source.type_id for p in b.plants))
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
@@ -168,6 +172,9 @@ class PlantTransaction:
                       and p.type_id==source.type_id),None)
         if current is None:
             raise TransactionStopped('Plant gone before shovel hit')
+        removals = getattr(self.agent, '_intentional_removals', set())
+        removals.add((source.row, source.col, source.type_id))
+        self.agent._intentional_removals = removals
         self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'salvage shovel')
         self.read(lambda b:not any(p.cell==source.cell and p.type_id==source.type_id
                                    for p in b.plants))

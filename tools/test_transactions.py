@@ -59,6 +59,7 @@ class TransactionTests(unittest.TestCase):
         self.assertLess(g.actions.index('pick_drop'),g.actions.index('place_wall'))
         self.assertEqual(g.state.sun,75)
         self.assertEqual({p.type_id for p in g.state.plants if p.cell==(2,4)},{PAD,WALL})
+        self.assertIn((0,1,WALL),agent._intentional_removals)
     def test_stopped_clock_does_not_shovel(self):
         g=FakeGame();a=self.agent(g);b=g.read();g.frozen=True
         with patch('pvz.transactions.time.sleep'):

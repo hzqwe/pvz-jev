@@ -160,6 +160,7 @@ class BoardState:
     # 融化时长 unverified，默认 30s（zombie_traits.json 的 ice_trail_melt_s）。
     # None = 未观测。这也解释了部分"空格却种不上去"的现象——不是 agent 的错。
     snow_cells: dict[tuple[int, int], float] | None = None
+    intentional_removals: set[tuple[int,int,int]] = field(default_factory=set)
 
     @property
     def holding_shovel(self) -> bool:

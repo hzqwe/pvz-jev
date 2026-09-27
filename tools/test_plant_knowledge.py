@@ -120,10 +120,12 @@ class PlantKnowledgeTests(unittest.TestCase):
         biting=Plant(0,0,2,320,hp=1000,recently_eaten=True)
         b2=self.board([],[Zombie(0,0,0,x=250)],[biting])
         sh2=[c for c in generate_candidates(b2,self.book) if c.kind=='shovel']
-        self.assertTrue(sh2 and sh2[0].emergency)
+        self.assertTrue(sh2)
+        self.assertFalse(sh2[0].emergency, 'Recycling assets is not immediate house rescue')
         crit=self.board([],[Zombie(0,0,0,x=110)],[wall])
         sh3=[c for c in generate_candidates(crit,self.book) if c.kind=='shovel']
-        self.assertTrue(sh3 and sh3[0].emergency)
+        self.assertTrue(sh3)
+        self.assertFalse(sh3[0].emergency)
         self.assertIn('Reclaim it',sh[0].why)
         self.assertIn('Shovel up',sh[0].describe(self.book))
         self.assertEqual(sh[0].hp,1500)
