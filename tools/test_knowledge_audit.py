@@ -91,6 +91,8 @@ class KnowledgeAuditTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 agent.configure_catalog(SimpleNamespace(pid=124,title='植物大战僵尸杂交版v3.19'))
             self.assertIsNone(agent.book.identity(67))
+            self.assertNotIn(86, agent.book.kb_by_id)
+            self.assertFalse(agent.book.is_known(86))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,172 @@
+{
+  "edition": "classic",
+  "game_version": "3.9.9",
+  "source_revision": "ce3363868d087363b1b69df656a582c29b099db5",
+  "cards": [
+    {
+      "type_id": 86,
+      "local_name": "向日葵女王",
+      "canonical_name": "向日葵女王",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 78,
+      "local_name": "冰瓜香蒲",
+      "canonical_name": "冰瓜香蒲",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 109,
+      "local_name": "狂野机枪射手",
+      "canonical_name": "狂野机枪射手",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 2,
+      "local_name": "阳光炸弹",
+      "canonical_name": "阳光炸弹",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 20,
+      "local_name": "樱桃辣椒",
+      "canonical_name": "樱桃辣椒",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 14,
+      "local_name": "雪花寒冰菇",
+      "canonical_name": "雪花寒冰菇",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 23,
+      "local_name": "高冰果",
+      "canonical_name": "高冰果",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 183,
+      "local_name": "雷果子",
+      "canonical_name": "雷果子",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 161,
+      "local_name": "回收高坚果",
+      "canonical_name": "回收高坚果",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 90,
+      "local_name": "Cupid魅惑菇射手",
+      "canonical_name": "魅惑菇射手",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": [
+        "attack_dps"
+      ]
+    },
+    {
+      "type_id": 16,
+      "local_name": "睡莲",
+      "canonical_name": "豌豆睡莲",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": [
+        "attack_dps"
+      ]
+    },
+    {
+      "type_id": 28,
+      "local_name": "玉米卷香蒲",
+      "canonical_name": "玉米卷香蒲",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 101,
+      "local_name": "冰冻坚果",
+      "canonical_name": "冰冻坚果",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": [
+        "hp"
+      ]
+    },
+    {
+      "type_id": 0,
+      "local_name": "豌豆射手",
+      "canonical_name": "豌豆向日葵",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    },
+    {
+      "type_id": 9,
+      "local_name": "阳光向日葵",
+      "canonical_name": "阳光向日葵",
+      "identity_known": true,
+      "mechanics_known": true,
+      "missing_fields": []
+    }
+  ],
+  "aliases": [
+    {
+      "type_id": 90,
+      "local_name": "Cupid魅惑菇射手",
+      "canonical_name": "魅惑菇射手",
+      "acknowledged": false
+    },
+    {
+      "type_id": 16,
+      "local_name": "睡莲",
+      "canonical_name": "豌豆睡莲",
+      "acknowledged": true
+    },
+    {
+      "type_id": 0,
+      "local_name": "豌豆射手",
+      "canonical_name": "豌豆向日葵",
+      "acknowledged": false
+    }
+  ],
+  "conflicts": [
+    {
+      "type_id": 86,
+      "field": "combat.notes",
+      "reason": "source_version_unverified"
+    }
+  ],
+  "counts": {
+    "deck": 15,
+    "identity_known": 15,
+    "mechanics_known": 15
+  },
+  "missing_identity": [],
+  "missing_mechanics": [],
+  "unconfirmed_zombie_traits": [
+    12,
+    22,
+    23
+  ]
+}

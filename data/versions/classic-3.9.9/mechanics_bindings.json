@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "edition": "classic",
+  "game_version": "3.9.9",
+  "identity_source_revision": "ce3363868d087363b1b69df656a582c29b099db5",
+  "evidence": "Existing 15-card runtime bindings preserved at commit 60fbb1840ca5590b40c5b6580a02f5b43b6cffd1; identity confirmation does not validate every mechanics field.",
+  "profiles": {
+    "0": {
+      "profile_name": "豌豆射手",
+      "canonical_name": "豌豆向日葵"
+    },
+    "2": {
+      "profile_name": "阳光炸弹",
+      "canonical_name": "阳光炸弹"
+    },
+    "9": {
+      "profile_name": "阳光向日葵",
+      "canonical_name": "阳光向日葵"
+    },
+    "14": {
+      "profile_name": "雪花寒冰菇",
+      "canonical_name": "雪花寒冰菇"
+    },
+    "16": {
+      "profile_name": "睡莲",
+      "canonical_name": "豌豆睡莲"
+    },
+    "20": {
+      "profile_name": "樱桃辣椒",
+      "canonical_name": "樱桃辣椒"
+    },
+    "23": {
+      "profile_name": "高冰果",
+      "canonical_name": "高冰果"
+    },
+    "28": {
+      "profile_name": "玉米卷香蒲",
+      "canonical_name": "玉米卷香蒲"
+    },
+    "78": {
+      "profile_name": "冰瓜香蒲",
+      "canonical_name": "冰瓜香蒲"
+    },
+    "86": {
+      "profile_name": "向日葵女王",
+      "canonical_name": "向日葵女王"
+    },
+    "90": {
+      "profile_name": "Cupid魅惑菇射手",
+      "canonical_name": "魅惑菇射手"
+    },
+    "101": {
+      "profile_name": "冰冻坚果",
+      "canonical_name": "冰冻坚果"
+    },
+    "109": {
+      "profile_name": "狂野机枪射手",
+      "canonical_name": "狂野机枪射手"
+    },
+    "161": {
+      "profile_name": "回收高坚果",
+      "canonical_name": "回收高坚果"
+    },
+    "183": {
+      "profile_name": "雷果子",
+      "canonical_name": "雷果子"
+    }
+  }
+}

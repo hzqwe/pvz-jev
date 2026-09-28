@@ -1,6 +1,6 @@
 # v3.9.9 版本化身份目录 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 从已确认适配经典 v3.9.9 的静态来源建立身份目录，让新卡组按真实 ID 识别，并报告机制缺失。
 
@@ -34,11 +34,11 @@
 
 **Interfaces:** `extract_literal_names(source: str, variable: str) -> tuple[str, ...]`；`CatalogIdentity(edition: str, game_version: str, kind: str, type_id: int, canonical_name: str)`；`VersionCatalog.resolve(kind: str, type_id: int) -> CatalogIdentity | None`。
 
-- [ ] 写失败测试：植物初始数组 0=豌豆向日葵、16=豌豆睡莲、67=荷叶、86=向日葵女王、161=回收高坚果、183=雷果子；僵尸数组 5 对应冰车读报的上游名称；保留原始字符串不靠名字自动造能力。
-- [ ] 写失败测试：导入器不执行数组外的函数调用；指定数组使用调用表达式而非字符串字面量时明确报错；重复顶层定义拒绝。占位和后续数组拼接不被当成初始植物可选集合。
-- [ ] 从固定提交读取源文件，记录 URL、SHA、源文件内容哈希、导入日期、许可；以 ast 解析目标 Assign 和列表字符串，不 eval/import 上游文件。
-- [ ] 生成身份候选目录，所有新记录标记机制状态 identity_only；导入数量用于审计，不用于宣布实物覆盖率。
-- [ ] 运行 `python -m unittest discover -s tools -p test_catalog.py -v`，确认全部通过，再单独提交。
+- [x] 写失败测试：植物初始数组 0=豌豆向日葵、16=豌豆睡莲、67=荷叶、86=向日葵女王、161=回收高坚果、183=雷果子；僵尸数组 5 对应冰车读报的上游名称；保留原始字符串不靠名字自动造能力。
+- [x] 写失败测试：导入器不执行数组外的函数调用；指定数组使用调用表达式而非字符串字面量时明确报错；重复顶层定义拒绝。占位和后续数组拼接不被当成初始植物可选集合。
+- [x] 从固定提交读取源文件，记录 URL、SHA、源文件内容哈希、导入日期、许可；以 ast 解析目标 Assign 和列表字符串，不 eval/import 上游文件。
+- [x] 生成身份候选目录，所有新记录标记机制状态 identity_only；导入数量用于审计，不用于宣布实物覆盖率。
+- [x] 运行 `python -m unittest discover -s tools -p test_catalog.py -v`，确认全部通过，再单独提交。
 
 ### Task 2: 版本隔离、别名和覆盖审计
 
@@ -46,11 +46,11 @@
 
 **Interfaces:** `load_catalog(path: str, edition: str, game_version: str) -> VersionCatalog`；`audit_book(catalog: VersionCatalog, book: PlantBook, deck_ids: list[int]) -> dict`。报告分为 identity_known、mechanics_known、aliases、conflicts、missing_fields，不输出猜测数值。
 
-- [ ] 写失败测试：传 classic/3.19 或 remake/0.28 加载 classic/3.9.9 时抛 ValueError；缺少版本标识也拒绝。
-- [ ] 写失败测试：本地 ID 0=豌豆射手、16=睡莲时报告上游别名差异，不改变原 KBEntry 或成本缓存；现有绑定结果保持一致。
-- [ ] 写失败测试：新增已知 ID 无 KBEntry 时 identity_known=True、mechanics_known=False；未知 ID 两项 False；原版推定僵尸特征不能变成 confirmed=True。
-- [ ] 实现独立的目录查找与只读审计，现有 `PlantBook` 作为消费方，不改其确认语义。
-- [ ] 运行 `python -m unittest discover -s tools -p test_knowledge_audit.py -v` 与目录测试，确认通过；运行审计输出当前 15 卡及未知牌组样本报告，再提交。
+- [x] 写失败测试：传 classic/3.19 或 remake/0.28 加载 classic/3.9.9 时抛 ValueError；缺少版本标识也拒绝。
+- [x] 写失败测试：本地 ID 0=豌豆射手、16=睡莲时报告上游别名差异，不改变原 KBEntry 或成本缓存；现有绑定结果保持一致。
+- [x] 写失败测试：新增已知 ID 无 KBEntry 时 identity_known=True、mechanics_known=False；未知 ID 两项 False；原版推定僵尸特征不能变成 confirmed=True。
+- [x] 实现独立的目录查找与只读审计，现有 `PlantBook` 作为消费方，不改其确认语义。
+- [x] 运行 `python -m unittest discover -s tools -p test_knowledge_audit.py -v` 与目录测试，确认通过；运行审计输出当前 15 卡及未知牌组样本报告，再提交。
 
 ### Task 3: 接入新牌组的身份展示
 
@@ -58,11 +58,11 @@
 
 **Interfaces:** `PlantBook.identity(type_id: int) -> CatalogIdentity | None`（目录可选）；`PlantBook.name(type_id: int) -> str` 保持原签名，已绑定名称优先，未绑定时才展示匹配版本目录的名字；`is_known/role/cost/combat` 不因只有身份而伪造机制。
 
-- [ ] 写失败测试：相同新牌组换序不会按位置串绑；已绑定的 15 卡名字和成本不变；只识别身份的卡不会变成已确认 shooter/producer。
-- [ ] 写失败测试：未配置已验证版本或版本不匹配时，保持当前未知 ID 行为；未知机制输出缺失项，不能按冷却或卡片数静默猜身份。
-- [ ] 接入由已验证运行版本启用的目录，启动日志给出目录版本、SHA、身份/机制覆盖和缺失卡列表；默认保留当前绑定，避免把显示名迁移变成策略改写。
-- [ ] 更新说明：第一阶段解决身份与缺口报告，任意牌组自动游玩还依赖后续机制和地图合法性阶段。
-- [ ] 运行 `python -m unittest discover -s tools -p 'test_*.py' -v` 和 `git diff --check`，确认原回收/泳池/动态成本回归仍通过；完成只读卡组预演后提交。
+- [x] 写失败测试：相同新牌组换序不会按位置串绑；已绑定的 15 卡名字和成本不变；只识别身份的卡不会变成已确认 shooter/producer。
+- [x] 写失败测试：未配置已验证版本或版本不匹配时，保持当前未知 ID 行为；未知机制输出缺失项，不能按冷却或卡片数静默猜身份。
+- [x] 接入由已验证运行版本启用的目录，启动日志给出目录版本、SHA、身份/机制覆盖和缺失卡列表；默认保留当前绑定，避免把显示名迁移变成策略改写。
+- [x] 更新说明：第一阶段解决身份与缺口报告，任意牌组自动游玩还依赖后续机制和地图合法性阶段。
+- [x] 运行 `python -m unittest discover -s tools -p 'test_*.py' -v` 和 `git diff --check`，确认原回收/泳池/动态成本回归仍通过；完成只读卡组预演后提交。
 
 ## 后续计划的边界
 

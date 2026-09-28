@@ -192,7 +192,7 @@ class PvZJevAgent:
             return
         self._catalog_context = context
         self._catalog_deck = None
-        self.book.catalog = None
+        self.book.deactivate_catalog()
         version = version_from_title(win.title)
         if version is None:
             return

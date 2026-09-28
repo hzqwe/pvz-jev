@@ -102,3 +102,27 @@ def version_from_title(title: str) -> tuple[str, str] | None:
     """Recognize only the classic title shape; a generic PvZ window is ambiguous."""
     match = re.fullmatch(r'植物大战僵尸杂交版\s*[vV](\d+\.\d+(?:\.\d+)?)', title.strip())
     return ('classic', match[1]) if match else None
+
+
+def load_profile_bindings(catalog: VersionCatalog) -> dict[int, str]:
+    """Explicit legacy profile assignments; names alone cannot establish mechanics."""
+    path = DEFAULT_CATALOG.with_name('mechanics_bindings.json')
+    data = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=_unique_keys)
+    if (data.get('schema_version') != 1 or
+            (data.get('edition'), data.get('game_version')) != (catalog.edition, catalog.game_version) or
+            data.get('identity_source_revision') != catalog.source_revision):
+        raise ValueError('Mechanics bindings do not match the identity namespace')
+    rows = data.get('profiles')
+    if not isinstance(rows, dict):
+        raise ValueError('Missing explicit mechanics bindings')
+    profiles = {}
+    for key, row in rows.items():
+        if not re.fullmatch(r'0|[1-9]\d*', key) or not isinstance(row, dict):
+            raise ValueError('Invalid mechanics binding')
+        identity = catalog.resolve('plant', int(key))
+        profile = row.get('profile_name')
+        if (identity is None or row.get('canonical_name') != identity.canonical_name or
+                not isinstance(profile, str) or not profile.strip()):
+            raise ValueError('Mechanics binding has an identity conflict')
+        profiles[int(key)] = profile
+    return profiles

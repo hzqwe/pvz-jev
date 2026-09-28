@@ -29,7 +29,7 @@
 from __future__ import annotations
 
 import json
-from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog
+from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog, load_profile_bindings
 import os
 import time
 from dataclasses import dataclass, field
@@ -226,6 +226,8 @@ class PlantBook:
         self.bound_ids: dict[str, int] = {}          # 名字 -> id
         self.binding_notes: list[str] = []
         self.catalog: VersionCatalog | None = None
+        self._catalog_profiles: dict[int, str] = {}
+        self._catalog_restore: dict[int, dict] = {}
         # 运行时校准出来的真实成本 / 已知下界
         self.real_cost: dict[int, int] = {}
         self.min_cost: dict[int, int] = {}
@@ -328,6 +330,8 @@ class PlantBook:
         ent = self.kb_by_name.get(name)
         if ent is None:
             return False
+        # An explicit user binding promotes this ID out of the temporary catalog overlay.
+        self._catalog_restore.pop(type_id, None)
         self.bound_ids[name] = type_id
         self.kb_by_id[type_id] = ent
         self.table[type_id] = (name, ent.cost if ent.cost is not None else -1, ent.role)
@@ -568,8 +572,24 @@ class PlantBook:
     # -- 绑定 + 校验 -----------------------------------------------------
     def activate_catalog(self, edition: str, game_version: str) -> None:
         """A failed version check cannot leave a stale identity table enabled."""
+        self.deactivate_catalog()
+        catalog = load_catalog(str(DEFAULT_CATALOG), edition, game_version)
+        profiles = load_profile_bindings(catalog)
+        self.catalog, self._catalog_profiles = catalog, profiles
+
+    def deactivate_catalog(self) -> None:
+        """Undo derived profiles and their observations, retaining prior user facts."""
+        for tid, snapshot in self._catalog_restore.items():
+            self.kb_by_id.pop(tid, None)
+            for attribute, (present, value) in snapshot.items():
+                mapping = getattr(self, attribute)
+                if present:
+                    mapping[tid] = value
+                else:
+                    mapping.pop(tid, None)
+        self._catalog_restore.clear()
+        self._catalog_profiles.clear()
         self.catalog = None
-        self.catalog = load_catalog(str(DEFAULT_CATALOG), edition, game_version)
 
     def identity(self, type_id: int) -> CatalogIdentity | None:
         return self.catalog.resolve('plant', type_id) if self.catalog else None
@@ -579,16 +599,26 @@ class PlantBook:
         return ent.canonical_name if ent else f'zombie_type_{type_id} (hybrid identity unverified)'
 
     def bind_identity(self, type_id: int) -> bool:
-        """Bind an existing profile by version-scoped identity, never slot position."""
+        """Use an explicit version/ID assignment; never infer mechanics from a name."""
         if type_id in self.kb_by_id:
             return True
         identity = self.identity(type_id)
         if not identity:
             return False
-        names = [name for name in (identity.canonical_name, *identity.aliases)
-                 if name in self.kb_by_name]
-        entries = {id(self.kb_by_name[n]) for n in names}
-        return len(entries) == 1 and self.bind_one(type_id, names[0])
+        name = self._catalog_profiles.get(type_id)
+        entry = self.kb_by_name.get(name)
+        if entry is None:
+            return False
+        # Keep automatic assignments out of bound_ids/save_ids. Restore prior
+        # table and cost observations on a version switch, including failed loads.
+        attributes = ('table', 'real_cost', 'min_cost', 'min_cost_ts',
+                      'cost_mismatch', 'copies_on_field')
+        self._catalog_restore[type_id] = {
+            attribute: (type_id in getattr(self, attribute), getattr(self, attribute).get(type_id))
+            for attribute in attributes}
+        self.kb_by_id[type_id] = entry
+        self.table[type_id] = (name, entry.cost if entry.cost is not None else -1, entry.role)
+        return True
 
     def bind_lineup(self, slot_types: list[int], order: list[str],
                     cd_totals: list[int] | None = None) -> dict:

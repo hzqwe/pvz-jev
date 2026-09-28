@@ -103,6 +103,61 @@ class RuntimeIdentityTests(unittest.TestCase):
         self.assertEqual(book.name(161), '回收高坚果')
         self.assertFalse(book.bind_identity(67))
 
+    def test_same_name_at_another_id_cannot_reuse_verified_profile(self):
+        book = self.book()
+        book.bind_one(0, '豌豆射手')
+        book.real_cost[0] = 125
+        book.activate_catalog('classic', '3.9.9')
+        self.assertEqual(book.identity(228).canonical_name, '豌豆射手')
+        self.assertFalse(book.bind_identity(228))
+        self.assertFalse(book.is_known(228))
+        self.assertIsNone(book.cost(228))
+        self.assertEqual(book.describe(228)['knowledge_status'], 'identity_only')
+        self.assertEqual(book.cost(0), 125)
+
+    def test_failed_version_switch_removes_automatic_profiles_and_observations(self):
+        book = self.book()
+        original_table = dict(book.table)
+        book.activate_catalog('classic', '3.9.9')
+        self.assertTrue(book.bind_identity(86))
+        book.real_cost[86] = 600
+        book.note_unaffordable(86, 650)
+        with self.assertRaises(ValueError):
+            book.activate_catalog('classic', '3.19')
+        self.assertIsNone(book.identity(86))
+        self.assertNotIn(86, book.kb_by_id)
+        self.assertEqual(book.table, original_table)
+        self.assertNotIn(86, book.real_cost)
+        self.assertNotIn(86, book.min_cost)
+        self.assertFalse(book.is_known(86))
+        self.assertIsNone(book.cost(86))
+
+    def test_auto_bindings_do_not_change_saved_user_bindings(self):
+        book = self.book()
+        book.bind_one(0, '豌豆射手')
+        book.activate_catalog('classic', '3.9.9')
+        book.bind_identity(86)
+        with tempfile.TemporaryDirectory() as folder:
+            book.ids_file = str(Path(folder) / 'ids.json')
+            self.assertTrue(book.save_ids())
+            saved = json.loads(Path(book.ids_file).read_text(encoding='utf-8'))
+            self.assertEqual(saved['ids'], {'豌豆射手': 0})
+
+    def test_version_switch_preserves_manual_binding_and_existing_cost(self):
+        book = self.book()
+        book.bind_one(0, '豌豆射手')
+        book.real_cost[0] = 125
+        book.real_cost[86] = 500
+        book.activate_catalog('classic', '3.9.9')
+        book.bind_identity(86)
+        book.real_cost[86] = 600
+        with self.assertRaises(ValueError):
+            book.activate_catalog('remake', '0.28')
+        self.assertEqual(book.bound_ids, {'豌豆射手': 0})
+        self.assertEqual(book.cost(0), 125)
+        self.assertEqual(book.real_cost[86], 500)
+        self.assertNotIn(86, book.kb_by_id)
+
 
 if __name__ == '__main__':
     unittest.main()
