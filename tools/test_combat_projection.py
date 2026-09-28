@@ -36,6 +36,12 @@ class CombatProjectionTests(unittest.TestCase):
         b = self.board([Zombie(0,0,0,x=200), Zombie(1,0,0,x=650)], [Plant(0,0,4,183)])
         self.assertEqual(lane_facts(b,0,self.book)['shooter_support'], 0)
 
+    def test_quiet_lane_retains_awake_forward_formation_power(self):
+        b = self.board(plants=[Plant(0,0,2,183), Plant(1,0,1,0,asleep=True)])
+        self.assertAlmostEqual(lane_facts(b,0,self.book)['shooter_support'],
+                               attack_dps(self.book,183)/20, places=2)
+        self.assertEqual(lane_facts(b,1,self.book)['shooter_support'],0)
+
     def test_lane_beam_credits_reachable_crowd_only(self):
         ps = [Plant(0,0,2,183)]
         one = self.board([Zombie(0,0,0,x=500)], ps)

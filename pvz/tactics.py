@@ -192,11 +192,15 @@ def lane_facts(board, row, book=None):
     shooters, walls, reflect = 0.0, 0, 0.0
     if book:
         for p in board.plants:
-            if p.asleep:
+            if p.asleep or p.hp==0:
                 continue
             tags = book.tags(p.type_id)
             if T_SHOOTER in tags:
-                if T_TRACKING in tags:
+                if not zs and p.row==row and T_TRACKING not in tags:
+                    # No target exists yet: keep standing formation power for
+                    # quiet construction, without projecting damage at an enemy.
+                    shooters += attack_dps(book,p.type_id)/20
+                elif T_TRACKING in tags:
                     shooters += sum(target_dps(board,book,p.type_id,p.row,p.col,z) for z in zs)/20
                 elif p.row==row and nx is not None:
                     lead = min((z for z in zs if z.x is not None),key=lambda z:z.x)

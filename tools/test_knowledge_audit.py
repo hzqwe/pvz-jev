@@ -55,6 +55,32 @@ class KnowledgeAuditTests(unittest.TestCase):
             names = {r['type_id']:r['canonical_name'] for r in rows}
             self.assertEqual(names, {67:'荷叶',16:'豌豆睡莲',86:'向日葵女王'})
 
+    def test_available_mechanics_match_runtime_without_binding_or_mutation(self):
+        book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        before = copy.deepcopy(book.__dict__)
+        offline = audit_book(self.catalog,book,[0,86,183])
+        self.assertEqual(book.__dict__,before)
+        self.assertEqual(offline['counts']['mechanics_available'],3)
+        self.assertEqual(offline['counts']['mechanics_bound'],0)
+        book.activate_catalog('classic','3.9.9')
+        for tid in (0,86,183):
+            book.bind_identity(tid)
+        online = audit_book(self.catalog,book,[0,86,183])
+        self.assertEqual(online['counts']['mechanics_bound'],3)
+        for a,b in zip(offline['cards'],online['cards']):
+            self.assertEqual(a['missing_fields'],b['missing_fields'])
+            self.assertEqual(a['inferred_fields'],b['inferred_fields'])
+            self.assertEqual(a['unverified_fields'],b['unverified_fields'])
+
+    def test_inferred_income_and_conflicting_claims_are_explicit(self):
+        report = audit_book(self.catalog,self.book,[0,86])
+        pea,queen = report['cards']
+        self.assertIn('combat.sun_per_25s',pea['inferred_fields'])
+        self.assertEqual(pea['unverified_fields']['shot_dps']['value'],20)
+        self.assertIn('freeze_immunity',queen['unverified_fields'])
+        self.assertTrue(any(c['type_id']==86 and c['field']=='freeze_immunity'
+                            for c in report['conflicts']))
+
     def test_wrong_version_and_absent_version_are_rejected(self):
         for edition, version in [('classic','3.19'),('remake','0.28'),('classic','')]:
             with self.subTest(edition=edition,version=version), self.assertRaises(ValueError):

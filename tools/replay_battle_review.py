@@ -61,12 +61,19 @@ def snapshot(record,book):
     return board
 
 
-def replay(path):
+def replay(path,game_version=None):
     book=PlantBook(hybrid_file='',cost_file='')
+    if game_version is not None:
+        book.activate_catalog('classic',game_version)
     records=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
     invalid=[];count=Counter(missing_reasons=0,overlong_descriptions=0);previous=None;previous_record=None
     for i,record in enumerate(records):
         board=snapshot(record,book)
+        if book.catalog is not None:
+            for slot in board.slots:
+                book.bind_identity(slot.type_id)
+            for plant in board.plants:
+                book.bind_identity(plant.type_id)
         if previous is not None and board.game_clock<previous.game_clock:
             book.runtime_crush.clear();book.crush_evidence.clear();previous=None
         if previous is not None:
@@ -88,7 +95,8 @@ def replay(path):
                     reason=action_invalid_reason(c,board,book)
                     if reason:invalid.append({'line':i+1,'type':c.type_id,'cell':[c.row,c.col],'reason':reason})
         previous,previous_record=board,record
-    return dict(snapshots=len(records),**count,invalid_plant_candidates=invalid,
+    return dict(game_version=book.catalog.game_version if book.catalog else None,
+                snapshots=len(records),**count,invalid_plant_candidates=invalid,
                 hard_runtime_crush_types=sorted(book.runtime_crush),
                 limitation='Current policy and plant book replay; legacy positions are rounded. No live Jev, input, or match outcome simulation.')
 
@@ -96,7 +104,8 @@ def replay(path):
 if __name__=='__main__':
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--log',type=Path,default=ROOT/'out/decisions_20260927_235811.jsonl')
+    ap.add_argument('--game-version',help='Explicit classic version for versioned mechanics; omitted uses legacy bindings.')
     args=ap.parse_args()
-    report=replay(args.log)
+    report=replay(args.log,game_version=args.game_version)
     print(json.dumps(report,ensure_ascii=False,indent=2))
     sys.exit(bool(report['invalid_plant_candidates'] or report.get('missing_reasons') or report.get('overlong_descriptions')))
