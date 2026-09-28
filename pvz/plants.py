@@ -257,6 +257,18 @@ class PlantBook:
         self.load_costs()      # plant_costs.json（实测成本）
         self.load_zombie_traits()  # zombie_traits.json（僵尸特征）
 
+    def reload_data(self) -> None:
+        """新对局开始时从磁盘重载静态数据（2026-09-28）。
+
+        agent 进程跨局长活（run Jev continuously），而数据文件（卡组登记/
+        僵尸特征/教条）会在此期间被更新 —— 不重载的话，新对局会拿着进程
+        启动时的旧知识打（屋顶局实测：数据修了、进程没重启 -> 全 hold）。
+        运行时学习（real_cost/runtime_crush/min_cost/kb 绑定）刻意保留：
+        那是本会话挣来的校准。"""
+        self.load()              # plant_names -> table
+        self.load_kb()           # hybrid_plants -> kb_by_name
+        self.load_zombie_traits()
+
     def load_zombie_traits(self) -> None:
         data = load_json(ZOMBIE_TRAITS_FILE, {}) or {}
         defaults = dict(data.get("defaults") or {})

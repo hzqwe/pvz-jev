@@ -609,6 +609,11 @@ class PvZJevAgent:
             self._bad_cells.clear()
             if hasattr(self,'_roof_row_dx'): self._roof_row_dx.clear()
             self._blocked_cells = {}
+            # 新对局从磁盘重载静态数据（卡组登记/教条/僵尸特征）——
+            # 进程跨局长活，数据文件会在局间被更新（2026-09-28 屋顶局教训：
+            # 数据修了、老进程看不到 -> 全 hold）。运行时学习保留。
+            if hasattr(self,'book'): self.book.reload_data()
+            self._binding_checked = False
             self._battle_serial = getattr(self,'_battle_serial',0)+1
             self._battle_id = f'{self.run_id()}-b{self._battle_serial}'
             self.log_event('battle_start',battle_id=self._battle_id,
