@@ -829,6 +829,13 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 book.tags(d.type_id), False, (row,), drop_index=d.index,
             ))
 
+    # 从未用过的卡：试探加成（2026-09-28 泛化）。新登记的卡因为战斗数据
+    # 是估计/百科值，评分天然吃亏 —— 给"一次都没种成功过"的卡 +12，让
+    # agent 轮流把它们用起来（成本由运行时学习校准）。只改排序不改合法性。
+    for c in candidates:
+        if c.kind == 'plant' and book.planted_counts.get(c.type_id, 0) == 0:
+            c.score += 12
+
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
     selected, seen, counts = [], set(), {}

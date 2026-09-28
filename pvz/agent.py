@@ -1136,11 +1136,13 @@ class PvZJevAgent:
         }
         if placed:
             self._bad_cells.pop((cand.type_id,*target), None)
+            self.book.planted_counts[cand.type_id] = self.book.planted_counts.get(cand.type_id, 0) + 1
             if cand.supports_type is not None:
                 record['followup']=run_transaction(self,after,
                     followup=(cand.supports_type,cand.row,cand.col))
                 if record['followup']['completed']:
                     self.stats.executed += 1
+                    self.book.planted_counts[cand.supports_type] = self.book.planted_counts.get(cand.supports_type, 0) + 1
                 else:
                     self.stats.failed_actions += 1
             else:

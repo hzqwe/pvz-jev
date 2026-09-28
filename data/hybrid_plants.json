@@ -532,11 +532,14 @@
         "shooter",
         "slow"
       ],
-      "hp": null,
-      "effect_en": "寒冰仙人掌: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 300,
+      "effect_en": "Fires 3 piercing ice spikes every 1.5s covering THREE lanes (120/round, ~80 dps), slowing hit zombies.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "冰系仙人掌（按名推断，行为 unverified）"
+        "dps": 80,
+        "coverage": "3 lanes",
+        "slow": true,
+        "pierce": true,
+        "notes": "3 ice spikes per 1.5s (120/round) with slow, piercing, covering 3 lanes. Wiki pvzhe 2026-09-28."
       }
     },
     "寒冰香蒲": {
@@ -548,11 +551,13 @@
         "tracking",
         "slow"
       ],
-      "hp": null,
-      "effect_en": "寒冰香蒲: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 300,
+      "effect_en": "Full-board homing ice peas (40 dps), slows hit zombies to half speed for 15s.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "冰系香蒲，全屏追踪（按名推断，unverified）"
+        "dps": 40,
+        "coverage": "tracking",
+        "slow": true,
+        "notes": "Homing ice peas 20x2/s, single-target slow (half speed, 15s). Wiki pvzhe 2026-09-28."
       }
     },
     "伪装的向日葵": {
@@ -562,11 +567,12 @@
       "tags": [
         "producer"
       ],
-      "hp": null,
-      "effect_en": "伪装的向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 300,
+      "effect_en": "Disguised sunflower that produces 25 sun per 37 hp lost - it WANTS to be chewed. Cheap economy+decoy; salvage-shoveling it early forfeits its sun.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "伪装机制 unverified"
+        "sun_per_25s": 8,
+        "coverage": "tile",
+        "notes": "Produces 25 sun per 37 hp LOST - being chewed is its production mode (~200 sun over its 300 hp). Damage-triggered ESTIMATE. Wiki pvzhe 2026-09-28."
       }
     },
     "棱镜向日葵": {
@@ -576,11 +582,12 @@
       "tags": [
         "producer"
       ],
-      "hp": null,
-      "effect_en": "棱镜向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 300,
+      "effect_en": "When sky sun falls, refracts it into a secondary smaller sun. Economy amplifier - plant under an active sky-sun schedule.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "卡面价 188，unverified"
+        "sun_per_25s": 25,
+        "coverage": "tile",
+        "notes": "Refracts every sky-dropped sun into a secondary smaller sun (sky-drop triggered; output varies). ESTIMATE for economy credit. Wiki pvzhe 2026-09-28."
       }
     },
     "财神金盏花": {
@@ -588,13 +595,15 @@
       "cost": 888,
       "role": "producer",
       "tags": [
-        "producer"
+        "shooter",
+        "tracking"
       ],
-      "hp": null,
-      "effect_en": "财神金盏花: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 1000,
+      "effect_en": "PREMIUM ATTACKER: homing coin volley ~880 avg dps across the whole board; 10% of coins also land in your wallet. 1000 hp.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "金卡经济单位"
+        "dps": 886,
+        "coverage": "tracking",
+        "notes": "Fires 10 coins per 3.5s: silver 100 (60%) / gold 500 (30%) / diamond 1000 (10%) -> ~880 avg dps. 10% of coins go to the wallet. Wiki pvzhe 2026-09-28."
       }
     },
     "天使向日葵": {
@@ -604,11 +613,12 @@
       "tags": [
         "producer"
       ],
-      "hp": null,
-      "effect_en": "天使向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 300,
+      "effect_en": "Each planting raises sky-sun yield +25 (up to 4); after the 4th, produces 600 sun. Plant early to amplify the whole level's sky economy.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "卡面价 288，unverified"
+        "sun_per_25s": 25,
+        "coverage": "tile",
+        "notes": "First 4 planted each raise sky-sun yield by 25; the 4th then produces 600 sun once. Sky-sun triggered. ESTIMATE for economy credit. Wiki pvzhe 2026-09-28."
       }
     },
     "卡牌模仿者": {
@@ -630,13 +640,16 @@
       "cost": 288,
       "role": "producer",
       "tags": [
+        "shooter",
+        "tracking",
         "producer"
       ],
-      "hp": null,
-      "effect_en": "招财猫: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 1000,
+      "effect_en": "Tracking 500-damage strikes (~143 dps) plus 9 gold coins per 35s to your wallet. 1000 hp, amphibious.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "卡面价 288，unverified"
+        "dps": 143,
+        "coverage": "tracking",
+        "notes": "500 damage per 3.5s tracking strike; every 35s drops 9 gold coins (missed ones fly to the wallet). Amphibious. Wiki pvzhe 2026-09-28."
       }
     },
     "钻石坚果": {
@@ -646,11 +659,12 @@
       "tags": [
         "wall"
       ],
-      "hp": null,
-      "effect_en": "钻石坚果: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 4000,
+      "effect_en": "4000-hp wall where every hit deals at most 200 damage - holds giant smashes far better than its hp suggests.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "卡面价 100，unverified"
+        "coverage": "lane",
+        "damage_cap_per_hit": 200,
+        "notes": "4000-hp wall; each hit deals at most 200 damage - excellent against giant smashes. Wiki pvzhe 2026-09-28."
       }
     },
     "钻石种子": {
@@ -660,11 +674,11 @@
       "tags": [
         "producer"
       ],
-      "hp": null,
-      "effect_en": "钻石种子: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "hp": 500,
+      "effect_en": "Grows into a Diamond Flower (30s) that fires tracking diamonds every 5s - a currency producer, not battle sun.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "卡面价 128，unverified"
+        "coverage": "tile",
+        "notes": "Grows into a Diamond Flower after 30s that fires a tracking diamond every 5s (produces diamonds/currency, not battle sun). Wiki pvzhe 2026-09-28."
       }
     },
     "豌豆炸弹": {
@@ -675,10 +689,11 @@
         "instant"
       ],
       "hp": null,
-      "effect_en": "豌豆炸弹: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "effect_en": "One-shot 360-degree pea spray (20 damage per pea, ten rounds) - cheap light AoE for 50 sun.",
       "combat": {
-        "coverage": "unknown",
-        "notes": "按名推断 instant，行为 unverified"
+        "burst_damage": 200,
+        "coverage": "full-board 360-degree",
+        "notes": "One-shot: fires ten rounds of peas, 20 damage x360 degrees. Light AoE stall + damage for 50 sun. Wiki pvzhe 2026-09-28."
       }
     }
   }

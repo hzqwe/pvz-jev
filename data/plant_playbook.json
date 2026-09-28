@@ -55,6 +55,16 @@
     "冰冻坚果": "Budget wall+shooter: shoots 20x2 slowing bullets, reflects 20/s against biters, and freezes its 3x3 for 3s (plus 20s slow) on death. Cheap (150 sun) FRONT-line wall for any lane; place it where it will actually be bitten so its death freeze hits the push. Almanac does not show its hp - assume it dies faster than tall-nut walls.",
     "Cupid魅惑菇射手": "Temporary (15s): charms ~3 zombies per 2s, flipping them to fight for you; 2nd-class armor absorbs one hit and the ice-truck giant's vehicle takes 1800 instead; control-immune helmets are unaffected. Use as a mid-lane trump card behind a wall against heavy mixed pushes; plan the defence that takes over when she expires.",
     "睡莲": "Peashooter Lily Pad: water support layer plus modest lane pea fire. An ordinary top-layer plant can coexist. Peas may benefit from a torch in their path. Exact firing numbers are unverified. Complete a planned affordable ready follow-up immediately at the same cell after verifying the pad; its modest shooting does not make a bare pad sufficient defence against heavy pushes.",
-    "阳光花盆": "Roof-lane gatekeeper pot (75 sun, user-confirmed) that ALSO PRODUCES SUN (amount unspecified). NOTHING plants on roof tiles until a pot is down - the code chains pot->defender in one transaction. Plant it early on every roof lane; it pays back as both an economy unit and the enabler for the whole lane."
+    "阳光花盆": "Roof-lane gatekeeper pot (75 sun, user-confirmed) that ALSO PRODUCES SUN (amount unspecified). NOTHING plants on roof tiles until a pot is down - the code chains pot->defender in one transaction. Plant it early on every roof lane; it pays back as both an economy unit and the enabler for the whole lane.",
+    "寒冰仙人掌": "3-lane ice spike shooter: ~80 dps with slow and pierce across THREE lanes for 350 sun. A strong mid-cost lane-cover plant; put it where lanes cluster.",
+    "寒冰香蒲": "250-sun full-board homing ice shooter (40 dps) that halves zombie speed for 15s per hit. Cheap permanent slow support - any safe rear lane.",
+    "财神金盏花": "PREMIUM ATTACKER (888 sun): homing coin volley ~880 avg dps board-wide, 1000 hp. The strongest damage plant in this deck - protect it like a Queen.",
+    "招财猫": "288-sun tracking attacker (~143 dps) that also drops 9 gold coins per 35s to your wallet. 1000 hp, amphibious - works on water too.",
+    "钻石坚果": "100-sun 4000-hp wall where every hit is capped at 200 damage - the anti-giant/anti-smash wall. Cheaper per effective hp than most walls.",
+    "棱镜向日葵": "188-sun economy amplifier: refracts every sky-dropped sun into a second smaller sun. Value scales with the level's sky-sun schedule.",
+    "天使向日葵": "288-sun sky-economy amplifier: each planting raises sky-sun yield +25 (max 4); after the 4th it produces 600 sun once. Plant all 4 early.",
+    "伪装的向日葵": "50-sun disguised sunflower that produces 25 sun per 37 hp LOST - being chewed is its production mode. Cheap decoy economy; do NOT salvage-shovel it early, its sun comes from taking damage.",
+    "豌豆炸弹": "50-sun one-shot 360-degree pea spray - light AoE stall. Weaker than Sun Bomb; use for cheap crowds or emergency stall.",
+    "钻石种子": "128-sun seed that grows into a Diamond Flower firing tracking diamonds every 5s - a wallet producer, not battle sun. Plant when rich, but do not count it as defence."
   }
 }

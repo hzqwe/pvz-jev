@@ -242,6 +242,10 @@ class PlantBook:
         self.copies_on_field: dict[int, int] = {}
         # 绑定后学到的成本与知识库不符的告警（用于发现绑错）
         self.cost_mismatch: dict[int, tuple[int, int]] = {}
+        # 每种植物成功种下的次数（agent 重置时清零）。从未用过的卡获得
+        # 试探加成（policy +12）：让 agent 轮流把新卡用起来，同时用
+        # 运行时价格学习校准它们的成本。
+        self.planted_counts: dict[int, int] = {}
         # 僵尸特征表（crush/远程/啃食速度/移速），见 data/zombie_traits.json。
         # 杂交版可能就地替换 id：标了 confirmed 的才硬性可信，其余是候选。
         self.zombie_traits = {"defaults": {"eat_dps": 100, "speed_px_s": 8}, "types": {}}
