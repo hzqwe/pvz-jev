@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit
 
 MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -273,6 +273,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             utility = upgrade_value(board,book,slot.type_id,row)
             value += utility
             reason += f' Capability fit={utility:g} (heuristic; damage/control/economy, not price).'
+            lead = min((z for z in board.zombies_in_lane(row) if z.x is not None),
+                       key=lambda z:z.x,default=None)
+            if torch_path(board,book,slot.type_id,row,col,lead):
+                value += 8  # Combination preference, not an invented damage multiplier.
+                reason += ' Peas cross a live torch; fire synergy, multiplier unverified.'
+            if book.combat(slot.type_id).get('piercing'):
+                hits = sum(can_hit(book,slot.type_id,row,col,z) for z in board.zombies_in_lane(row))
+                reason += f' Beam reaches {hits} lane target(s).'
         if T_BURN_AURA in tags:
             # 光环只烧植物周围 3x3：只统计与落点同行/邻排、且还在光环射程内的僵尸，
             # 不当全屏伤害计分（图鉴 aura_dps=40/s，仅对贴身目标成立）。
@@ -647,7 +655,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     col = max(reach)
                 else:
                     torch = max((p.col for p in board.plants_in_lane(r)
-                                 if book.has_tag(p.type_id, T_TORCH)), default=None)
+                                 if not p.asleep and p.hp!=0 and book.has_tag(p.type_id, T_TORCH)
+                                 and (nx_r is None or cell_x(p.col)<nx_r)), default=None)
                     if book.combat(tid).get('torch_compatible') and torch is not None:
                         # 用户技巧：豌豆穿过向日葵女王（火炬柱）获火焰增益，
                         # 落点优先选女王身后（更靠房子一侧）最近的空位。
@@ -990,13 +999,7 @@ def rescue_is_effective(candidate, board, book):
             if lead in burst_targets(candidate,board,book) and (
                     profile.get('burst_damage',0) >= (lead.hp or 270)+(lead.armor_hp or 0)): return True
         elif T_SHOOTER in tags:
-            dps = attack_dps(book,tid)
-            if T_TRACKING in tags:
-                total = sum(strength(z) for r in range(board.rows) for z in board.zombies_in_lane(r))
-                dps *= strength(lead)/max(1,total)
-            elif row!=candidate.row or cell_x(candidate.col)>lead.x: continue
-            rng = book.range_cells(tid)
-            if rng is not None and lead.x-cell_x(candidate.col)>rng*80: continue
+            dps = target_dps(board,book,tid,candidate.row,candidate.col,lead)
             # Allow for the first firing interval and projectile travel.
             first_hit = 1.5 + abs(lead.x-cell_x(candidate.col))/200
             if dps>0 and setup+first_hit+((lead.hp or 270)+(lead.armor_hp or 0))/dps < available:
@@ -1225,7 +1228,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             # 用户 2026-09-26：阳光充裕的平静期把前四列种满、不许发呆 ——
             # 阵型成型后模型再选等待，代码也从候选里挑一个保持储备的建设项。
             # "满"的判据：前四列还有空格才继续填；真满员时允许等待。
-            calm_fill = (not board.zombies and (board.sun or 0) >= 600
+            calm_fill = ((not board.zombies and (board.sun or 0) >= 600 or (board.sun or 0) >= 1000)
                          and any((r, c) not in board.top_occupancy(book)
                                  and not board.snow_blocked(r, c)
                                  for r in range(board.rows) for c in range(4)))

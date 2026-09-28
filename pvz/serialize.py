@@ -13,7 +13,7 @@ from dataclasses import asdict
 
 from .board import BoardState
 from .plants import PlantBook
-from .tactics import lane_facts, saving_plan
+from .tactics import lane_facts, saving_plan, economy_summary
 
 SCENE_NAMES = {
     0: "白天草地 day_lawn",
@@ -182,6 +182,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         "wave_info_unverified": _wave_info(board),
         "lanes": lanes,
         "seed_cards": seeds,
+        "economy": economy_summary(board,book),
         "doctrine": {
             "principles": playbook.get("principles_en") or [],
             "enemy_notes": playbook.get("enemy_notes_en") or [],

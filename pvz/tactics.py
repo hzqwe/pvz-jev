@@ -38,6 +38,68 @@ def attack_dps(book, type_id):
     return profile.get('dps', default) * profile.get('hit_factor', 1)
 
 
+def can_hit(book, type_id, row, col, target):
+    """Forward-lane geometry; tracking targets do not need a straight-line path."""
+    if target.friendly or not book.has_tag(type_id, T_SHOOTER):
+        return False
+    if book.has_tag(type_id, T_TRACKING):
+        return True
+    if target.row != row or target.x is None or target.x < cell_x(col):
+        return False
+    reach = book.range_cells(type_id)
+    return reach is None or target.x-cell_x(col) <= reach*80
+
+
+def torch_path(board, book, type_id, row, col, target=None):
+    """A known straight projectile crosses a live torch before reaching its target."""
+    if (not book.combat(type_id).get('torch_compatible') or
+            book.has_tag(type_id, T_TRACKING) or
+            target is not None and not can_hit(book,type_id,row,col,target)):
+        return False
+    return any(p.row==row and p.col>col and not p.asleep and p.hp!=0
+               and book.has_tag(p.type_id,T_TORCH)
+               and (target is None or target.x is not None and cell_x(p.col)<target.x)
+               for p in board.plants)
+
+
+def target_dps(board, book, type_id, row, col, target):
+    """Conservative target estimate; unverified torch multipliers add no damage."""
+    if not can_hit(book,type_id,row,col,target):
+        return 0.0
+    dps = attack_dps(book,type_id)
+    profile = book.combat(type_id)
+    armor = target.armor_hp or 0
+    body = target.hp if target.hp is not None else 270
+    multiplier = profile.get('armor_multiplier',1)
+    if armor and multiplier>1:
+        # Double damage to armor cannot also double damage to the unarmored body.
+        dps *= (body+armor)/(body+armor/multiplier)
+    if book.has_tag(type_id,T_TRACKING):
+        total = sum(strength(z) for r in range(board.rows) for z in board.zombies_in_lane(r))
+        dps *= min(1,strength(target)/max(1,total))
+    return dps
+
+
+def economy_summary(board, book):
+    income, count, inferred, unknown = 0.0, 0, set(), set()
+    for p in board.plants:
+        if p.asleep or p.hp==0 or not book.has_tag(p.type_id,T_PRODUCER):
+            continue
+        count += 1
+        amount = book.combat(p.type_id).get('sun_per_25s')
+        if amount is None:
+            unknown.add(p.type_id)
+        else:
+            income += amount  # No observed plant age: retain the young-plant rate.
+        entry = book.kb_by_id.get(p.type_id)
+        source = (entry.raw.get('field_sources',{}).get('combat.sun_per_25s',{}) if entry else {})
+        if source.get('confidence')=='classic_inferred':
+            inferred.add(p.type_id)
+    return dict(producer_count=count, sun_per_25s_estimate=round(income,2),
+                inferred_income_types=sorted(inferred), unknown_income_types=sorted(unknown),
+                note='Planning estimate. Growth ages and next payout times are unobserved; inferred rates are not measured.')
+
+
 def upgrade_value(board, book, type_id, row=None):
     """Contextual utility, not a combat simulator or a reward for expensive cards."""
     profile, tags = book.combat(type_id), book.tags(type_id)
@@ -52,6 +114,8 @@ def upgrade_value(board, book, type_id, row=None):
     value = dps * (1 + armored*(profile.get('armor_multiplier',1)-1))
     if profile.get('spread'):
         value *= 1 + .25*min(3,max(0,len(targets)-1))
+    if profile.get('piercing') and not tracking:
+        value *= 1 + .35*min(4,max(0,len(targets)-1))
     if tracking:
         value *= 1 + .1*max(0,active-1)
     # Avoid endlessly buying the same control: credit only uncovered pressured lanes.
@@ -131,13 +195,16 @@ def lane_facts(board, row, book=None):
             if p.asleep:
                 continue
             tags = book.tags(p.type_id)
-            if T_SHOOTER in tags and (T_TRACKING in tags or
-                    (p.row == row and (nx is None or cell_x(p.col) < nx))):
-                share = 1
+            if T_SHOOTER in tags:
                 if T_TRACKING in tags:
-                    total_strength = sum(strength(z) for r in range(board.rows) for z in board.zombies_in_lane(r))
-                    share = power/total_strength if total_strength else 0
-                shooters += attack_dps(book,p.type_id)/20 * share
+                    shooters += sum(target_dps(board,book,p.type_id,p.row,p.col,z) for z in zs)/20
+                elif p.row==row and nx is not None:
+                    lead = min((z for z in zs if z.x is not None),key=lambda z:z.x)
+                    # A forward beam may clear the crowd, but cannot save a lead
+                    # enemy that already passed the firing plant.
+                    if can_hit(book,p.type_id,p.row,p.col,lead):
+                        targets = zs if book.combat(p.type_id).get('piercing') else [lead]
+                        shooters += sum(target_dps(board,book,p.type_id,p.row,p.col,z) for z in targets)/20
             if p.row == row and T_WALL in tags and (nx is None or cell_x(p.col) <= nx):
                 walls += 1
                 # 反伤只在僵尸真的啃到墙时生效：僵尸从右往左走，追上墙
@@ -250,9 +317,7 @@ def stall_window(board, book, row, type_id, col=None):
             if not p.asleep and cell_x(p.col) < nearest.x
             and (col is None or p.col < col)
             and book.has_tag(p.type_id,T_SHOOTER)]
-    dps = sum(attack_dps(book,p.type_id) for p in rear
-              if book.range_cells(p.type_id) is None
-              or nearest.x-cell_x(p.col) <= book.range_cells(p.type_id)*80)
+    dps = sum(target_dps(board,book,p.type_id,p.row,p.col,nearest) for p in rear)
     hp = book.hp(type_id)
     if not hp or not dps or nearest.hp is None:
         return None
