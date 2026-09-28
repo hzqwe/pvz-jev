@@ -9,12 +9,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pvz.catalog import REVISION, extract_literal_names
 
-SOURCE_SHA256 = '0edd3be9cc8340c7c22185378fa0c3f1883516f99d3facd893a253f896d4adcc'
+SOURCE_SHA256 = 'a80c5e14f1d67e44eb8a2500970155d3e4499f4e6db337ea90cbd0ec70214c97'
+SOURCE_BLOB_SHA = '4029c36fe347474f5d579475558b0e437610bbc4'
 SOURCE_URL = f'https://github.com/EFrostBlade/PVZHybrid_Editor/blob/{REVISION}/PVZ_data.py'
 
 
 def import_catalog(source_path: Path, license_path: Path, output_dir: Path) -> dict:
-    source_bytes = source_path.read_bytes()
+    # Canonicalize text transport endings; Git on Windows may check out CRLF.
+    source_bytes = (source_path.read_text(encoding='utf-8').rstrip('\n')+'\n').encode('utf-8')
     digest = hashlib.sha256(source_bytes).hexdigest()
     if digest != SOURCE_SHA256:
         raise ValueError('Source content differs from the reviewed beta 0.66 snapshot')
@@ -31,7 +33,8 @@ def import_catalog(source_path: Path, license_path: Path, output_dir: Path) -> d
                 source_revision=REVISION, entities=entities)
     provenance = dict(edition='classic', game_version='3.9.9', tag='β0.66',
                       source_revision=REVISION, source_url=SOURCE_URL,
-                      source_sha256=digest, license='MIT',
+                      source_sha256=digest, source_git_blob_sha=SOURCE_BLOB_SHA,
+                      source_normalization='UTF-8, LF, exactly one final newline', license='MIT',
                       imported_at=datetime.now(timezone.utc).isoformat(),
                       warning='Identity candidates, not selectable-entity counts or verified mechanics.',
                       alias_evidence={'plant:16': 'User confirmed pea-shooting lily identity 2026-09-28'})
@@ -41,7 +44,7 @@ def import_catalog(source_path: Path, license_path: Path, output_dir: Path) -> d
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, value in [('catalog.json', pack), ('sources.json', provenance)]:
         (output_dir / name).write_text(json.dumps(value, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    (output_dir / 'LICENSE.upstream.txt').write_text(license_text, encoding='utf-8')
+    (output_dir / 'LICENSE.upstream.txt').write_text(license_text.rstrip()+'\n', encoding='utf-8')
     return {kind: len(records) for kind, records in entities.items()}
 
 

@@ -4,12 +4,20 @@ import json
 import sys
 import tempfile
 import unittest
+import io
+from contextlib import redirect_stdout
+from types import SimpleNamespace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pvz.catalog import DEFAULT_CATALOG, load_catalog
 from pvz.plants import PlantBook
 from tools.audit_knowledge import audit_book
+from pvz.agent import PvZJevAgent
+from pvz.board import BoardState, SeedSlot
+from pvz.jev import DecisionLog
+from pvz.policy import generate_candidates
+from pvz.serialize import build_state
 
 
 class KnowledgeAuditTests(unittest.TestCase):
@@ -58,6 +66,31 @@ class KnowledgeAuditTests(unittest.TestCase):
             path.write_text(json.dumps(raw), encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_catalog(str(path), 'classic','3.9.9')
+
+    def test_agent_recognizes_reordered_deck_and_logs_missing_mechanics(self):
+        with tempfile.TemporaryDirectory() as folder:
+            agent = PvZJevAgent.__new__(PvZJevAgent)
+            agent.book = self.book
+            agent._binding_checked = agent._binding_warned = False
+            agent.log = DecisionLog(str(Path(folder)/'decision.jsonl'))
+            # Avoid constructing an API client or interacting with a game window.
+            board = BoardState(ok=True, sun=1000, rows=5, cols=9,
+                               slots=[SeedSlot(i,t,0,1000) for i,t in enumerate([67,86,16])])
+            with redirect_stdout(io.StringIO()):
+                agent.configure_catalog(SimpleNamespace(pid=123,title='植物大战僵尸杂交版v3.9.9'))
+                agent.sync_binding(board)
+            self.assertEqual(agent.book.name(67), '荷叶')
+            self.assertEqual(agent.book.name(86), '向日葵女王')
+            self.assertFalse(agent.book.is_known(67))
+            self.assertFalse(any(c.type_id==67 for c in generate_candidates(board,agent.book)))
+            event = json.loads(Path(agent.log.event_path).read_text(encoding='utf-8').splitlines()[-1])
+            self.assertEqual(event['event'], 'knowledge_coverage')
+            self.assertEqual(event['missing_mechanics'], [67])
+            seeds = build_state(board,agent.book)['seed_cards']
+            self.assertEqual(seeds[0]['knowledge_status'], 'identity_only')
+            with redirect_stdout(io.StringIO()):
+                agent.configure_catalog(SimpleNamespace(pid=124,title='植物大战僵尸杂交版v3.19'))
+            self.assertIsNone(agent.book.identity(67))
 
 
 if __name__ == '__main__':

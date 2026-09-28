@@ -38,6 +38,7 @@ class RuntimeLoggingTests(unittest.TestCase):
         old=WindowInfo(101,1,'x','old',(0,0,800,600),(0,0,800,600),(800,600),True)
         new=WindowInfo(202,2,'x','new',(0,0,800,600),(0,0,800,600),(800,600),True)
         a=PvZJevAgent.__new__(PvZJevAgent);a.cfg=AgentConfig(verbose=False)
+        a.book=self.book
         a.reader=SimpleNamespace(attached=True,pid=2);a.win=old;a.layout=Layout()
         a.clicker=Clicker(old);a._need_focus=False
         with patch('pvz.agent.find_game_window',return_value=new):

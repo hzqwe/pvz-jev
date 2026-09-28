@@ -422,25 +422,37 @@
       "combat_source": "user_almanac_2026-09-26"
     },
     "睡莲": {
-      "en": "Lily Pad",
+      "en": "Peashooter Lily Pad",
+      "aliases": ["豌豆射手睡莲", "豌豆睡莲"],
+      "canonical_name": "豌豆射手睡莲",
       "cost": 25,
       "role": "platform",
       "tags": [
-        "platform"
+        "platform",
+        "shooter"
       ],
       "hp": 300,
       "cooldown_s": 7.5,
-      "damage": "none",
-      "effect_en": "Platform plant. Must be placed first on a water tile before anything else can go there.",
+      "damage": "Pea shots; exact damage and attack interval unverified",
+      "effect_en": "Water-only support layer that also fires peas down its lane. An ordinary plant can be planted above it without occupying another water cell. Peas are torch-compatible. Exact firing damage/cadence has not been verified; do not treat its modest firepower as sufficient against heavy pushes. Complete a planned top-layer placement immediately after verifying this base.",
       "effects": [
-        "水面种植平台"
+        "水面种植平台",
+        "向前方一行发射豌豆"
       ],
       "combat": {
-        "dps": 0,
-        "coverage": "none",
-        "notes": "Platform only; placement still unsupported."
+        "coverage": "lane",
+        "projectile_type": "pea",
+        "torch_compatible": true,
+        "damage_per_shot": null,
+        "shot_interval_s": null,
+        "notes": "Pea shooting confirmed by user 2026-09-28; exact damage/cadence unknown. Tactical strength uses the existing conservative shooter fallback estimate, not measured DPS. Occupies the support layer, so a top plant can coexist."
       },
-      "combat_source": "existing_catalogue"
+      "combat_source": "user_confirmed_2026-09-28",
+      "field_sources": {
+        "shooting": {"evidence": "User confirmed pea-shooting lily on 2026-09-28", "applicable_version": "classic-3.9.9", "confidence": "user_confirmed"},
+        "cost": {"value": 25, "source_url": "https://pvzhe.wiki/w/杂交版v3.1更新公告", "confidence": "version_change_and_existing_runtime"},
+        "attack_numbers": {"value": null, "confidence": "unverified"}
+      }
     },
     "豌豆射手": {
       "en": "Peashooter",

@@ -122,7 +122,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 ],
                 "zombies": [
                     {
-                        "kind": f"zombie_type_{z.type_id} (hybrid identity unverified)",
+                        "kind": book.zombie_name(z.type_id),
                         "body_hp": z.hp, "armor_hp": z.armor_hp,
                         "x_px": round(z.x, 0) if z.x is not None else None,
                         "closeness": _closeness(z.x),
@@ -163,6 +163,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 "cooldown_left_frac": round(s.cooldown_left_frac, 2),
                 "registered": info["registered"],
                 "bound": info["bound"],
+                "knowledge_status": info["knowledge_status"],
             }
         )
 

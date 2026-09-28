@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 import json
+from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog
 import os
 import time
 from dataclasses import dataclass, field
@@ -224,6 +225,7 @@ class PlantBook:
         self.loaded_hybrid = 0
         self.bound_ids: dict[str, int] = {}          # 名字 -> id
         self.binding_notes: list[str] = []
+        self.catalog: VersionCatalog | None = None
         # 运行时校准出来的真实成本 / 已知下界
         self.real_cost: dict[int, int] = {}
         self.min_cost: dict[int, int] = {}
@@ -305,7 +307,11 @@ class PlantBook:
         data = load_json(self.kb_file, {}) or {}
         for cn, d in (data.get("plants") or {}).items():
             if isinstance(d, dict):
-                self.kb_by_name[cn] = KBEntry.from_json(cn, d)
+                entry = KBEntry.from_json(cn, d)
+                self.kb_by_name[cn] = entry
+                for alias in d.get('aliases', []):
+                    if isinstance(alias, str) and alias not in self.kb_by_name:
+                        self.kb_by_name[alias] = entry
 
     def load_ids(self) -> None:
         """载入已绑定的 名字 -> type_id。"""
@@ -435,6 +441,9 @@ class PlantBook:
 
     # -- 查询 -----------------------------------------------------------
     def name(self, type_id: int) -> str:
+        if self.catalog and type_id not in self.kb_by_id:
+            identity = self.identity(type_id)
+            return identity.canonical_name if identity else ('(空)' if type_id < 0 else f'#{type_id}')
         if type_id in self.table:
             return self.table[type_id][0]
         if type_id < 0:
@@ -461,6 +470,8 @@ class PlantBook:
         场上株数把溢价加回去 —— 场上已有 2 张高冰果时，第 3 张的正确价格是
         基价 + 200，用静态值去判断必然点卡被拒（2026-09-26 实测）。
         """
+        if self.catalog and type_id not in self.kb_by_id:
+            return None
         inc = self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
         vals: list[int] = []
         base = self.real_cost.get(type_id)
@@ -476,6 +487,8 @@ class PlantBook:
         return max(vals) if vals else None
 
     def role(self, type_id: int) -> str:
+        if self.catalog and type_id not in self.kb_by_id:
+            return UNKNOWN
         ent = self.table.get(type_id)
         return ent[2] if ent else UNKNOWN
 
@@ -516,6 +529,8 @@ class PlantBook:
         这不是装饰数据：短射程植物（喷菇系≈4格）种在最后一排够不着僵尸，
         policy 生成落点时必须做射程校验（2026-09-26 用户实测反馈）。
         """
+        if self.catalog and type_id not in self.kb_by_id:
+            return None
         ent = self.kb_by_id.get(type_id)
         v = (ent.raw.get('combat') or {}).get('range_cells') if ent else None
         if v is None:
@@ -523,7 +538,7 @@ class PlantBook:
         return v
 
     def is_known(self, type_id: int) -> bool:
-        return type_id in self.table
+        return type_id in (self.kb_by_id if self.catalog else self.table)
 
     def describe(self, type_id: int) -> dict:
         ent = self.kb_by_id.get(type_id)
@@ -540,6 +555,7 @@ class PlantBook:
             "combat": self.combat(type_id),
             "registered": self.is_known(type_id),
             "bound": type_id in self.kb_by_id,
+            "knowledge_status": "mechanics_present" if ent else "identity_only" if self.identity(type_id) else "unknown",
         }
 
     def unregistered_ids(self, ids) -> list[int]:
@@ -550,6 +566,30 @@ class PlantBook:
         return sorted({i for i in ids if i >= 0 and i not in self.kb_by_id})
 
     # -- 绑定 + 校验 -----------------------------------------------------
+    def activate_catalog(self, edition: str, game_version: str) -> None:
+        """A failed version check cannot leave a stale identity table enabled."""
+        self.catalog = None
+        self.catalog = load_catalog(str(DEFAULT_CATALOG), edition, game_version)
+
+    def identity(self, type_id: int) -> CatalogIdentity | None:
+        return self.catalog.resolve('plant', type_id) if self.catalog else None
+
+    def zombie_name(self, type_id: int) -> str:
+        ent = self.catalog.resolve('zombie', type_id) if self.catalog else None
+        return ent.canonical_name if ent else f'zombie_type_{type_id} (hybrid identity unverified)'
+
+    def bind_identity(self, type_id: int) -> bool:
+        """Bind an existing profile by version-scoped identity, never slot position."""
+        if type_id in self.kb_by_id:
+            return True
+        identity = self.identity(type_id)
+        if not identity:
+            return False
+        names = [name for name in (identity.canonical_name, *identity.aliases)
+                 if name in self.kb_by_name]
+        entries = {id(self.kb_by_name[n]) for n in names}
+        return len(entries) == 1 and self.bind_one(type_id, names[0])
+
     def bind_lineup(self, slot_types: list[int], order: list[str],
                     cd_totals: list[int] | None = None) -> dict:
         """按卡面顺序把 slot 的 type_id 绑到名字上。

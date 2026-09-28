@@ -15,6 +15,8 @@ from dataclasses import dataclass, field, asdict
 from .board import BoardReader, BoardState, placement_delta
 from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
+from .catalog import version_from_title
+from .knowledge import audit_book
 from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate
 from .serialize import COL_LABEL, build_state, render_text, board_snapshot
 from .tactics import cell_x
@@ -134,6 +136,8 @@ class PvZJevAgent:
         self._frozen_hits = 0
         self._binding_checked = False
         self._binding_warned = False
+        self._catalog_context = None
+        self._catalog_deck = None
         # 只有允许动窗口时才需要"首次抢一次焦点"
         self._need_focus = self.cfg.allow_window_ops
         self._warned_minimized = False
@@ -182,6 +186,24 @@ class PvZJevAgent:
         self.sun_tracker = SunTracker()
 
     # -- 卡槽绑定 -------------------------------------------------------
+    def configure_catalog(self, win) -> None:
+        context = (win.pid, win.title)
+        if context == getattr(self, '_catalog_context', None):
+            return
+        self._catalog_context = context
+        self._catalog_deck = None
+        self.book.catalog = None
+        version = version_from_title(win.title)
+        if version is None:
+            return
+        try:
+            self.book.activate_catalog(*version)
+        except (OSError, ValueError) as exc:
+            print(f'[知识库] 版本目录未启用：{version}，{exc}')
+            return
+        catalog = self.book.catalog
+        print(f'[知识库] {catalog.edition} {catalog.game_version}，来源 {catalog.source_revision[:12]}')
+
     def sync_binding(self, board: BoardState) -> None:
         """确保种子栏的 type_id 已经绑定到植物名字。
 
@@ -201,6 +223,21 @@ class PvZJevAgent:
         active = [t for t in types if t >= 0]
         if not active:
             return
+        if self.book.catalog:
+            for tid in active:
+                self.book.bind_identity(tid)
+            deck_key = tuple(types)
+            if deck_key != getattr(self, '_catalog_deck', None):
+                self._catalog_deck = deck_key
+                report = audit_book(self.book.catalog, self.book, active)
+                counts = report['counts']
+                print(f"[知识库] 当前卡组：身份 {counts['identity_known']}/{counts['deck']}，"
+                      f"已有机制记录 {counts['mechanics_known']}/{counts['deck']}")
+                if report['missing_mechanics']:
+                    print('[知识库] 待补机制：' + ', '.join(self.book.name(t) for t in report['missing_mechanics']))
+                self.log_event('knowledge_coverage', **report)
+            self._binding_checked = not self.book.unbound_ids(active)
+            return
         if not self.book.unbound_ids(active):
             self._binding_checked = True
             return
@@ -215,17 +252,18 @@ class PvZJevAgent:
                   f"但 data/lineups.json 里没有匹配的 lineup。"
                   f"请截图卡槽栏并补一条 lineup，然后跑 tools/bind_cards.py。")
             return
-        rep = self.book.bind_lineup(
-            active, list(lineup.get("order") or []),
-            cd_totals=[s.cd_total for s in board.slots],
-        )
-        self._binding_checked = True
         if how != "type_ids":
             self._binding_warned = True
             print(f"[绑定] ⚠️ 只按「卡数」匹配到 lineup「{lineup.get('id')}」，"
                   f"**type_id 指纹不一致**（内存 {active} vs 记录 "
                   f"{lineup.get('type_ids')}），名字顺序没被证实 —— 不落盘。")
+            return
         else:
+            rep = self.book.bind_lineup(
+                active, list(lineup.get("order") or []),
+                cd_totals=[s.cd_total for s in board.slots],
+            )
+            self._binding_checked = True
             self.book.save_ids()
             print(f"[绑定] ✅ lineup「{lineup.get('id')}」type_id 指纹一致，"
                   f"绑定 {len(rep['bound'])} 个卡槽并写入 data/plant_ids.json")
@@ -303,6 +341,7 @@ class PvZJevAgent:
         size_changed = self.win is None or self.win.client_size != win.client_size
         window_changed = self.win is None or (self.win.hwnd,self.win.pid)!=(win.hwnd,win.pid)
         self.win = win
+        self.configure_catalog(win)
         if size_changed or self.layout is None:
             self.layout = Layout.load(client_size=win.client_size)
         if size_changed or window_changed or self.clicker is None:

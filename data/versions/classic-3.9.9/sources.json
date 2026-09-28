@@ -4,9 +4,11 @@
   "tag": "β0.66",
   "source_revision": "ce3363868d087363b1b69df656a582c29b099db5",
   "source_url": "https://github.com/EFrostBlade/PVZHybrid_Editor/blob/ce3363868d087363b1b69df656a582c29b099db5/PVZ_data.py",
-  "source_sha256": "0edd3be9cc8340c7c22185378fa0c3f1883516f99d3facd893a253f896d4adcc",
+  "source_sha256": "a80c5e14f1d67e44eb8a2500970155d3e4499f4e6db337ea90cbd0ec70214c97",
+  "source_git_blob_sha": "4029c36fe347474f5d579475558b0e437610bbc4",
+  "source_normalization": "UTF-8, LF, exactly one final newline",
   "license": "MIT",
-  "imported_at": "2026-09-28T11:16:22.874523+00:00",
+  "imported_at": "2026-09-28T11:27:41.133085+00:00",
   "warning": "Identity candidates, not selectable-entity counts or verified mechanics.",
   "alias_evidence": {
     "plant:16": "User confirmed pea-shooting lily identity 2026-09-28"
