@@ -423,7 +423,10 @@
     },
     "睡莲": {
       "en": "Peashooter Lily Pad",
-      "aliases": ["豌豆射手睡莲", "豌豆睡莲"],
+      "aliases": [
+        "豌豆射手睡莲",
+        "豌豆睡莲"
+      ],
       "canonical_name": "豌豆射手睡莲",
       "cost": 25,
       "role": "platform",
@@ -449,9 +452,20 @@
       },
       "combat_source": "user_confirmed_2026-09-28",
       "field_sources": {
-        "shooting": {"evidence": "User confirmed pea-shooting lily on 2026-09-28", "applicable_version": "classic-3.9.9", "confidence": "user_confirmed"},
-        "cost": {"value": 25, "source_url": "https://pvzhe.wiki/w/杂交版v3.1更新公告", "confidence": "version_change_and_existing_runtime"},
-        "attack_numbers": {"value": null, "confidence": "unverified"}
+        "shooting": {
+          "evidence": "User confirmed pea-shooting lily on 2026-09-28",
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed"
+        },
+        "cost": {
+          "value": 25,
+          "source_url": "https://pvzhe.wiki/w/杂交版v3.1更新公告",
+          "confidence": "version_change_and_existing_runtime"
+        },
+        "attack_numbers": {
+          "value": null,
+          "confidence": "unverified"
+        }
       }
     },
     "豌豆射手": {
@@ -476,6 +490,25 @@
         "torch_compatible": true
       },
       "combat_source": "existing_catalogue"
+    },
+    "阳光花盆": {
+      "en": "Sun Flower Pot",
+      "cost": 25,
+      "role": "platform",
+      "tags": [
+        "platform"
+      ],
+      "hp": 300,
+      "cooldown_s": 7.5,
+      "effect_en": "Roof-lane flower pot variant (sun in the name; stats UNVERIFIED). Required before anything else can be planted on roof tiles - same gatekeeper role as Lily Pad on water.",
+      "effects": [
+        "屋顶种植前置"
+      ],
+      "combat": {
+        "coverage": "tile",
+        "notes": "Stats unverified (2026-09-28): registered so the roof deck can plant at all. Confirm cost/behavior from the almanac and update."
+      },
+      "combat_source": "user_roof_deck_2026-09-28"
     }
   }
 }

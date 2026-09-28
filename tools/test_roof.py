@@ -15,6 +15,15 @@ from pvz.policy import generate_candidates
 from pvz import offsets as O
 
 
+
+
+def _roof_board(scene=4, cards=(), zombies=(), plants=(), sun=900):
+    rows = 5 if scene in (0, 1, 4, 5) else 6
+    return BoardState(ok=True, sun=sun, rows=rows, cols=9, game_clock=40000,
+                      scene=scene,
+                      slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(cards)],
+                      plants=list(plants), zombies=list(zombies))
+
 class RoofPlatformTests(unittest.TestCase):
     def setUp(self):
         self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
@@ -71,3 +80,38 @@ class RoofPlatformTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RoofDeckBindingTests(unittest.TestCase):
+    """复现 20:42 屋顶局的真实卡组：bind 之后必须能出种植候选（此前全 hold）。"""
+
+    ROOF_ORDER = ["向日葵女王", "冰瓜香蒲", "狂野机枪射手", "阳光炸弹", "樱桃辣椒",
+                  "雪花寒冰菇", "高冰果", "雷果子", "回收高坚果", "Cupid魅惑菇射手",
+                  "睡莲", "玉米卷香蒲", "冰冻坚果", "豌豆射手", "阳光向日葵", "阳光花盆"]
+    ROOF_IDS = [86, 78, 109, 2, 20, 14, 23, 183, 161, 90, 16, 28, 101, 0, 9, 33]
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        self.book.kb_by_name['花盆'] = KBEntry(cn='花盆', en='Flower Pot', cost=25,
+                                               role='platform', tags=('platform',))
+        rep = self.book.bind_lineup(self.ROOF_IDS, self.ROOF_ORDER)
+        self.assertFalse(rep['unbound_names'], f'绑定失败: {rep["unbound_names"]}')
+
+    def test_roof_deck_generates_plant_candidates(self):
+        # 复刻 20:42 局：预置花盆(type 66)在 A/B/C，阳光 700，无僵尸
+        plants = [Plant(r * 3 + c, r, c, 66) for r in range(5) for c in range(3)]
+        b = BoardState(ok=True, sun=700, rows=5, cols=9, game_clock=3834, scene=4,
+                       slots=[SeedSlot(i, t, 0, 0) for i, t in enumerate(self.ROOF_IDS)],
+                       plants=plants, zombies=[])
+        cs = [c for c in generate_candidates(b, self.book) if c.kind == 'plant']
+        self.assertTrue(cs, '预置花盆上必须能出种植候选（此前全 hold 的 bug）')
+        kinds = {self.book.en(c.type_id) for c in cs}
+        self.assertTrue(any('Sun' in k or 'Wall' in k or 'Queen' in k for k in kinds),
+                        f'候选里应有可种植物: {kinds}')
+
+    def test_pot_card_is_plantable_on_roof(self):
+        b = _roof_board(scene=4)
+        self.assertTrue(b.can_plant(0, 5, 33, self.book), '阳光花盆应能种上空屋顶格')
+        self.assertTrue(b.platform_fits(0, 33, self.book))
+        water = _roof_board(scene=2)
+        self.assertFalse(water.platform_fits(2, 33, self.book), '花盆不能下水')
