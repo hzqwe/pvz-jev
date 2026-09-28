@@ -60,6 +60,11 @@ API 调用次数未变。按照 [TypeSafe 结构化 state 文档](https://docs.t
 保持启动目录稳定，若选错需要清理整合；豌豆产能标记为经典版本推定，保留较低攻击估计与实测
 价格，若推定不符可能高估产能，审计明确标记待实测。无暂缓的 Minor 项。
 
+代码提交 [a90930f](https://github.com/hzqwe/pvz-jev/commit/a90930f9f7fde01ba4450c29bafee8f2d54a0c07)
+已快进合入 `E:/jev/pvz-jev` 的 adv-tactics，并上传后核对远端一致；原启动目录重新运行
+306 项测试通过。备份位于 `E:/jev/backups/2026-09-28-mechanics-tactics-a90930f`，
+包含修改前与结果的完整 Git bundle、测试输出和审查证据，bundle 校验通过。
+
 ## 后续路线
 
 继续逐字段补充任意新卡组的能力档案，先录身份和作用，再验证数值；候选未知技能保留在审计，
