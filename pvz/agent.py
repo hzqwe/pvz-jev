@@ -228,6 +228,10 @@ class PvZJevAgent:
         if self.book.catalog:
             for tid in active:
                 self.book.bind_identity(tid)
+            # 场上植物也要绑定（2026-09-28）：屋顶的预置花盆(type 66)不在
+            # 卡槽里，不绑的话 has_platform 判 False，预置花盆格永远不可种。
+            for p in board.plants:
+                self.book.bind_identity(p.type_id)
             deck_key = tuple(types)
             if deck_key != getattr(self, '_catalog_deck', None):
                 self._catalog_deck = deck_key

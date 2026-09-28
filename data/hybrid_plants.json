@@ -510,6 +510,19 @@
         "notes": "User-confirmed 2026-09-28: cost 75 sun, produces sun (rate unspecified). Roof gatekeeper: nothing plants on roof tiles until a pot is down."
       },
       "combat_source": "user_roof_deck_2026-09-28"
+    },
+    "花盆": {
+      "en": "Flower Pot",
+      "cost": 0,
+      "role": "platform",
+      "tags": [
+        "platform"
+      ],
+      "effect_en": "The pre-placed roof pot (field identity 66): plants go ON it.",
+      "combat": {
+        "coverage": "tile",
+        "notes": "Field furniture on roof levels; never a seed card."
+      }
     }
   }
 }

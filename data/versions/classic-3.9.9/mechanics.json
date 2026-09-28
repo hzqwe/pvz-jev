@@ -126,6 +126,69 @@
           "local_evidence": "User explicitly corrected Thunder Fruit to a lane laser with 4000 HP in conversation, 2026-09-26"
         }
       }
+    },
+    "33": {
+      "canonical_name": "阳光花盆",
+      "profile_name": "阳光花盆",
+      "patch": {
+        "tags": [
+          "platform",
+          "producer"
+        ],
+        "en": "Sun Flower Pot",
+        "effect_en": "Roof gatekeeper pot that PRODUCES SUN (user-confirmed 2026-09-28; rate unspecified). Nothing plants on roof tiles until a pot is down - chained pot->defender transactions handle that."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "Roof gatekeeper + sun production, user confirmed"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "Card name on the roof deck"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User: produces sun; nothing plants on roof without it"
+        }
+      },
+      "unverified_fields": {
+        "sun_production_rate": {
+          "value": null,
+          "reason": "Production confirmed but amount unspecified; excluded from economy math"
+        }
+      }
+    },
+    "66": {
+      "canonical_name": "花盆",
+      "profile_name": "花盆",
+      "patch": {
+        "tags": [
+          "platform"
+        ],
+        "effect_en": "Pre-placed roof pot found on roof tiles (field identity 66). Plants go ON it; it is never a card."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "runtime_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "Pre-placed pots read from memory on every roof tile A/B/C (logs 204143/205748)"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "runtime_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "Field furniture on roof levels; never a seed card"
+        }
+      },
+      "unverified_fields": {}
     }
   }
 }
