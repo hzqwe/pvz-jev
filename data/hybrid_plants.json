@@ -493,20 +493,21 @@
     },
     "阳光花盆": {
       "en": "Sun Flower Pot",
-      "cost": 25,
+      "cost": 75,
       "role": "platform",
       "tags": [
-        "platform"
+        "platform",
+        "producer"
       ],
       "hp": 300,
       "cooldown_s": 7.5,
-      "effect_en": "Roof-lane flower pot variant (sun in the name; stats UNVERIFIED). Required before anything else can be planted on roof tiles - same gatekeeper role as Lily Pad on water.",
+      "effect_en": "Roof-lane flower pot variant that PRODUCES SUN (user-confirmed 2026-09-28; amount unknown). Required before anything else can be planted on roof tiles - the same gatekeeper role as Lily Pad on water.",
       "effects": [
         "屋顶种植前置"
       ],
       "combat": {
         "coverage": "tile",
-        "notes": "Stats unverified (2026-09-28): registered so the roof deck can plant at all. Confirm cost/behavior from the almanac and update."
+        "notes": "User-confirmed 2026-09-28: cost 75 sun, produces sun (rate unspecified). Roof gatekeeper: nothing plants on roof tiles until a pot is down."
       },
       "combat_source": "user_roof_deck_2026-09-28"
     }
