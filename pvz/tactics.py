@@ -100,7 +100,7 @@ def economy_summary(board, book):
                 note='Planning estimate. Growth ages and next payout times are unobserved; inferred rates are not measured.')
 
 
-def upgrade_value(board, book, type_id, row=None):
+def upgrade_value(board, book, type_id, row=None, col=None):
     """Contextual utility, not a combat simulator or a reward for expensive cards."""
     profile, tags = book.combat(type_id), book.tags(type_id)
     groups = [board.zombies_in_lane(r) for r in range(board.rows)]
@@ -109,12 +109,15 @@ def upgrade_value(board, book, type_id, row=None):
         row = max(range(board.rows), key=lambda r: sum(strength(z) for z in groups[r]))
     tracking = T_TRACKING in tags
     targets = [z for group in groups for z in group] if tracking else groups[row]
+    if col is not None and not tracking:
+        targets = [z for z in targets if can_hit(book,type_id,row,col,z)]
     armored = sum(bool(z.armor_hp) for z in targets) / max(1,len(targets))
     dps = attack_dps(book,type_id)
     value = dps * (1 + armored*(profile.get('armor_multiplier',1)-1))
     if profile.get('spread'):
         value *= 1 + .25*min(3,max(0,len(targets)-1))
-    if profile.get('piercing') and not tracking:
+    if profile.get('piercing') and not tracking and col is not None:
+        # Saving estimates have no chosen cell: do not promise crowd hits.
         value *= 1 + .35*min(4,max(0,len(targets)-1))
     if tracking:
         value *= 1 + .1*max(0,active-1)

@@ -1,6 +1,6 @@
 # 机制证据与有效火力 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans inline, task-by-task. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans inline, task-by-task. Steps use checkbox (`- [x]`) syntax.
 
 **Goal:** 将首批机制证据接入当前 v3.9.9 卡组，使火力、组合和经济判断更准确。
 **Architecture:** 版本目录的字段补丁生成临时独立档案；通用目标计算供候选、威胁和救场共用；审计只读。
@@ -26,23 +26,24 @@
 **Files:** Create `pvz/mechanics.py`, `data/versions/classic-3.9.9/mechanics.json`, `tools/test_mechanics.py`; modify `pvz/plants.py`.
 **Interfaces:** `load_mechanics(catalog, profiles, path=None) -> dict[int,dict]`; `PlantBook.catalog_entry(type_id, catalog=None) -> KBEntry | None`，返回独立当前版本档案，不能写用户绑定。
 
-- [ ] 写测试并观察失败：ID 0 产阳光和射击并存、原价格不变、原 KBEntry 不变；退出/失败版本切换恢复；ID 228 不继承；无来源和错身份补丁拒绝。
-- [ ] 实现严格字段读取和独立档案叠加；0 补产能，86 隔离跨版本传闻，183 补穿透；数值冲突列候选。
-- [ ] 测试通过并提交。Expected: `python -m unittest discover -s tools -p test_mechanics.py` → OK。
+- [x] 写测试并观察失败：ID 0 产阳光和射击并存、原价格不变、原 KBEntry 不变；退出/失败版本切换恢复；ID 228 不继承；无来源和错身份补丁拒绝。
+- [x] 实现严格字段读取和独立档案叠加；0 补产能，86 隔离跨版本传闻，183 补穿透；数值冲突列候选。
+- [x] 测试通过并提交。Expected: `python -m unittest discover -s tools -p test_mechanics.py` → OK。
 
 ### Task 2: 目标、配合与经济判断
 
 **Files:** Modify `pvz/tactics.py`, `pvz/policy.py`, `pvz/serialize.py`; create `tools/test_combat_projection.py`.
 **Interfaces:** `can_hit(book,type_id,row,col,target) -> bool`; `torch_path(board,book,type_id,row,col,target=None) -> bool`; `target_dps(board,book,type_id,row,col,target) -> float`; `economy_summary(board,book) -> dict`。
 
-- [ ] 写测试并观察失败：超射程支援为零，经过射手不计支援，睡眠/错位火炬不计配合，穿透同行群体贡献、追踪分摊，推定倍数不进确定性伤害。
-- [ ] 接入威胁、垫背、救场和候选；只增加小摘要；富阳光低威胁的阵型补齐在合并侧生效。
-- [ ] 测试通过并提交。Expected: 新测试和原策略测试 → OK。
+- [x] 写测试并观察失败：超射程支援为零，经过射手不计支援，睡眠/错位火炬不计配合，穿透同行群体贡献、追踪分摊，推定倍数不进确定性伤害。
+- [x] 接入威胁、垫背、救场和候选；只增加小摘要；富阳光低威胁的阵型补齐在合并侧生效。
+- [x] 测试通过并提交。Expected: 新测试和原策略测试 → OK。
 
 ### Task 3: 审计与整体验证
 
 **Files:** Modify `pvz/knowledge.py`, `tools/test_knowledge_audit.py`, README；记录研究/测试结果。
 
-- [ ] 写测试并观察失败：未绑定档案和运行时机制覆盖一致，区分 bound/available，不改任何运行对象；推定和冲突数值能报告。
-- [ ] 审计调用同一只读档案解析函数；运行全量测试、最近两局离线重放、diff 检查并提交。
-- [ ] 一次独立整体审查，重要项一次修复并回归；保存备份，同步原启动目录和 GitHub。Expected: 全量测试 OK、重放非法候选 0、仓库干净。
+- [x] 写测试并观察失败：未绑定档案和运行时机制覆盖一致，区分 bound/available，不改任何运行对象；推定和冲突数值能报告。
+- [x] 审计调用同一只读档案解析函数；运行全量测试、最近两局离线重放、diff 检查并提交。
+- [x] 一次独立整体审查，重要项一次修复并回归。
+- [ ] 保存备份，同步原启动目录和 GitHub。Expected: 全量测试 OK、重放非法候选 0、仓库干净。

@@ -20,7 +20,7 @@ from pvz.plants import PlantBook
 from pvz.policy import generate_candidates,action_invalid_reason
 
 
-def snapshot(record,book):
+def snapshot(record,book,legacy_names=None):
     raw=record.get('board')
     if raw:
         excluded={'plants','zombies','slots','dropped_seeds','row_types','mowers','snow_cells','rejected_cells'}
@@ -37,7 +37,10 @@ def snapshot(record,book):
         b.held_type=cursor.get('type_id',-1);b.held_slot=cursor.get('slot',-1)
         return b
     state=record['state'];game=state['game']
-    names={book.en(t):t for t in book.kb_by_id}
+    # The explicit version may rename a verified profile. Keep its pre-overlay
+    # English alias for older state-only logs; never infer IDs from card order.
+    names=dict(legacy_names or {})
+    names.update({book.en(t):t for t in book.kb_by_id})
     names.update(book.bound_ids)
     water={lane['lane']-1 for lane in state['lanes'] if lane.get('terrain','').startswith('water')}
     board=BoardState(ok=True,sun=game['sun'],rows=game['rows'],cols=game['cols'],
@@ -63,12 +66,13 @@ def snapshot(record,book):
 
 def replay(path,game_version=None):
     book=PlantBook(hybrid_file='',cost_file='')
+    legacy_names={book.en(t):t for t in book.kb_by_id}
     if game_version is not None:
         book.activate_catalog('classic',game_version)
     records=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
     invalid=[];count=Counter(missing_reasons=0,overlong_descriptions=0);previous=None;previous_record=None
     for i,record in enumerate(records):
-        board=snapshot(record,book)
+        board=snapshot(record,book,legacy_names)
         if book.catalog is not None:
             for slot in board.slots:
                 book.bind_identity(slot.type_id)

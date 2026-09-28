@@ -270,7 +270,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         tags = book.tags(slot.type_id)
         rescue = any(facts[r]["threat_level"] == "critical" for r in covers)
         if T_SHOOTER in tags and T_TEMPORARY not in tags:
-            utility = upgrade_value(board,book,slot.type_id,row)
+            utility = upgrade_value(board,book,slot.type_id,row,col)
             value += utility
             reason += f' Capability fit={utility:g} (heuristic; damage/control/economy, not price).'
             lead = min((z for z in board.zombies_in_lane(row) if z.x is not None),

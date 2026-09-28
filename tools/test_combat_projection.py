@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pvz.board import BoardState, Plant, SeedSlot, Zombie
 from pvz.plants import PlantBook, KBEntry
-from pvz.tactics import lane_facts, attack_dps
+from pvz.tactics import lane_facts, attack_dps, upgrade_value
 from pvz.policy import generate_candidates, merge_decision
 from pvz.jev import JevAnswer, JevResponse
 from pvz.serialize import build_state
@@ -50,6 +50,27 @@ class CombatProjectionTests(unittest.TestCase):
         support = lane_facts(one,0,self.book)['shooter_support']
         self.assertAlmostEqual(lane_facts(crowd,0,self.book)['shooter_support'], support*3)
         self.assertEqual(lane_facts(off_lane,0,self.book)['shooter_support'], support)
+
+    def test_overlap_beam_candidate_has_no_unreachable_piercing_bonus(self):
+        b = self.board([Zombie(i,0,0,x=465+i*5) for i in range(3)],
+                       [Plant(0,0,4,0)]+[Plant(r,r,2,86) for r in (1,2,3)], [183])
+        beam = next(c for c in generate_candidates(b,self.book)
+                    if c.type_id==183 and c.row==0 and c.col==5)
+        self.assertIn('Beam reaches 0',beam.why)
+        self.book.kb_by_id[183].raw['combat']['piercing'] = False
+        plain = next(c for c in generate_candidates(b,self.book)
+                     if c.type_id==183 and c.row==0 and c.col==5)
+        self.assertAlmostEqual(beam.score,plain.score)
+
+    def test_limited_range_beam_scores_only_reachable_targets(self):
+        self.book.kb_by_id[183].raw['combat']['range_cells'] = 2
+        b = self.board([Zombie(0,0,0,x=300),Zombie(1,0,0,x=340),Zombie(2,0,0,x=650)])
+        near = self.board(b.zombies[:2])
+        self.assertEqual(upgrade_value(b,self.book,183,0,2),
+                         upgrade_value(near,self.book,183,0,2))
+        # A saving estimate has no chosen position and cannot promise crowd hits.
+        self.assertEqual(upgrade_value(b,self.book,183,0),
+                         upgrade_value(self.board([b.zombies[0]]),self.book,183,0))
 
     def test_tracking_power_is_shared_not_multiplied_by_crowd(self):
         b = self.board([Zombie(i,i,0,x=600) for i in range(5)], [Plant(0,0,2,86)])
