@@ -1,0 +1,2180 @@
+{
+  "schema_version": 1,
+  "edition": "classic",
+  "game_version": "3.9.9",
+  "source_revision": "ce3363868d087363b1b69df656a582c29b099db5",
+  "entities": {
+    "plant": {
+      "0": {
+        "canonical_name": "豌豆向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "1": {
+        "canonical_name": "阳光豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "2": {
+        "canonical_name": "阳光炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "3": {
+        "canonical_name": "火炬坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "4": {
+        "canonical_name": "阳光土豆雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "5": {
+        "canonical_name": "寒冰香蒲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "6": {
+        "canonical_name": "大蒜花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "7": {
+        "canonical_name": "双发仙人掌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "8": {
+        "canonical_name": "小盆菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "9": {
+        "canonical_name": "阳光向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "10": {
+        "canonical_name": "冰瓜大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "11": {
+        "canonical_name": "墓碑埋雷者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "12": {
+        "canonical_name": "红眼菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "13": {
+        "canonical_name": "阳光胆小菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "14": {
+        "canonical_name": "雪花寒冰菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "15": {
+        "canonical_name": "魅惑毁灭菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "16": {
+        "canonical_name": "豌豆睡莲",
+        "aliases": [
+          "睡莲",
+          "豌豆射手睡莲"
+        ],
+        "mechanics_status": "identity_only"
+      },
+      "17": {
+        "canonical_name": "冰菇窝瓜",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "18": {
+        "canonical_name": "豌豆许愿池",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "19": {
+        "canonical_name": "毁灭海草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "20": {
+        "canonical_name": "樱桃辣椒",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "21": {
+        "canonical_name": "黄油地刺",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "22": {
+        "canonical_name": "冰炬树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "23": {
+        "canonical_name": "高冰果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "24": {
+        "canonical_name": "海坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "25": {
+        "canonical_name": "6号路灯花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "26": {
+        "canonical_name": "豌豆大炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "27": {
+        "canonical_name": "仙人三叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "28": {
+        "canonical_name": "玉米卷香蒲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "29": {
+        "canonical_name": "地刺杨桃",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "30": {
+        "canonical_name": "忧郁南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "31": {
+        "canonical_name": "磁力坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "32": {
+        "canonical_name": "机枪卷心菜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "33": {
+        "canonical_name": "阳光花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "34": {
+        "canonical_name": "三线玉米投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "35": {
+        "canonical_name": "随机植物盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "36": {
+        "canonical_name": "魅惑大蒜",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "37": {
+        "canonical_name": "咖啡伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "38": {
+        "canonical_name": "仙人三叶花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "39": {
+        "canonical_name": "西瓜坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "40": {
+        "canonical_name": "汉堡射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "41": {
+        "canonical_name": "阳光南瓜掌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "42": {
+        "canonical_name": "黄油忧郁菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "43": {
+        "canonical_name": "西瓜香蒲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "44": {
+        "canonical_name": "阳光菇投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "45": {
+        "canonical_name": "金盏吸金磁",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "46": {
+        "canonical_name": "钢刺坚果王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "47": {
+        "canonical_name": "毁灭加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "48": {
+        "canonical_name": "模仿者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "49": {
+        "canonical_name": "爆炸坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "50": {
+        "canonical_name": "巨大坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "51": {
+        "canonical_name": "芽",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "52": {
+        "canonical_name": "(反向)双发仙人掌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "53": {
+        "canonical_name": "<null>",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "54": {
+        "canonical_name": "火焰",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "55": {
+        "canonical_name": "伟伟迷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "56": {
+        "canonical_name": "呼叫网管",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "57": {
+        "canonical_name": "我方铁门僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "58": {
+        "canonical_name": "忧郁菇投手子弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "59": {
+        "canonical_name": "6号路灯花亡语",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "60": {
+        "canonical_name": "终极射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "61": {
+        "canonical_name": "向日葵公主",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "62": {
+        "canonical_name": "汉堡王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "63": {
+        "canonical_name": "可乐(攻速翻倍)",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "64": {
+        "canonical_name": "薯条(血量翻倍)",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "65": {
+        "canonical_name": "南瓜炮子弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "66": {
+        "canonical_name": "花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "67": {
+        "canonical_name": "荷叶",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "68": {
+        "canonical_name": "七色花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "69": {
+        "canonical_name": "腾腾游记四叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "70": {
+        "canonical_name": "地刺子弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "71": {
+        "canonical_name": "瓜子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "72": {
+        "canonical_name": "防爆门僵尸(我方)",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "73": {
+        "canonical_name": "杨桃",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "74": {
+        "canonical_name": "红包",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "75": {
+        "canonical_name": "火爆地雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "76": {
+        "canonical_name": "火爆坚果墙",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "77": {
+        "canonical_name": "豌豆香蒲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "78": {
+        "canonical_name": "冰瓜香蒲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "79": {
+        "canonical_name": "烈火南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "80": {
+        "canonical_name": "僵尸豌豆射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "81": {
+        "canonical_name": "寒冰三叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "82": {
+        "canonical_name": "热狗射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "83": {
+        "canonical_name": "寒冰仙人掌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "84": {
+        "canonical_name": "影流窝瓜王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "85": {
+        "canonical_name": "黄油JOKER",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "86": {
+        "canonical_name": "向日葵女王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "87": {
+        "canonical_name": "大蒜辣椒",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "88": {
+        "canonical_name": "至尊VIP坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "89": {
+        "canonical_name": "僵尸坚果墙",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "90": {
+        "canonical_name": "魅惑菇射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "91": {
+        "canonical_name": "财神金盏花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "92": {
+        "canonical_name": "猫砂盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "93": {
+        "canonical_name": "坑洞坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "94": {
+        "canonical_name": "QQ弹弹大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "95": {
+        "canonical_name": "寒冰地刺",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "96": {
+        "canonical_name": "土杨桃",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "97": {
+        "canonical_name": "精灵菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "98": {
+        "canonical_name": "川菜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "99": {
+        "canonical_name": "坚果模仿者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "100": {
+        "canonical_name": "窝瓜坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "101": {
+        "canonical_name": "冰冻坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "102": {
+        "canonical_name": "头脑风暴",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "103": {
+        "canonical_name": "宝藏吞噬者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "104": {
+        "canonical_name": "全息卡牌投影",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "105": {
+        "canonical_name": "成长咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "106": {
+        "canonical_name": "寒光菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "107": {
+        "canonical_name": "骄阳豌豆射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "108": {
+        "canonical_name": "荧光木槌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "109": {
+        "canonical_name": "狂野机枪射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "110": {
+        "canonical_name": "生命重塑者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "111": {
+        "canonical_name": "双生樱桃",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "112": {
+        "canonical_name": "幸运四叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "113": {
+        "canonical_name": "黄金向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "114": {
+        "canonical_name": "土豆加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "115": {
+        "canonical_name": "惩戒牢笼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "116": {
+        "canonical_name": "备用物资",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "117": {
+        "canonical_name": "地刺大嘴花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "118": {
+        "canonical_name": "僵尸豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "119": {
+        "canonical_name": "禁忌毁灭菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "120": {
+        "canonical_name": "消消乐糖果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "121": {
+        "canonical_name": "海冰菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "122": {
+        "canonical_name": "莲叶壳",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "123": {
+        "canonical_name": "小猫向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "124": {
+        "canonical_name": "礼盒机",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "125": {
+        "canonical_name": "招财猫",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "126": {
+        "canonical_name": "水晶蜗牛",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "127": {
+        "canonical_name": "坚果存钱罐",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "128": {
+        "canonical_name": "吸金磁射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "129": {
+        "canonical_name": "钻石种子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "130": {
+        "canonical_name": "抽奖盒子豪华版",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "131": {
+        "canonical_name": "炫彩杨桃",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "132": {
+        "canonical_name": "坚果保龄球",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "133": {
+        "canonical_name": "进化豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "134": {
+        "canonical_name": "流星",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "135": {
+        "canonical_name": "苹果闹钟",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "136": {
+        "canonical_name": "海豌豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "137": {
+        "canonical_name": "豌豆海草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "138": {
+        "canonical_name": "海洋星",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "139": {
+        "canonical_name": "套盒坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "140": {
+        "canonical_name": "鱼饵菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "141": {
+        "canonical_name": "花盆睡莲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "142": {
+        "canonical_name": "忧郁菇投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "143": {
+        "canonical_name": "受伤的向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "144": {
+        "canonical_name": "医用咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "145": {
+        "canonical_name": "受伤的大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "146": {
+        "canonical_name": "寒冰加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "147": {
+        "canonical_name": "黄金西瓜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "148": {
+        "canonical_name": "寒冰菇王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "149": {
+        "canonical_name": "自费盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "150": {
+        "canonical_name": "内卷投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "151": {
+        "canonical_name": "制冰豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "152": {
+        "canonical_name": "伪装的向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "153": {
+        "canonical_name": "骄阳玉米投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "154": {
+        "canonical_name": "辣椒重塑者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "155": {
+        "canonical_name": "棱镜向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "156": {
+        "canonical_name": "大王钢齿花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "157": {
+        "canonical_name": "促销豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "158": {
+        "canonical_name": "促销坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "159": {
+        "canonical_name": "促销花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "160": {
+        "canonical_name": "天使向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "161": {
+        "canonical_name": "回收高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "162": {
+        "canonical_name": "彩虹糖果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "163": {
+        "canonical_name": "百变高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "164": {
+        "canonical_name": "逆时闹钟",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "165": {
+        "canonical_name": "阳光加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "166": {
+        "canonical_name": "禁忌寒冰菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "167": {
+        "canonical_name": "冰火裂荚射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "168": {
+        "canonical_name": "豌豆炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "169": {
+        "canonical_name": "辣椒阳光菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "170": {
+        "canonical_name": "豆荚壳",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "171": {
+        "canonical_name": "忧郁咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "172": {
+        "canonical_name": "荷包蛋",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "173": {
+        "canonical_name": "冰冰凉凉大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "174": {
+        "canonical_name": "冰焰南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "175": {
+        "canonical_name": "至尊VIP树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "176": {
+        "canonical_name": "灵魂豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "177": {
+        "canonical_name": "星星盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "178": {
+        "canonical_name": "猫窝",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "179": {
+        "canonical_name": "黄金锤子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "180": {
+        "canonical_name": "车轮重塑者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "181": {
+        "canonical_name": "迷幻投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "182": {
+        "canonical_name": "玉米旋转机",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "183": {
+        "canonical_name": "雷果子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "184": {
+        "canonical_name": "保龄球彩蛋",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "185": {
+        "canonical_name": "叶子高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "186": {
+        "canonical_name": "西瓜大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "187": {
+        "canonical_name": "南瓜加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "188": {
+        "canonical_name": "小喷菇投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "189": {
+        "canonical_name": "玉米卷迫击炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "190": {
+        "canonical_name": "火炬辣椒",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "191": {
+        "canonical_name": "僵尸向日葵 ",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "192": {
+        "canonical_name": "大嘴阳光菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "193": {
+        "canonical_name": "花盆睡莲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "194": {
+        "canonical_name": "机枪花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "195": {
+        "canonical_name": "大海菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "196": {
+        "canonical_name": "咖啡三叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "197": {
+        "canonical_name": "僵尸加农炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "198": {
+        "canonical_name": "阳光魅惑菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "199": {
+        "canonical_name": "墓碑爆破者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "200": {
+        "canonical_name": "火炬保护伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "201": {
+        "canonical_name": "地刺伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "202": {
+        "canonical_name": "磁力土豆雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "203": {
+        "canonical_name": "地刺西瓜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "204": {
+        "canonical_name": "磁力地刺王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "205": {
+        "canonical_name": "南瓜灯",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "206": {
+        "canonical_name": "卡牌模仿者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "207": {
+        "canonical_name": "烈焰毁灭菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "208": {
+        "canonical_name": "丛林散装豌豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "209": {
+        "canonical_name": "火炬辣椒豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "210": {
+        "canonical_name": "禁忌咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "211": {
+        "canonical_name": "南瓜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "212": {
+        "canonical_name": "南瓜盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "213": {
+        "canonical_name": "坚果向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "214": {
+        "canonical_name": "寒冰炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "215": {
+        "canonical_name": "杨桃三线射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "216": {
+        "canonical_name": "缠绕灯草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "217": {
+        "canonical_name": "冰炬魅惑菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "218": {
+        "canonical_name": "土豆窝瓜雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "219": {
+        "canonical_name": "樱桃豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "220": {
+        "canonical_name": "杨桃树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "221": {
+        "canonical_name": "鬼影魅惑菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "222": {
+        "canonical_name": "迷你汉堡射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "223": {
+        "canonical_name": "浴火三线射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "224": {
+        "canonical_name": "猫猫星机枪",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "225": {
+        "canonical_name": "潜艇烟花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "226": {
+        "canonical_name": "升值豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "227": {
+        "canonical_name": "向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "228": {
+        "canonical_name": "豌豆射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "229": {
+        "canonical_name": "坚果墙",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "230": {
+        "canonical_name": "樱桃炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "231": {
+        "canonical_name": "咖啡猫",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "232": {
+        "canonical_name": "大嘴机枪射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "233": {
+        "canonical_name": "钻石坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "234": {
+        "canonical_name": "金盏花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "235": {
+        "canonical_name": "僵尸火炬树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "236": {
+        "canonical_name": "魅灯花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "237": {
+        "canonical_name": "杨桃磁力菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "238": {
+        "canonical_name": "樱桃玉米投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "239": {
+        "canonical_name": "魅惑海草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "240": {
+        "canonical_name": "僵尸地刺",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "241": {
+        "canonical_name": "刺球子弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "242": {
+        "canonical_name": "大蒜三线射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "243": {
+        "canonical_name": "樱桃大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "244": {
+        "canonical_name": "肥料高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "245": {
+        "canonical_name": "蜗牛大嘴花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "246": {
+        "canonical_name": "巧克力坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "247": {
+        "canonical_name": "搬运车花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "248": {
+        "canonical_name": "巧克力",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "249": {
+        "canonical_name": "卷心菜重炮连",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "250": {
+        "canonical_name": "财运树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "251": {
+        "canonical_name": "杀虫剂大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "252": {
+        "canonical_name": "金色向日葵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "253": {
+        "canonical_name": "手套豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "254": {
+        "canonical_name": "聚宝盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "255": {
+        "canonical_name": "唱片机胆小菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "256": {
+        "canonical_name": "水壶投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "257": {
+        "canonical_name": "樱桃土豆雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "258": {
+        "canonical_name": "大蒜高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "259": {
+        "canonical_name": "辣椒杀虫剂",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "260": {
+        "canonical_name": "重塑牌肥料",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "261": {
+        "canonical_name": "钥匙咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "262": {
+        "canonical_name": "窝瓜忧郁菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "263": {
+        "canonical_name": "杨桃保护伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "264": {
+        "canonical_name": "治愈花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "265": {
+        "canonical_name": "樱桃吸金磁",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "266": {
+        "canonical_name": "受伤的高坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "267": {
+        "canonical_name": "绷带坚果炮",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "268": {
+        "canonical_name": "三叶大嘴花",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "269": {
+        "canonical_name": "魔术盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "270": {
+        "canonical_name": "火爆双发射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "271": {
+        "canonical_name": "迷你寒冰菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "272": {
+        "canonical_name": "缠绕水雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "273": {
+        "canonical_name": "南瓜垃圾桶",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "274": {
+        "canonical_name": "扫把咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "275": {
+        "canonical_name": "坚果南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "276": {
+        "canonical_name": "刚刺南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "277": {
+        "canonical_name": "旗帜僵尸豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "278": {
+        "canonical_name": "大蒜炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "279": {
+        "canonical_name": "大蒜毒气",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "280": {
+        "canonical_name": "骄阳仙人掌",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "281": {
+        "canonical_name": "天秤咖啡豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "282": {
+        "canonical_name": "银河星星果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "283": {
+        "canonical_name": "僵尸机枪射手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "284": {
+        "canonical_name": "寒冰磁力菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "285": {
+        "canonical_name": "寒冰豆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "286": {
+        "canonical_name": "极寒冰瓜投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "287": {
+        "canonical_name": "地刺花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "288": {
+        "canonical_name": "南瓜保护伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "289": {
+        "canonical_name": "忧郁魅惑菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "290": {
+        "canonical_name": "磁力玉米投手",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "291": {
+        "canonical_name": "充能磁铁",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "292": {
+        "canonical_name": "坚果保护伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "293": {
+        "canonical_name": "魅惑盒子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "294": {
+        "canonical_name": "友望云霄洗地机",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "295": {
+        "canonical_name": "极寒冰菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "296": {
+        "canonical_name": "大蒜花盆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "297": {
+        "canonical_name": "胆小阳光菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "298": {
+        "canonical_name": "缠绕睡莲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "299": {
+        "canonical_name": "三叶大喷菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "300": {
+        "canonical_name": "雪莲",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "301": {
+        "canonical_name": "猫尾伞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "302": {
+        "canonical_name": "三叶土豆雷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "303": {
+        "canonical_name": "玩偶匣磁力菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "304": {
+        "canonical_name": "玩偶匣",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "305": {
+        "canonical_name": "随机模仿者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "306": {
+        "canonical_name": "猫尾三叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "307": {
+        "canonical_name": "玩偶匣南瓜头",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "308": {
+        "canonical_name": "土豆胆小菇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "309": {
+        "canonical_name": "磁力樱桃炸弹",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "310": {
+        "canonical_name": "缠绕海草坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "311": {
+        "canonical_name": "缠绕海草球",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "312": {
+        "canonical_name": "吸星磁",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "313": {
+        "canonical_name": "磁力三叶草",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "314": {
+        "canonical_name": "裂荚树桩",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "315": {
+        "canonical_name": "巨大坚果保龄球",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "316": {
+        "canonical_name": "爆炸坚果",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "317": {
+        "canonical_name": "拿铁游戏",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      }
+    },
+    "zombie": {
+      "0": {
+        "canonical_name": "普僵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "1": {
+        "canonical_name": "旗帜",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "2": {
+        "canonical_name": "路障",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "3": {
+        "canonical_name": "撑杆",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "4": {
+        "canonical_name": "铁桶",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "5": {
+        "canonical_name": "冰车二爷",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "6": {
+        "canonical_name": "铁门",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "7": {
+        "canonical_name": "黑橄榄",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "8": {
+        "canonical_name": "武装舞王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "9": {
+        "canonical_name": "舞伴",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "10": {
+        "canonical_name": "泳圈普僵",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "11": {
+        "canonical_name": "潜水",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "12": {
+        "canonical_name": "冰车巨人",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "13": {
+        "canonical_name": "雪橇",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "14": {
+        "canonical_name": "海豚机枪",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "15": {
+        "canonical_name": "小丑",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "16": {
+        "canonical_name": "气球舞王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "17": {
+        "canonical_name": "矿工",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "18": {
+        "canonical_name": "跳跳",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "19": {
+        "canonical_name": "冰车雪人",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "20": {
+        "canonical_name": "飞贼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "21": {
+        "canonical_name": "扶梯",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "22": {
+        "canonical_name": "篮球",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "23": {
+        "canonical_name": "巨人",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "24": {
+        "canonical_name": "小鬼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "25": {
+        "canonical_name": "僵王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "26": {
+        "canonical_name": "豌豆僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "27": {
+        "canonical_name": "坚果僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "28": {
+        "canonical_name": "辣椒僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "29": {
+        "canonical_name": "机枪僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "30": {
+        "canonical_name": "冰窝瓜僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "31": {
+        "canonical_name": "高冰果僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "32": {
+        "canonical_name": "红眼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "33": {
+        "canonical_name": "迪斯科",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "34": {
+        "canonical_name": "舞者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "35": {
+        "canonical_name": "骷髅",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "36": {
+        "canonical_name": "死灵法师",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "37": {
+        "canonical_name": "火焰迪斯科",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "38": {
+        "canonical_name": "火焰舞者",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "39": {
+        "canonical_name": "小黄鸭僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "40": {
+        "canonical_name": "床车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "41": {
+        "canonical_name": "小摔哥僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "42": {
+        "canonical_name": "橄榄巨人",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "43": {
+        "canonical_name": "橄榄小鬼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "44": {
+        "canonical_name": "雪人矿工",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "45": {
+        "canonical_name": "狂野机枪僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "46": {
+        "canonical_name": "火炬坚果僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "47": {
+        "canonical_name": "机枪撑杆僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "48": {
+        "canonical_name": "机枪海豚僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "49": {
+        "canonical_name": "僵尸坚果巨人",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "50": {
+        "canonical_name": "僵尸豌豆小鬼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "51": {
+        "canonical_name": "鲨鱼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "52": {
+        "canonical_name": "寒冰射手僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "53": {
+        "canonical_name": "海妖僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "54": {
+        "canonical_name": "缠绕潜水僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "55": {
+        "canonical_name": "钻石僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "56": {
+        "canonical_name": "防爆门僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "57": {
+        "canonical_name": "骑鸭僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "58": {
+        "canonical_name": "小推车小鬼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "59": {
+        "canonical_name": "罐子僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "60": {
+        "canonical_name": "催眠师僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "61": {
+        "canonical_name": "园丁僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "62": {
+        "canonical_name": "红眼舞王",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "63": {
+        "canonical_name": "巨人伴舞",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "64": {
+        "canonical_name": "影子僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "65": {
+        "canonical_name": "矿工地刺小鬼",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "66": {
+        "canonical_name": "冲锋黑橄榄红眼巨人僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "67": {
+        "canonical_name": "冲锋黑橄榄红眼小鬼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "68": {
+        "canonical_name": "红眼冰车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "69": {
+        "canonical_name": "双发仙人掌僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "70": {
+        "canonical_name": "套盒坚果僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "71": {
+        "canonical_name": "至尊VIP坚果僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "72": {
+        "canonical_name": "三线玉米投手僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "73": {
+        "canonical_name": "冰霜巨人僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "74": {
+        "canonical_name": "埃德加二世",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "75": {
+        "canonical_name": "机枪冰车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "76": {
+        "canonical_name": "干扰车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "77": {
+        "canonical_name": "向日葵僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "78": {
+        "canonical_name": "农夫僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "79": {
+        "canonical_name": "财主僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "80": {
+        "canonical_name": "跳跳舞王僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "81": {
+        "canonical_name": "跳跳舞伴僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "82": {
+        "canonical_name": "投冰车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "83": {
+        "canonical_name": "幽灵僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "84": {
+        "canonical_name": "模仿者僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "85": {
+        "canonical_name": "树人僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "86": {
+        "canonical_name": "僵尸虫子",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "87": {
+        "canonical_name": "橄榄撑杆僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "88": {
+        "canonical_name": "矿工巨人僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "89": {
+        "canonical_name": "矿工小鬼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "90": {
+        "canonical_name": "海盗船长僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "91": {
+        "canonical_name": "海盗船员僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "92": {
+        "canonical_name": "磁场僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "93": {
+        "canonical_name": "蜗牛小鬼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "94": {
+        "canonical_name": "猫战士僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "95": {
+        "canonical_name": "气球车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "96": {
+        "canonical_name": "橄榄球雪人僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "97": {
+        "canonical_name": "重生法师僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "98": {
+        "canonical_name": "雪人雪橇僵尸小队",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "99": {
+        "canonical_name": "武装雪橇僵尸队员",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "100": {
+        "canonical_name": "吸血鬼僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "101": {
+        "canonical_name": "跳棋僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "102": {
+        "canonical_name": "猴子僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "103": {
+        "canonical_name": "市场僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "104": {
+        "canonical_name": "天使僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "105": {
+        "canonical_name": "读报迪斯科僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "106": {
+        "canonical_name": "愤怒的舞者僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "107": {
+        "canonical_name": "潜水海豚僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "108": {
+        "canonical_name": "舞王海豚僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "109": {
+        "canonical_name": "伴舞海豚僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "110": {
+        "canonical_name": "玩偶匣撑杆僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "111": {
+        "canonical_name": "烟雾机僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "112": {
+        "canonical_name": "小鬼投石车僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "113": {
+        "canonical_name": "圣诞礼盒僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      },
+      "114": {
+        "canonical_name": "气球扶梯僵尸",
+        "aliases": [],
+        "mechanics_status": "identity_only"
+      }
+    }
+  }
+}
