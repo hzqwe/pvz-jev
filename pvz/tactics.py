@@ -174,12 +174,13 @@ def rear_cols(board, book, row, producer=False):
     occ = board.top_occupancy(book)
     cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx
             and not board.snow_blocked(row,c) and not board.placement_blocked(row,c)]
-    if board.is_water(row):
+    if board.platform_required(row):
         pads = [c for c in cols if board.has_platform(row,c,book)]
         # Reuse a paid platform before planning another one.
         if pads:
             return pads
         if not any(s.ready and book.has_tag(s.type_id,'platform')
+                   and board.platform_fits(row,s.type_id,book)
                    and book.cost(s.type_id) is not None
                    and book.cost(s.type_id) <= (board.sun or 0) for s in board.slots):
             return []

@@ -110,9 +110,11 @@ class Layout:
     def scale(self) -> tuple[float, float]:
         return self.client_w / self.base_w, self.client_h / self.base_h
 
-    def cell_center(self, row: int, col: int) -> tuple[int, int]:
+    def cell_center(self, row: int, col: int, dx: int = 0) -> tuple[int, int]:
+        # dx（2026-09-27）：屋顶等斜坡地图的 per-row 像素修正（基准坐标），
+        # 由 agent 从"种歪"证据里自动校准，见 agent._roof_row_dx。
         sx, sy = self.scale()
-        x = self.grid_left + col * self.cell_w + self.cell_w / 2
+        x = self.grid_left + col * self.cell_w + self.cell_w / 2 + dx
         y = self.grid_top + (row + 0.5) * self.row_height()
         return int(x * sx), int(y * sy)
 
@@ -188,8 +190,8 @@ class Clicker:
             post_click(self.win.hwnd, x, y, self.settle)
         self.history.append((x, y, note))
 
-    def click_grid(self, row: int, col: int, layout: Layout, note: str = "") -> tuple[int, int]:
-        x, y = layout.cell_center(row, col)
+    def click_grid(self, row: int, col: int, layout: Layout, note: str = "", dx: int = 0) -> tuple[int, int]:
+        x, y = layout.cell_center(row, col, dx)
         self.click_client(x, y, note or f"grid r{row}c{col}")
         return x, y
 

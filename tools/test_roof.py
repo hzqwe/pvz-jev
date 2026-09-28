@@ -1,0 +1,73 @@
+"""屋顶/月夜泛化回归（2026-09-27，用户屋顶实测：agent 只捡阳光不种植）。
+
+根因：执行闸门白名单漏了 scene 4。本文件钉住泛化后的行为：
+屋顶=花盆平台、月夜放行、坡度自校准。
+"""
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from pvz.board import BoardState, Plant, SeedSlot, Zombie
+from pvz.plants import KBEntry, PlantBook
+from pvz.policy import generate_candidates
+from pvz import offsets as O
+
+
+class RoofPlatformTests(unittest.TestCase):
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        # 花盆不在杂交图鉴里，测试手工登记（与 bind 等价的注册）
+        self.book.kb_by_name['花盆'] = KBEntry(cn='花盆', en='Flower Pot', cost=25,
+                                               role='platform', tags=('platform',))
+        for tid, name in ((33, '花盆'), (0, '豌豆射手'), (16, '睡莲'),
+                          (421, '高冰果'), (430, '向日葵女王')):
+            self.assertTrue(self.book.bind_one(tid, name))
+
+    def board(self, scene=4, cards=(), zombies=(), plants=(), sun=900):
+        rows = 5 if scene in (0, 1, 4, 5) else 6
+        return BoardState(ok=True, sun=sun, rows=rows, cols=9,
+                          game_clock=40000, scene=scene,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(cards)],
+                          plants=list(plants), zombies=list(zombies))
+
+    def test_scene_rows_cover_moon_night(self):
+        self.assertEqual(O.SCENE_ROWS.get(4), 5)
+        self.assertEqual(O.SCENE_ROWS.get(5), 5, '月夜 scene 5 应有行数定义')
+
+    def test_roof_needs_pot_but_water_needs_lily(self):
+        roof = self.board(scene=4)
+        self.assertTrue(roof.platform_required(0))
+        self.assertTrue(roof.can_plant(0, 0, 33, self.book), '花盆可以种上空屋顶')
+        self.assertFalse(roof.can_plant(0, 1, 0, self.book), '没花盆时豌豆不能直接上屋顶')
+        self.assertFalse(roof.can_plant(0, 2, 16, self.book), '睡莲不能种屋顶')
+        withpot = self.board(scene=4, plants=[Plant(0, 0, 1, 33)])
+        self.assertTrue(withpot.can_plant(0, 1, 0, self.book), '花盆上应能种豌豆')
+        water = self.board(scene=2, cards=[])
+        water.row_types = {0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1}
+        self.assertTrue(water.can_plant(2, 0, 16, self.book), '睡莲可以下水')
+        self.assertFalse(water.can_plant(2, 1, 33, self.book), '花盆不能下水')
+
+    def test_roof_pad_support_chains_best_wall(self):
+        # 屋顶受压（僵尸 460px）：应出"花盆→高冰果"的连锁候选（墙系优先）
+        b = self.board(scene=4, cards=[0, 33, 421],
+                       zombies=[Zombie(0, 0, 0, x=460)], sun=900)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.supports_type is not None]
+        self.assertTrue(cs, '屋顶受压应出平台候选')
+        pot = next(c for c in cs if c.type_id == 33)
+        self.assertEqual(pot.supports_type, 421, '花盆连锁的应是墙系高冰果')
+        self.assertGreaterEqual(pot.score, 70, '受压屋顶的平台候选不应被 45 封顶')
+
+    def test_platform_fits_terrain(self):
+        roof = self.board(scene=4)
+        water = self.board(scene=2)
+        self.assertTrue(roof.platform_fits(0, 33, self.book))
+        self.assertFalse(roof.platform_fits(0, 16, self.book))
+        self.assertTrue(water.platform_fits(2, 16, self.book))
+        self.assertFalse(water.platform_fits(2, 33, self.book))
+
+
+if __name__ == '__main__':
+    unittest.main()

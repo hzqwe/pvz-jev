@@ -184,6 +184,8 @@ class PvZJevAgent:
         self._last_stall_wake = 0.0
         # 阳光收集的假阳性抑制（见 ui.SunTracker 的长注释）。
         self.sun_tracker = SunTracker()
+        # 屋顶坡度 per-row 修正（基准 px）。种歪证据自动校准，换图清零。
+        self._roof_row_dx = {}
 
     # -- 卡槽绑定 -------------------------------------------------------
     def configure_catalog(self, win) -> None:
@@ -605,6 +607,7 @@ class PvZJevAgent:
         restarted = previous is not None and board.game_clock is not None and board.game_clock < previous
         if context != getattr(self,'_terrain_context',None) or restarted:
             self._bad_cells.clear()
+            if hasattr(self,'_roof_row_dx'): self._roof_row_dx.clear()
             self._blocked_cells = {}
             self._battle_serial = getattr(self,'_battle_serial',0)+1
             self._battle_id = f'{self.run_id()}-b{self._battle_serial}'
@@ -902,11 +905,15 @@ class PvZJevAgent:
         record['executed_candidate']=asdict(cand)
         geometry = (chk.scene,chk.rows,self.layout.client_w,self.layout.client_h,
                     self.layout.grid_left,self.layout.grid_top,self.layout.cell_w,self.layout.row_height())
-        x,y = self.layout.cell_center(cand.row,cand.col)
+        # 屋顶坡度 per-row 修正（自学习，见 placement 校准块）
+        dx = (self._roof_row_dx.get(cand.row, 0) if chk.scene == 4 else 0)
+        x,y = self.layout.cell_center(cand.row,cand.col,dx)
         if self._geometry_error == geometry or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
             record['executed'] = {'kind':'blocked_geometry','note':'落点越界或已发现种歪；重新校准并重启后再种植'}
             return
-        if chk.scene not in (None,0,1,2,3) and not (chk.rows == 6 and len(chk.row_types) == 6):
+        # 2026-09-27 泛化：4=屋顶、5=月夜加入白名单（此前屋顶被拒种，
+        # agent 只捡阳光不防守 —— 用户实测）。未知 scene 仍然拒绝。
+        if chk.scene not in (None,0,1,2,3,4,5) and not (chk.rows == 6 and len(chk.row_types) == 6):
             record['executed'] = {'kind':'unsupported_layout','scene':chk.scene,'note':'未知地图几何，暂不猜测坐标'}
             return
         if cand.kind == "shovel":
@@ -1057,7 +1064,7 @@ class PvZJevAgent:
             return
 
         # 3) 落点 + 回读验证
-        self.clicker.click_grid(cand.row, cand.col, self.layout, f"place r{cand.row}c{cand.col}")
+        self.clicker.click_grid(cand.row, cand.col, self.layout, f"place r{cand.row}c{cand.col}", dx=dx)
         self._action_times.append(now)
         # Confirm a compound action's platform promptly, leaving time to block
         # a moving enemy. The delayed re-read below still handles late updates.
@@ -1078,6 +1085,22 @@ class PvZJevAgent:
                 placed = True
                 after = after2
                 misplaced = False
+        if chk.scene == 4 and misplaced and not placed and after.ok:
+            # ★ 屋顶坡度自校准（2026-09-27）：种歪的落点就是最好的量测——
+            #   读回"实际落到哪格"，把横向偏差记成该行的 dx，之后同行的
+            #   点击全部修正；同时解除几何熔断（校准过的点击值得再试）。
+            for (ar_, ac_) in misplaced:
+                if ar_ == cand.row and ac_ != cand.col:
+                    dx_fix = (ac_ - cand.col) * self.layout.cell_w
+                    self._roof_row_dx[cand.row] = self._roof_row_dx.get(cand.row, 0) + dx_fix
+                    self._geometry_error = None
+                    self._bad_cells.pop((cand.type_id, cand.row, cand.col), None)
+                    note = (f"Roof slope calibrated: lane {cand.row + 1} clicks shifted "
+                            f"{dx_fix:+.0f} base-px (plant landed at column {ac_ + 1}).")
+                    record.setdefault("warnings", []).append(note)
+                    if self.cfg.verbose:
+                        print(f"  📐 {note}")
+                    break
         if misplaced and not placed:
             self._geometry_error = geometry
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。

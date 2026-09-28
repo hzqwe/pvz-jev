@@ -27,7 +27,7 @@ class FakeGame:
     def click_card(self,index,*args):
         self.actions.append('pick_pad');self.state.holding=True;self.state.held_cursor=1
         self.state.held_slot=index;self.state.held_type=PAD
-    def click_grid(self,row,col,*args):
+    def click_grid(self,row,col,*args,dx=0):
         s=self.state
         if s.held_cursor==6:
             self.actions.append('shovel')

@@ -300,9 +300,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 注意放在能力加成（upgrade_value）之后，否则压不住总分。
             value = 65 + (value - 65) * 0.12
         if not board.can_plant(row,col,slot.type_id,book):
-            if board.is_water(row) and (row,col) not in board.occupancy():
+            if board.platform_required(row) and (row,col) not in board.occupancy():
                 pad = next((s for s in board.slots if s.ready
                             and book.has_tag(s.type_id,T_PLATFORM)
+                            and board.platform_fits(row, s.type_id, book)
                             and book.cost(s.type_id) is not None
                             and sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
                 if pad is not None:

@@ -12,6 +12,11 @@ class PlantTransaction:
     def __init__(self,agent,board):
         self.agent=agent;self.board=board;self.steps=[]
         self.identity=(board.pid,board.board,board.level,board.scene,board.rows)
+    def _rdx(self,row):
+        """屋顶坡度 per-row 修正（与 agent.execute 同源，2026-09-27）。"""
+        if getattr(self.board,'scene',None)==4:
+            return getattr(self.agent,'_roof_row_dx',{}).get(row,0)
+        return 0
     def read(self,predicate=lambda b:True,tries=6):
         previous=self.board.game_clock
         for _ in range(tries):
@@ -45,7 +50,7 @@ class PlantTransaction:
     def place_held(self,tid,row,col):
         self.cell_valid(tid,row,col)
         before=self.board
-        self.agent.clicker.click_grid(row,col,self.agent.layout,'transaction place')
+        self.agent.clicker.click_grid(row,col,self.agent.layout,'transaction place',dx=self._rdx(row))
         def completed(b):
             placed,other=placement_delta(before,b,tid,row,col)
             if other and not placed:
@@ -106,9 +111,10 @@ class PlantTransaction:
         self.bank(tid,row,col)
     def support(self,tid,row,col):
         if self.board.can_plant(row,col,tid,self.agent.book):return
-        if not self.board.is_water(row):raise TransactionStopped('Blocked land destination')
-        slot=next((s for s in self.board.slots if s.ready and self.agent.book.has_tag(s.type_id,'platform')),None)
-        if slot is None:raise TransactionStopped('Lily Pad unavailable')
+        if not self.board.platform_required(row):raise TransactionStopped('Blocked land destination')
+        slot=next((s for s in self.board.slots if s.ready and self.agent.book.has_tag(s.type_id,'platform')
+                   and self.board.platform_fits(row,s.type_id,self.agent.book)),None)
+        if slot is None:raise TransactionStopped('Platform (Lily Pad / Flower Pot) unavailable')
         self.bank(slot.type_id,row,col)
     def relocate(self,candidate):
         self.read()
@@ -160,7 +166,7 @@ class PlantTransaction:
         removals = getattr(self.agent, '_intentional_removals', set())
         removals.add((source.row, source.col, source.type_id))
         self.agent._intentional_removals = removals
-        self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'recover wall')
+        self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'recover wall',dx=self._rdx(source.row))
         self.read(lambda b:not any(p.cell==source.cell and p.type_id==source.type_id for p in b.plants))
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())
         self.steps.append({'step':'source_removed','cell':list(source.cell)})
@@ -247,7 +253,7 @@ class PlantTransaction:
         removals = getattr(self.agent, '_intentional_removals', set())
         removals.add((source.row, source.col, source.type_id))
         self.agent._intentional_removals = removals
-        self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'salvage shovel')
+        self.agent.clicker.click_grid(source.row,source.col,self.agent.layout,'salvage shovel',dx=self._rdx(source.row))
         self.read(lambda b:not any(p.cell==source.cell and p.type_id==source.type_id
                                    for p in b.plants))
         if hasattr(self.agent,'_action_times'):self.agent._action_times.append(time.time())

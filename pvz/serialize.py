@@ -107,7 +107,9 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         lanes.append(
             {
                 "lane": r + 1,
-                "terrain": "water: Lily Pad required below ordinary plants" if board.is_water(r) else "land",
+                "terrain": ("water: Lily Pad required below ordinary plants" if board.is_water(r)
+                     else "roof: Flower Pot required below ordinary plants" if board.scene == 4
+                     else "land"),
                 "available_platform_columns": [COL_LABEL[c] for c in range(board.cols) if board.has_platform(r,c,book) and (r,c) not in occ_cache],
                 "defenders": [
                     {

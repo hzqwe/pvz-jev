@@ -187,16 +187,31 @@ class BoardState:
         return any(book.has_tag(p.type_id, 'platform')
                    for p in self.occupancy().get((row,col), []))
 
+    def platform_required(self, row: int) -> bool:
+        """该行种植是否需要平台卡（2026-09-27 泛化）：水路=睡莲，屋顶=花盆。"""
+        return self.is_water(row) or self.scene == 4
+
+    def platform_fits(self, row: int, type_id: int, book) -> bool:
+        """平台卡与地形是否匹配 —— 别把睡莲种上屋顶、花盆种进水里。
+        未登记名字的平台卡（杂交版新平台）按"可用"处理。"""
+        nm = book.name(type_id)
+        if self.is_water(row):
+            return '花盆' not in nm and 'Pot' not in nm
+        if self.scene == 4:
+            return '睡莲' not in nm and 'Lily' not in nm
+        return True
+
     def can_plant(self, row, col, type_id, book):
         if not (0 <= row < self.rows and 0 <= col < self.cols):
             return False
         if self.placement_blocked(row,col): return False
         stack = self.occupancy().get((row,col), [])
         if book.has_tag(type_id,'platform'):
-            return self.is_water(row) and not stack
+            return (not stack and self.platform_fits(row, type_id, book)
+                    and (self.is_water(row) or self.scene == 4))
         if (row,col) in self.top_occupancy(book):
             return False
-        return not self.is_water(row) or self.has_platform(row,col,book)
+        return not self.platform_required(row) or self.has_platform(row,col,book)
 
     def placement_blocked(self,row,col):
         return self.rejected_cells.get((row,col),0) > time.time()
