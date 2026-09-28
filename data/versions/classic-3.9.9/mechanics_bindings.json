@@ -120,6 +120,22 @@
     "168": {
       "profile_name": "豌豆炸弹",
       "canonical_name": "豌豆炸弹"
+    },
+    "172": {
+      "profile_name": "荷包蛋",
+      "canonical_name": "荷包蛋"
+    },
+    "100": {
+      "profile_name": "窝瓜坚果",
+      "canonical_name": "窝瓜坚果"
+    },
+    "39": {
+      "profile_name": "西瓜坚果",
+      "canonical_name": "西瓜坚果"
+    },
+    "123": {
+      "profile_name": "小猫向日葵",
+      "canonical_name": "小猫向日葵"
     }
   }
 }

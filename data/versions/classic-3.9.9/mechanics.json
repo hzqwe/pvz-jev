@@ -638,6 +638,137 @@
           "reason": "Read from the card face screenshot; confirm from the almanac"
         }
       }
+    },
+    "172": {
+      "canonical_name": "荷包蛋",
+      "profile_name": "荷包蛋",
+      "patch": {
+        "tags": [
+          "producer",
+          "shooter",
+          "platform"
+        ],
+        "en": "Fried Egg",
+        "effect_en": "Egg-sunflower: 25 sun per 25s AND burns zombies passing over it (50 dps fire). Low profile; can also carry water plants."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 100) + pvzhe.wiki/w/荷包蛋"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 100) + pvzhe.wiki/w/荷包蛋"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 100) + pvzhe.wiki/w/荷包蛋"
+        }
+      },
+      "unverified_fields": {}
+    },
+    "100": {
+      "canonical_name": "窝瓜坚果",
+      "profile_name": "窝瓜坚果",
+      "patch": {
+        "tags": [
+          "instant"
+        ],
+        "en": "Squash-nut",
+        "effect_en": "2000-hp squash-nut: deals 1800 to the zombie that reaches it, and on death squashes everything in its cell. Plant it in the path like a mine."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 50) + pvzhe.wiki/w/窝瓜坚果"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 50) + pvzhe.wiki/w/窝瓜坚果"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 50) + pvzhe.wiki/w/窝瓜坚果"
+        }
+      },
+      "unverified_fields": {}
+    },
+    "39": {
+      "canonical_name": "西瓜坚果",
+      "profile_name": "西瓜坚果",
+      "patch": {
+        "tags": [
+          "wall",
+          "shooter"
+        ],
+        "en": "Melon-nut",
+        "effect_en": "4000-hp watermelon-nut wall that attacks its whole lane (80 dmg/1.5s + 26 splash) - defence and lane damage in one."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150) + pvzhe.wiki/w/西瓜坚果"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150) + pvzhe.wiki/w/西瓜坚果"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150) + pvzhe.wiki/w/西瓜坚果"
+        }
+      },
+      "unverified_fields": {}
+    },
+    "123": {
+      "canonical_name": "小猫向日葵",
+      "profile_name": "小猫向日葵",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Kitten Sunflower",
+        "effect_en": "Cat-eared sunflower producer (150 sun). Production details unverified."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150)"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150)"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_and_card_face",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User deck screenshot (cost 150)"
+        }
+      },
+      "unverified_fields": {}
     }
   }
 }

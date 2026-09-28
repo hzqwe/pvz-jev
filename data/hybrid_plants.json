@@ -695,6 +695,72 @@
         "coverage": "full-board 360-degree",
         "notes": "One-shot: fires ten rounds of peas, 20 damage x360 degrees. Light AoE stall + damage for 50 sun. Wiki pvzhe 2026-09-28."
       }
+    },
+    "荷包蛋": {
+      "en": "Fried Egg",
+      "cost": 100,
+      "role": "producer",
+      "tags": [
+        "producer",
+        "shooter",
+        "platform"
+      ],
+      "hp": null,
+      "effect_en": "Egg-sunflower: 25 sun per 25s AND burns zombies passing over it (50 dps fire). Low profile; can also carry water plants.",
+      "combat": {
+        "dps": 50,
+        "sun_per_25s": 25,
+        "coverage": "tile",
+        "notes": "25 sun/25s + 50 dps fire to zombies passing over it. Wiki says 75 sun for an older version; current card face shows 100. pvzhe 2026-09-28."
+      }
+    },
+    "窝瓜坚果": {
+      "en": "Squash-nut",
+      "cost": 50,
+      "role": "instant",
+      "tags": [
+        "instant"
+      ],
+      "hp": null,
+      "effect_en": "2000-hp squash-nut: deals 1800 to the zombie that reaches it, and on death squashes everything in its cell. Plant it in the path like a mine.",
+      "combat": {
+        "burst_damage": 1800,
+        "coverage": "tile",
+        "hp": 2000,
+        "notes": "2000-hp body, 1800 crush on contact, death-squash on its cell. pvzhe 2026-09-28."
+      }
+    },
+    "西瓜坚果": {
+      "en": "Melon-nut",
+      "cost": 150,
+      "role": "wall",
+      "tags": [
+        "wall",
+        "shooter"
+      ],
+      "hp": null,
+      "effect_en": "4000-hp watermelon-nut wall that attacks its whole lane (80 dmg/1.5s + 26 splash) - defence and lane damage in one.",
+      "combat": {
+        "dps": 53,
+        "coverage": "lane",
+        "splash": 26,
+        "hp": 4000,
+        "notes": "4000-hp wall + lane attack 80/1.5s with 26 splash. pvzhe 2026-09-28."
+      }
+    },
+    "小猫向日葵": {
+      "en": "Kitten Sunflower",
+      "cost": 150,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "Cat-eared sunflower producer (150 sun). Production details unverified.",
+      "combat": {
+        "coverage": "tile",
+        "notes": "Producer; production amount unverified (pvzhe page not fetched)."
+      }
     }
   }
 }
