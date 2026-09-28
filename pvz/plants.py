@@ -29,8 +29,12 @@
 from __future__ import annotations
 
 import json
-from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog, load_profile_bindings
-from .mechanics import load_mechanics, overlay
+import copy
+import hashlib
+import math
+from pathlib import Path
+from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog, load_profile_bindings, _unique_keys
+from .mechanics import load_mechanics
 import os
 import time
 from dataclasses import dataclass, field
@@ -173,6 +177,65 @@ def save_json(path: str, data) -> bool:
         return False
 
 
+def _confirmed(raw: dict, path: str) -> bool:
+    source = (raw.get('field_sources') or {}).get(path) or {}
+    if source.get('confidence') == 'user_confirmed':
+        return True
+    # Legacy almanac records predate field-level provenance.
+    marker = str(raw.get('combat_source') or '')
+    return marker.startswith('user_') and path.split('.')[0] in (
+        'cost', 'hp', 'cooldown_s', 'role', 'tags', 'combat', 'effect_en')
+
+
+def _merge_profile(raw: dict, patch: dict, evidence: dict) -> dict:
+    """Apply sourced fields, keeping confirmed facts and explicit capabilities."""
+    result = copy.deepcopy(raw)
+    old_sources = result.setdefault('field_sources', {})
+    confidence_rank = {
+        'unknown': 0,
+        'classic_reference': 1,
+        'classic_inferred': 2,
+        'version_verified': 3,
+        'runtime_confirmed': 4,
+        'user_confirmed': 5,
+    }
+    def apply(target, values, prefix=''):
+        for key, value in values.items():
+            if key in ('field_sources', 'unverified_fields'):
+                continue
+            path = prefix + key
+            source = evidence.get(path) or evidence.get(path.split('.')[0]) or {}
+            old_source = old_sources.get(path) or old_sources.get(path.split('.')[0]) or {}
+            old_conf = confidence_rank.get(old_source.get('confidence', 'unknown'), 0)
+            new_conf = confidence_rank.get(source.get('confidence', 'unknown'), 0)
+            if old_source and old_conf > new_conf and target.get(key) not in (None, '', UNKNOWN):
+                # A later broad/reference overlay cannot downgrade an already
+                # corroborated or runtime-confirmed field.
+                continue
+            if isinstance(value, dict):
+                if not isinstance(target.get(key), dict):
+                    target[key] = {}
+                apply(target[key], value, path + '.')
+                continue
+            if (_confirmed(raw, path) or _confirmed(raw, path.split('.')[0])) and source.get('confidence') != 'user_confirmed':
+                continue
+            if key == 'tags' and isinstance(value, list):
+                target[key] = list(dict.fromkeys(list(target.get(key) or []) + value))
+            else:
+                confidence = source.get('confidence', '')
+                # Old card-face text is merely a placeholder; it cannot downgrade
+                # an existing almanac capability or replace explicit effects.
+                weak = confidence not in ('user_confirmed', 'runtime_confirmed', 'version_verified')
+                if weak and path in ('cost', 'hp', 'cooldown_s', 'role', 'effect_en') and target.get(key) not in (None, '', UNKNOWN):
+                    continue
+                target[key] = copy.deepcopy(value)
+            if source and (new_conf >= old_conf or not old_source):
+                old_sources[path] = copy.deepcopy(source)
+    apply(result, patch)
+    result.setdefault('unverified_fields', {}).update(copy.deepcopy(patch.get('unverified_fields', {})))
+    return result
+
+
 @dataclass
 class KBEntry:
     """一个植物在知识库里的全部信息。"""
@@ -190,6 +253,45 @@ class KBEntry:
 
     @classmethod
     def from_json(cls, cn: str, d: dict) -> "KBEntry":
+        d = copy.deepcopy(d)
+        combat = d.setdefault('combat', {})
+        if not isinstance(combat, dict):
+            raise ValueError('Plant combat must be an object')
+        if d.get('hp') is None and combat.get('hp') is not None:
+            d['hp'] = combat['hp']
+        if 'piercing' not in combat and 'pierce' in combat:
+            combat['piercing'] = combat['pierce']
+        for key in ('cost', 'hp', 'cooldown_s'):
+            value = d.get(key)
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))
+                                      or not math.isfinite(value) or value < 0):
+                raise ValueError(f'Invalid plant {key}')
+        tags = d.get('tags') or []
+        if not isinstance(tags, (list, tuple)) or any(not isinstance(t, str) for t in tags):
+            raise ValueError('Plant tags must be strings')
+        if not isinstance(d.get('placement', {}), dict):
+            raise ValueError('Plant placement must be an object')
+        # Explicit legacy profile aliases establish support ability. No arbitrary
+        # plant-name substring or active catalog ID is treated as a platform.
+        legacy_platforms = {'睡莲': ('lily', ['water']), '豌豆睡莲': ('lily', ['water']),
+                            '花盆': ('pot', ['land', 'roof']), '阳光花盆': ('pot', ['land', 'roof'])}
+        if cn in legacy_platforms:
+            support, terrain = legacy_platforms[cn]
+            placement = d.setdefault('placement', {})
+            placement.setdefault('support_kind', support)
+            placement.setdefault('terrain', terrain)
+            placement.setdefault('layer', 'platform')
+        economy = combat.get('economy') or {}
+        if not isinstance(economy, dict):
+            raise ValueError('Plant economy must be an object')
+        for source, target in (('economy_resource', 'resource'), ('economy_trigger', 'trigger')):
+            if source in combat:
+                economy.setdefault(target, combat[source])
+        if economy:
+            combat['economy'] = economy
+            for source, target in (('resource', 'economy_resource'), ('trigger', 'economy_trigger')):
+                if source in economy:
+                    combat[target] = economy[source]
         return cls(
             cn=cn,
             en=str(d.get("en") or cn),
@@ -212,6 +314,8 @@ class PlantBook:
         cost_file: str = COST_FILE,
         kb_file: str = KB_FILE,
         ids_file: str = IDS_FILE,
+        encyclopedia_file: str | None = None,
+        *, _snapshot_data: dict | None = None,
     ):
         # table: id -> (显示名, 成本, 角色)   —— 兼容旧接口
         self.table: dict[int, tuple[str, int, str]] = dict(BASE_PLANTS)
@@ -223,6 +327,15 @@ class PlantBook:
         self.cost_file = cost_file
         self.kb_file = kb_file
         self.ids_file = ids_file
+        self.encyclopedia_file = str(DEFAULT_CATALOG.with_name('encyclopedia.json')) if encyclopedia_file is None else encyclopedia_file
+        self.domain_knowledge: dict = {}
+        self._snapshot_data = _snapshot_data or {}
+        self._playbook_snapshot = load_json(os.path.join(_DIR, 'plant_playbook.json'), {})
+        self.knowledge_generation = 0
+        self.knowledge_revision = ''
+        self.quarantined_costs: dict[int, dict] = {}
+        self._loaded_cost_ids: set[int] = set()
+        self.reference_cost_evidence: dict[int, dict] = {}
         self.loaded_hybrid = 0
         self.bound_ids: dict[str, int] = {}          # 名字 -> id
         self.binding_notes: list[str] = []
@@ -260,21 +373,101 @@ class PlantBook:
         self.load_ids()        # plant_ids.json（已绑定结果）
         self.load_costs()      # plant_costs.json（实测成本）
         self.load_zombie_traits()  # zombie_traits.json（僵尸特征）
+        self._refresh_revision()
 
-    def reload_data(self) -> None:
-        """新对局开始时从磁盘重载静态数据（2026-09-28）。
+    def _refresh_revision(self) -> None:
+        effective = {'table': self.table,
+            'profiles': {str(t): e.raw for t, e in self.kb_by_id.items()},
+            'by_name': {name: e.raw for name, e in self.kb_by_name.items()},
+            'zombies': self.zombie_traits, 'domain': self.domain_knowledge,
+            'playbook': self._playbook_snapshot,
+            'catalog_profiles': self._catalog_profiles,
+            'catalog_mechanics': self._catalog_mechanics,
+            'catalog_revision': self.catalog.source_revision if self.catalog else None}
+        self.knowledge_revision = hashlib.sha256(json.dumps(effective, ensure_ascii=False,
+            sort_keys=True, separators=(',', ':')).encode('utf-8')).hexdigest()
 
-        agent 进程跨局长活（run Jev continuously），而数据文件（卡组登记/
-        僵尸特征/教条）会在此期间被更新 —— 不重载的话，新对局会拿着进程
-        启动时的旧知识打（屋顶局实测：数据修了、进程没重启 -> 全 hold）。
-        运行时学习（real_cost/runtime_crush/min_cost/kb 绑定）刻意保留：
-        那是本会话挣来的校准。"""
-        self.load()              # plant_names -> table
-        self.load_kb()           # hybrid_plants -> kb_by_name
-        self.load_zombie_traits()
+    def reload_data(self) -> dict:
+        """Validate and build a complete candidate, then publish it as one snapshot."""
+        try:
+            snapshot_data = {}
+            # Configured malformed inputs must never silently turn into empty data.
+            for path in (self.hybrid_file, self.cost_file, self.kb_file, self.ids_file,
+                         ZOMBIE_TRAITS_FILE):
+                if path:
+                    data = json.loads(Path(path).read_text(encoding='utf-8'), object_pairs_hook=_unique_keys)
+                    if not isinstance(data, dict):
+                        raise ValueError(f'Expected JSON object: {path}')
+                    snapshot_data[path] = data
+            for path, section in ((self.kb_file, 'plants'), (self.ids_file, 'ids'),
+                                  (ZOMBIE_TRAITS_FILE, 'types')):
+                if path and not isinstance(snapshot_data[path].get(section, {}), dict):
+                    raise ValueError(f'Expected {section} object: {path}')
+            if self.kb_file:
+                for name, raw in snapshot_data[self.kb_file].get('plants', {}).items():
+                    if not isinstance(name, str) or not isinstance(raw, dict):
+                        raise ValueError('Invalid named knowledge record')
+                    KBEntry.from_json(name, raw)
+            if self.ids_file:
+                for name, tid in snapshot_data[self.ids_file].get('ids', {}).items():
+                    if not isinstance(name, str) or isinstance(tid, bool) or int(tid) < 0:
+                        raise ValueError('Invalid manual binding')
+            if self.catalog and self.encyclopedia_file and Path(self.encyclopedia_file).exists():
+                snapshot_data[self.encyclopedia_file] = json.loads(Path(self.encyclopedia_file).read_text(encoding='utf-8'), object_pairs_hook=_unique_keys)
+            from . import serialize
+            if Path(serialize._PLAYBOOK_FILE).exists():
+                doctrine = json.loads(Path(serialize._PLAYBOOK_FILE).read_text(encoding='utf-8'))
+                if not isinstance(doctrine, dict):
+                    raise ValueError('Playbook must be a JSON object')
+            else:
+                doctrine = {}
+            candidate = PlantBook(self.hybrid_file, self.cost_file, self.kb_file,
+                                  self.ids_file, self.encyclopedia_file, _snapshot_data=snapshot_data)
+            candidate._playbook_snapshot = doctrine
+            # In-session manual bindings take priority over stale disk bindings.
+            for name, tid in self.bound_ids.items():
+                for old_name, old_tid in list(candidate.bound_ids.items()):
+                    if old_name == name or old_tid == tid:
+                        candidate.bound_ids.pop(old_name)
+                        candidate.kb_by_id.pop(old_tid, None)
+                        candidate.table.pop(old_tid, None)
+                if not candidate.bind_one(tid, name):
+                    candidate.bound_ids[name] = tid
+            candidate.real_cost.update({tid: cost for tid, cost in self.real_cost.items()
+                                        if tid not in self._loaded_cost_ids})
+            candidate.quarantined_costs.update(copy.deepcopy(self.quarantined_costs))
+            if self.catalog:
+                candidate.activate_catalog(self.catalog.edition, self.catalog.game_version)
+                for tid in self._catalog_restore:
+                    candidate.bind_identity(tid)
+                    if tid in candidate._catalog_restore:
+                        # Rebuild static restore state from the new disk snapshot,
+                        # but keep the facts that preceded version activation.
+                        for attribute in ('real_cost', 'min_cost', 'min_cost_ts',
+                                          'cost_mismatch', 'copies_on_field'):
+                            candidate._catalog_restore[tid][attribute] = copy.deepcopy(
+                                self._catalog_restore[tid][attribute])
+            candidate._refresh_revision()
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            return {'ok': False, 'generation': self.knowledge_generation,
+                    'revision': self.knowledge_revision, 'error': str(exc)}
+        static = ('table', 'kb_by_id', 'kb_by_name', 'loaded_hybrid', 'bound_ids',
+                  'catalog', '_catalog_profiles', '_catalog_mechanics', '_catalog_restore',
+                  'domain_knowledge', 'zombie_traits', 'real_cost', '_loaded_cost_ids',
+                  'quarantined_costs', 'knowledge_revision')
+        static += ('_playbook_snapshot',)
+        for name in static:
+            setattr(self, name, getattr(candidate, name))
+        self.knowledge_generation += 1
+        serialize._PLAYBOOK = doctrine
+        return {'ok': True, 'generation': self.knowledge_generation,
+                'revision': self.knowledge_revision, 'bound_ids': len(self.kb_by_id)}
+
+    def _read_json(self, path, default):
+        return copy.deepcopy(self._snapshot_data[path]) if path in self._snapshot_data else load_json(path, default)
 
     def load_zombie_traits(self) -> None:
-        data = load_json(ZOMBIE_TRAITS_FILE, {}) or {}
+        data = self._read_json(ZOMBIE_TRAITS_FILE, {}) or {}
         defaults = dict(data.get("defaults") or {})
         types: dict[int, dict] = {}
         for k, v in (data.get("types") or {}).items():
@@ -307,7 +500,7 @@ class PlantBook:
 
     # -- 载入 -----------------------------------------------------------
     def load(self) -> None:
-        data = load_json(self.hybrid_file, {})
+        data = self._read_json(self.hybrid_file, {})
         for k, v in (data or {}).items():
             try:
                 pid = int(k)
@@ -324,7 +517,7 @@ class PlantBook:
             self.loaded_hybrid += 1
 
     def load_kb(self) -> None:
-        data = load_json(self.kb_file, {}) or {}
+        data = self._read_json(self.kb_file, {}) or {}
         for cn, d in (data.get("plants") or {}).items():
             if isinstance(d, dict):
                 entry = KBEntry.from_json(cn, d)
@@ -335,7 +528,7 @@ class PlantBook:
 
     def load_ids(self) -> None:
         """载入已绑定的 名字 -> type_id。"""
-        data = load_json(self.ids_file, {}) or {}
+        data = self._read_json(self.ids_file, {}) or {}
         for name, pid in (data.get("ids") or {}).items():
             try:
                 i = int(pid)
@@ -368,15 +561,20 @@ class PlantBook:
 
     # -- 真实成本校准 ---------------------------------------------------
     def load_costs(self) -> None:
-        data = load_json(self.cost_file, {})
+        data = self._read_json(self.cost_file, {})
         for k, v in (data or {}).items():
             try:
                 tid, value = int(k), int(v)
                 baseline = self.table.get(tid)
                 # Legacy files contain noisy net sun changes and already-increased prices.
                 if baseline and baseline[1] >= 0 and value != baseline[1]:
+                    self.quarantined_costs[tid] = {'observed_base': value, 'known_base': baseline[1],
+                                                  'reason': 'legacy_file_mismatch'}
+                    continue
+                if value < 0:
                     continue
                 self.real_cost[tid] = value
+                self._loaded_cost_ids.add(tid)
             except (TypeError, ValueError):
                 continue
 
@@ -390,7 +588,7 @@ class PlantBook:
             out["_meta"] = meta
         save_json(self.cost_file, out)
 
-    def set_real_cost(self, type_id: int, cost: int) -> None:
+    def set_real_cost(self, type_id: int, cost: int) -> bool:
         """Check an observed net sun delta against normalized known prices.
 
         Sun production/collection can overlap placement, so a net delta is not a price
@@ -399,18 +597,65 @@ class PlantBook:
         Unknown plants can still learn a positive base for later identification.
         """
         if cost <= 0:
-            return
+            return False
         ent = self.kb_by_id.get(type_id)
         base = cost - self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
         if base <= 0:
-            return
-        if ent and ent.cost is not None and base != ent.cost:
-            self.cost_mismatch[type_id] = (ent.cost, base)
-            return
+            return False
+        known = ent.cost if ent and ent.cost is not None else self.table.get(type_id, ('', -1, UNKNOWN))[1]
+        if known >= 0 and base != known:
+            self.cost_mismatch[type_id] = (known, base)
+            return False
         self.real_cost[type_id] = base
-        # 顺带校验绑定：如果实测价格和知识库差太多，八成是把卡绑错了
-        if ent and ent.cost is not None and base != ent.cost:
-            self.cost_mismatch[type_id] = (ent.cost, base)
+        self._loaded_cost_ids.discard(type_id)
+        self.min_cost.pop(type_id, None)
+        self.min_cost_ts.pop(type_id, None)
+        return True
+
+    def observe_placement_cost(self, type_id: int, sun_before: int | None,
+                               sun_after: int | None, *, isolated=False, observation_id=None) -> dict:
+        """Net balance changes can corroborate a known price, never invent one."""
+        delta = sun_before - sun_after if sun_before is not None and sun_after is not None else None
+        entry = self.kb_by_id.get(type_id)
+        base = self.real_cost.get(type_id, entry.cost if entry and entry.cost is not None else self.table.get(type_id, ('', -1, UNKNOWN))[1])
+        expected = base + self.price_increment(type_id) * self.copies_on_field.get(type_id, 0) if base >= 0 else None
+        accepted = expected is not None and delta == expected and expected > 0
+        if accepted:
+            accepted = type_id in self.real_cost or self.set_real_cost(type_id, delta)
+        elif delta is not None and delta > 0 and base >= 0:
+            self.cost_mismatch[type_id] = (base, delta - self.price_increment(type_id) * self.copies_on_field.get(type_id, 0))
+            provisional = bool(entry and str(type_id) in self.domain_knowledge.get('plants', {})
+                and not _confirmed(entry.raw, 'cost') and
+                (entry.raw.get('field_sources', {}).get('cost') or {}).get('confidence')
+                not in ('user_confirmed', 'runtime_confirmed', 'version_verified'))
+            candidate_base = delta - self.price_increment(type_id) * self.copies_on_field.get(type_id, 0)
+            if provisional and isolated and observation_id and candidate_base > 0:
+                evidence = self.reference_cost_evidence.get(type_id)
+                if evidence is None or evidence['base'] != candidate_base:
+                    evidence = {'base': candidate_base, 'observation_ids': []}
+                    self.reference_cost_evidence[type_id] = evidence
+                if observation_id not in evidence['observation_ids']:
+                    evidence['observation_ids'].append(observation_id)
+                if len(evidence['observation_ids']) >= 3:
+                    self.real_cost[type_id] = candidate_base
+                    self._loaded_cost_ids.discard(type_id)
+                    self.min_cost.pop(type_id, None); self.min_cost_ts.pop(type_id, None)
+                    self.cost_mismatch.pop(type_id, None)
+                    accepted = True
+                    expected = delta
+        return {'net_sun_delta': delta, 'expected_price': expected, 'accepted': accepted,
+                'reason': 'known_price_match' if accepted else 'unknown_price_net_balance' if expected is None else 'net_balance_not_price'}
+
+    def _quarantine_loaded_cost(self, type_id: int) -> None:
+        entry = self.kb_by_id.get(type_id)
+        if type_id not in self._loaded_cost_ids or entry is None or entry.cost is None:
+            return
+        value = self.real_cost.get(type_id)
+        if value is not None and value != entry.cost:
+            self.quarantined_costs[type_id] = {'observed_base': value, 'known_base': entry.cost,
+                                              'reason': 'loaded_effective_profile_mismatch'}
+            self.real_cost.pop(type_id, None)
+            self._loaded_cost_ids.discard(type_id)
 
     def note_unaffordable(self, type_id: int, sun: int) -> None:
         """点卡被游戏拒绝 -> 真实成本至少是 sun+1。
@@ -544,6 +789,10 @@ class PlantBook:
         entry = self.kb_by_id.get(type_id)
         return dict(entry.raw.get('combat', {})) if entry else {}
 
+    def placement(self, type_id: int) -> dict:
+        entry = self.kb_by_id.get(type_id)
+        return copy.deepcopy(entry.raw.get('placement') or {}) if entry else {}
+
     def range_cells(self, type_id: int) -> int | None:
         """攻击射程（格）。None = 整行/全屏，没有摆位限制。
 
@@ -555,7 +804,7 @@ class PlantBook:
             return None
         ent = self.kb_by_id.get(type_id)
         v = (ent.raw.get('combat') or {}).get('range_cells') if ent else None
-        if v is None:
+        if v is None and not self.catalog:
             v = SHORT_RANGE_CELLS.get(type_id)
         return v
 
@@ -564,6 +813,9 @@ class PlantBook:
 
     def describe(self, type_id: int) -> dict:
         ent = self.kb_by_id.get(type_id)
+        reference = bool(ent and str(type_id) in self.domain_knowledge.get('plants', {})
+                         and type_id not in self._catalog_profiles
+                         and type_id not in self.bound_ids.values())
         return {
             "id": type_id,
             "name": self.name(type_id),
@@ -575,9 +827,12 @@ class PlantBook:
             "cooldown_s": ent.cooldown_s if ent else None,
             "effect": ent.effect_en if ent else "",
             "combat": self.combat(type_id),
+            "placement": self.placement(type_id),
+            "field_sources": copy.deepcopy(ent.raw.get('field_sources') or {}) if ent else {},
             "registered": self.is_known(type_id),
             "bound": type_id in self.kb_by_id,
-            "knowledge_status": "mechanics_present" if ent else "identity_only" if self.identity(type_id) else "unknown",
+            "knowledge_status": "mechanics_reference" if reference else "mechanics_present" if ent else "identity_only" if self.identity(type_id) else "unknown",
+            "source_confidence": 'classic_reference_unverified' if reference else None,
         }
 
     def unregistered_ids(self, ids) -> list[int]:
@@ -594,12 +849,71 @@ class PlantBook:
         catalog = load_catalog(str(DEFAULT_CATALOG), edition, game_version)
         profiles = load_profile_bindings(catalog)
         mechanics = load_mechanics(catalog, profiles)
+        domain = self._load_domain(catalog)
         self.catalog, self._catalog_profiles = catalog, profiles
         self._catalog_mechanics = mechanics
+        self.domain_knowledge = domain
         for tid in list(self.kb_by_id):
-            if tid in mechanics and self.kb_by_id[tid].cn == profiles.get(tid):
+            if self.kb_by_id[tid].cn == profiles.get(tid):
                 self._remember_catalog_binding(tid)
                 self.kb_by_id[tid] = self.catalog_entry(tid)
+                ent = self.kb_by_id[tid]
+                self.table[tid] = (ent.cn, ent.cost if ent.cost is not None else -1, ent.role)
+                self._quarantine_loaded_cost(tid)
+        self._merge_domain_zombies()
+        self._refresh_revision()
+
+    def _load_domain(self, catalog) -> dict:
+        if not self.encyclopedia_file or not Path(self.encyclopedia_file).exists():
+            return {}
+        data = (copy.deepcopy(self._snapshot_data[self.encyclopedia_file])
+                if self.encyclopedia_file in self._snapshot_data else
+                json.loads(Path(self.encyclopedia_file).read_text(encoding='utf-8'), object_pairs_hook=_unique_keys))
+        if (not isinstance(data, dict) or data.get('schema_version') != 1 or
+                (data.get('edition'), data.get('game_version'), data.get('identity_source_revision')) !=
+                (catalog.edition, catalog.game_version, catalog.source_revision)):
+            raise ValueError('Encyclopedia namespace/schema mismatch')
+        for kind, section, fields in (('plant', 'plants', 'profile'), ('zombie', 'zombies', 'traits')):
+            records = data.get(section)
+            if not isinstance(records, dict):
+                raise ValueError(f'Encyclopedia {section} must be ID keyed')
+            for key, record in records.items():
+                if not isinstance(key, str) or not key.isdigit() or str(int(key)) != key or not isinstance(record, dict):
+                    raise ValueError('Invalid encyclopedia identity')
+                identity = catalog.resolve(kind, int(key))
+                if identity is None or identity.canonical_name != record.get('canonical_name'):
+                    raise ValueError('Encyclopedia identity conflict')
+                profile = record.get(fields)
+                if not isinstance(profile, dict):
+                    raise ValueError('Missing encyclopedia profile/traits')
+                evidence = profile.get('field_sources', {}) if kind == 'plant' else record.get('field_sources', {})
+                if not isinstance(evidence, dict):
+                    raise ValueError('Invalid encyclopedia field sources')
+                for source in evidence.values():
+                    if (not isinstance(source, dict) or not source.get('confidence') or
+                            not (source.get('source_url') or source.get('local_evidence') or source.get('source_id'))):
+                        raise ValueError('Unsourced encyclopedia field')
+                if kind == 'plant':
+                    KBEntry.from_json(identity.canonical_name, profile)
+        if not isinstance(data.get('relations', []), list) or not isinstance(data.get('scenes', {}), dict):
+            raise ValueError('Invalid encyclopedia relations/scenes')
+        return data
+
+    def _merge_domain_zombies(self) -> None:
+        for key, record in self.domain_knowledge.get('zombies', {}).items():
+            tid = int(key)
+            current = self.zombie_traits['types'].get(tid) or {}
+            if current.get('confirmed') is True:
+                continue
+            traits = copy.deepcopy(record['traits'])
+            # A provisional reference must never promote a dangerous runtime flag.
+            sources = record.get('field_sources') or {}
+            for flag in ('crush', 'ice_trail'):
+                if traits.get(flag) and (sources.get(flag) or {}).get('confidence') != 'user_confirmed':
+                    traits.pop(flag)
+            traits['confirmed'] = False
+            traits['field_sources'] = sources
+            self.zombie_traits['types'][tid] = {**current, **traits}
 
     def deactivate_catalog(self) -> None:
         """Undo derived profiles and their observations, retaining prior user facts."""
@@ -614,7 +928,10 @@ class PlantBook:
         self._catalog_restore.clear()
         self._catalog_profiles.clear()
         self._catalog_mechanics.clear()
+        self.domain_knowledge = {}
         self.catalog = None
+        self.load_zombie_traits()
+        self._refresh_revision()
 
     def catalog_entry(self, type_id: int, catalog=None) -> KBEntry | None:
         """Resolve bound/available mechanics without mutating binding or cost state."""
@@ -629,9 +946,29 @@ class PlantBook:
         name = profiles.get(type_id)
         entry = self.kb_by_id.get(type_id) or self.kb_by_name.get(name)
         record = mechanics.get(type_id)
-        if entry is None or record is None or entry.cn != name:
-            return entry
-        return KBEntry.from_json(entry.cn, overlay(entry.raw, record))
+        domain = self.domain_knowledge if catalog is self.catalog else self._load_domain(catalog)
+        domain_record = domain.get('plants', {}).get(str(type_id))
+        if entry is None and domain_record:
+            entry = KBEntry.from_json(domain_record['canonical_name'], domain_record['profile'])
+        if entry is None:
+            return None
+        raw = entry.raw
+        if record is not None and entry.cn == name:
+            raw = _merge_profile(raw, record['patch'], record['field_sources'])
+            raw.setdefault('unverified_fields', {}).update(copy.deepcopy(record.get('unverified_fields', {})))
+        if domain_record:
+            profile = domain_record['profile']
+            raw = _merge_profile(raw, profile, profile.get('field_sources') or {})
+        # These old overlays were card-face/economy placeholders. Retain explicit
+        # tracking shots, and model sky/contact sun as events rather than salaries.
+        if type_id in (155, 160):
+            raw = copy.deepcopy(raw)
+            combat = raw.setdefault('combat', {})
+            trigger = 'sky_amplifier' if type_id == 155 else 'contact_trigger'
+            combat.setdefault('economy', {}).update(resource='battle_sun', trigger=trigger)
+            if not _confirmed(raw, 'combat.sun_per_25s'):
+                combat.pop('sun_per_25s', None)
+        return KBEntry.from_json(entry.cn, raw)
 
     def _remember_catalog_binding(self, type_id: int) -> None:
         attributes = ('table', 'kb_by_id', 'real_cost', 'min_cost', 'min_cost_ts',
@@ -654,7 +991,6 @@ class PlantBook:
         identity = self.identity(type_id)
         if not identity:
             return False
-        name = self._catalog_profiles.get(type_id)
         entry = self.catalog_entry(type_id)
         if entry is None:
             return False
@@ -662,7 +998,9 @@ class PlantBook:
         # table and cost observations on a version switch, including failed loads.
         self._remember_catalog_binding(type_id)
         self.kb_by_id[type_id] = entry
-        self.table[type_id] = (name, entry.cost if entry.cost is not None else -1, entry.role)
+        self.table[type_id] = (entry.cn, entry.cost if entry.cost is not None else -1, entry.role)
+        self._quarantine_loaded_cost(type_id)
+        self._refresh_revision()
         return True
 
     def bind_lineup(self, slot_types: list[int], order: list[str],

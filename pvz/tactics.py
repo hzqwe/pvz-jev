@@ -34,8 +34,29 @@ def attack_dps(book, type_id):
     profile = book.combat(type_id)
     if T_TEMPORARY in book.tags(type_id):
         return 0  # charm is situational control, not permanent damage
+    if profile.get('per_lane_dps') is not None:
+        return max(0,profile['per_lane_dps']) * coverage_lanes(book,type_id) * profile.get('hit_factor',1)
     default = 14.0 if book.has_tag(type_id, T_SHOOTER) else 0
     return profile.get('dps', default) * profile.get('hit_factor', 1)
+
+
+def coverage_lanes(book, type_id):
+    """Declared forward output lanes; never infer attack range from plant names."""
+    profile = book.combat(type_id)
+    count = profile.get('coverage_rows')
+    if count is None and profile.get('coverage') in ('3 lanes', 'three_lanes', 'three lanes'):
+        count = 3
+    if count is None and isinstance(profile.get('row_radius'), int):
+        count = 2 * profile['row_radius'] + 1
+    return count if isinstance(count, int) and count in (1, 3, 5) else 1
+
+
+def lane_dps(book, type_id):
+    profile = book.combat(type_id)
+    explicit = profile.get('per_lane_dps')
+    if explicit is not None:
+        return max(0, explicit) * profile.get('hit_factor', 1)
+    return attack_dps(book, type_id) / coverage_lanes(book, type_id)
 
 
 def can_hit(book, type_id, row, col, target):
@@ -44,7 +65,7 @@ def can_hit(book, type_id, row, col, target):
         return False
     if book.has_tag(type_id, T_TRACKING):
         return True
-    if target.row != row or target.x is None or target.x < cell_x(col):
+    if abs(target.row-row) > coverage_lanes(book,type_id)//2 or target.x is None or target.x < cell_x(col):
         return False
     reach = book.range_cells(type_id)
     return reach is None or target.x-cell_x(col) <= reach*80
@@ -56,7 +77,8 @@ def torch_path(board, book, type_id, row, col, target=None):
             book.has_tag(type_id, T_TRACKING) or
             target is not None and not can_hit(book,type_id,row,col,target)):
         return False
-    return any(p.row==row and p.col>col and not p.asleep and p.hp!=0
+    path_row = target.row if target is not None else row
+    return any(p.row==path_row and p.col>col and not p.asleep and p.hp!=0
                and book.has_tag(p.type_id,T_TORCH)
                and (target is None or target.x is not None and cell_x(p.col)<target.x)
                for p in board.plants)
@@ -66,7 +88,7 @@ def target_dps(board, book, type_id, row, col, target):
     """Conservative target estimate; unverified torch multipliers add no damage."""
     if not can_hit(book,type_id,row,col,target):
         return 0.0
-    dps = attack_dps(book,type_id)
+    dps = attack_dps(book,type_id) if book.has_tag(type_id,T_TRACKING) else lane_dps(book,type_id)
     profile = book.combat(type_id)
     armor = target.armor_hp or 0
     body = target.hp if target.hp is not None else 270
@@ -80,16 +102,38 @@ def target_dps(board, book, type_id, row, col, target):
     return dps
 
 
+def income_profile(book, type_id):
+    profile = book.combat(type_id)
+    economy = profile.get('economy') or {}
+    resource = economy.get('resource', profile.get('economy_resource', 'battle_sun'))
+    trigger = economy.get('trigger', profile.get('economy_trigger', 'periodic'))
+    amount = economy.get('sun_per_25s', profile.get('sun_per_25s'))
+    return resource, trigger, amount
+
+
+def stable_sun_producer(book, type_id):
+    resource, trigger, amount = income_profile(book,type_id)
+    return (book.has_tag(type_id,T_PRODUCER) and resource == 'battle_sun'
+            and trigger == 'periodic' and amount is not None and amount > 0)
+
+
 def economy_summary(board, book):
-    income, count, inferred, unknown = 0.0, 0, set(), set()
+    income, count, inferred, unknown, event, currency = 0.0, 0, set(), set(), set(), set()
     for p in board.plants:
         if p.asleep or p.hp==0 or not book.has_tag(p.type_id,T_PRODUCER):
             continue
-        count += 1
-        amount = book.combat(p.type_id).get('sun_per_25s')
-        if amount is None:
+        resource, trigger, amount = income_profile(book,p.type_id)
+        if resource == 'currency':
+            currency.add(p.type_id)
+            continue
+        if trigger in ('sky_amplifier','one_shot','contact_trigger'):
+            event.add(p.type_id)
+            continue
+        if resource != 'battle_sun' or trigger != 'periodic' or amount is None:
             unknown.add(p.type_id)
+            continue
         else:
+            count += amount > 0
             income += amount  # No observed plant age: retain the young-plant rate.
         entry = book.kb_by_id.get(p.type_id)
         source = (entry.raw.get('field_sources',{}).get('combat.sun_per_25s',{}) if entry else {})
@@ -97,6 +141,7 @@ def economy_summary(board, book):
             inferred.add(p.type_id)
     return dict(producer_count=count, sun_per_25s_estimate=round(income,2),
                 inferred_income_types=sorted(inferred), unknown_income_types=sorted(unknown),
+                event_income_types=sorted(event), currency_income_types=sorted(currency),
                 note='Planning estimate. Growth ages and next payout times are unobserved; inferred rates are not measured.')
 
 
@@ -108,7 +153,9 @@ def upgrade_value(board, book, type_id, row=None, col=None):
     if row is None:
         row = max(range(board.rows), key=lambda r: sum(strength(z) for z in groups[r]))
     tracking = T_TRACKING in tags
-    targets = [z for group in groups for z in group] if tracking else groups[row]
+    radius = coverage_lanes(book,type_id)//2
+    targets = [z for group in groups for z in group] if tracking else [
+        z for r in range(max(0,row-radius),min(board.rows,row+radius+1)) for z in groups[r]]
     if col is not None and not tracking:
         targets = [z for z in targets if can_hit(book,type_id,row,col,z)]
     armored = sum(bool(z.armor_hp) for z in targets) / max(1,len(targets))
@@ -142,11 +189,10 @@ def upgrade_value(board, book, type_id, row=None, col=None):
             value += 20*armored if profile.get('armor_multiplier',1)>1 else 0
         if any(z.x is not None and z.x < 400 for z in targets):
             value += profile.get('reflect_dps',0)*.3
-    if profile.get('sun_per_25s'):
-        income = sum(book.combat(p.type_id).get('sun_per_25s',0)
-                     for p in board.plants if not p.asleep)
-        value += profile['sun_per_25s'] * max(.1,.4-income/1500)
-    if profile.get('mature_sun_per_25s'):
+    if stable_sun_producer(book,type_id):
+        income = economy_summary(board,book)['sun_per_25s_estimate']
+        value += income_profile(book,type_id)[2] * max(.1,.4-income/1500)
+    if profile.get('mature_sun_per_25s') and stable_sun_producer(book,type_id):
         # 会长大的产能（阳光向日葵）：成熟期收入不保证（生长年龄无法观测），
         # 只给一个打折的小额信用，不当成确定收入。
         value += profile['mature_sun_per_25s'] * .15
@@ -165,7 +211,7 @@ def upgrade_value(board, book, type_id, row=None, col=None):
     return round(value/(1+.25*copies) - (book.cost(type_id) or 0)*.025,2)
 
 
-def rear_cols(board, book, row, producer=False):
+def rear_cols(board, book, row, producer=False, *, type_id=None):
     """Only empty squares behind the first wall and ahead of no passed zombie."""
     ps = board.plants_in_lane(row)
     wall = min((p.col for p in ps if book.has_tag(p.type_id, T_WALL)), default=board.cols)
@@ -174,7 +220,11 @@ def rear_cols(board, book, row, producer=False):
     occ = board.top_occupancy(book)
     cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx
             and not board.snow_blocked(row,c) and not board.placement_blocked(row,c)]
-    if board.platform_required(row):
+    if type_id is not None:
+        placement = board.placement_profile(type_id,book)
+        if placement.get('terrain') is not None and board.terrain(row) not in placement['terrain']:
+            return []
+    if (board.platform_required(row) if type_id is None else board.needs_platform(row,type_id,book)):
         pads = [c for c in cols if board.has_platform(row,c,book)]
         # Reuse a paid platform before planning another one.
         if pads:
@@ -200,13 +250,13 @@ def lane_facts(board, row, book=None):
                 continue
             tags = book.tags(p.type_id)
             if T_SHOOTER in tags:
-                if not zs and p.row==row and T_TRACKING not in tags:
+                if not zs and abs(p.row-row)<=coverage_lanes(book,p.type_id)//2 and T_TRACKING not in tags:
                     # No target exists yet: keep standing formation power for
                     # quiet construction, without projecting damage at an enemy.
-                    shooters += attack_dps(book,p.type_id)/20
+                    shooters += lane_dps(book,p.type_id)/20
                 elif T_TRACKING in tags:
                     shooters += sum(target_dps(board,book,p.type_id,p.row,p.col,z) for z in zs)/20
-                elif p.row==row and nx is not None:
+                elif nx is not None:
                     lead = min((z for z in zs if z.x is not None),key=lambda z:z.x)
                     # A forward beam may clear the crowd, but cannot save a lead
                     # enemy that already passed the firing plant.
@@ -254,7 +304,7 @@ def lane_facts(board, row, book=None):
 def saving_plan(board, book):
     """Reserve for a usable upgrade, but release the reserve when defence is urgent."""
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
-    producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
+    producers = economy_summary(board,book)['producer_count']
     # Opening option（★ 用户硬约束：女王开局必种；2026-09-26 实战对照后**回滚到
     # 基线语义**）：场上没僵尸就一直攒（不限时钟）；僵尸上草坪后只在开局 30 秒
     # 内且无危急路时继续攒，之后转正常运营先建防线，平静了再回来兑现女王。
@@ -270,7 +320,8 @@ def saving_plan(board, book):
         opening_grace = grace
         for slot in board.slots:
             cost = book.cost(slot.type_id)
-            gap_ok = opening_grace or (board.sun or 0) >= cost-100
+            gap_ok = (cost is not None and
+                      (opening_grace or (board.sun or 0) >= cost-100))
             if (slot.ready and book.has_tag(slot.type_id,T_TORCH)
                     and cost is not None and gap_ok
                     and any(any(c in (1,2,3) for c in rear_cols(board,book,r)) for r in range(board.rows))):
@@ -300,7 +351,7 @@ def saving_plan(board, book):
         if (T_SHOOTER not in tags or T_TEMPORARY in tags or
                 cost is None or cost < 300 or s.cooldown_left_frac > 0.5):
             continue
-        rows = [r for r in range(board.rows) if rear_cols(board, book, r) and
+        rows = [r for r in range(board.rows) if rear_cols(board, book, r, type_id=s.type_id) and
                 (T_TRACKING in tags or facts[r]['zombie_count']) and
                 (T_WALL not in tags or not facts[r]['blocking_walls'] or facts[r]['pressure']>0)]
         if rows:

@@ -186,7 +186,9 @@ LAWN_COLS = 9
 # 原版 scene 0..5 -> 背景 id {1,2,3,4,5,7}（pvztoolkit SetScene 的映射表）。
 # 19 很可能是杂交版自己的背景枚举，**不能**按原版下标查行数，
 # 因此行数一律以「僵尸/植物的 row 字段实测最大值」为准，不用本表。
-SCENE_ROWS = {0: 5, 1: 5, 2: 6, 3: 6, 4: 5, 5: 5}   # 2026-09-27: 5=月夜补入
+# Scene 5 is retained as a conservative five-row special-scene fallback. Its
+# hybrid meaning is not verified; it must not be treated as a roof or moon map.
+SCENE_ROWS = {0: 5, 1: 5, 2: 6, 3: 6, 4: 5, 5: 5}
 
 # --- 界面状态（LawnApp+0x7FC）------------------------------------------
 # ⚠️ 已核对 pvztoolkit 源码：GetScene() 只在 `ui == 2 || ui == 3` 时读 scene，

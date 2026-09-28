@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
 import time
 
@@ -147,6 +147,7 @@ class BoardState:
     row_types: dict[int, int] = field(default_factory=dict)
     # Missing key means unknown; False means a validated row has no ready mower.
     mowers: dict[int, bool] = field(default_factory=dict)
+    mower_diagnostics: dict = field(default_factory=dict)
     # -- 出怪/波次（信息层，语义未经杂交版实战核验，仅供 Jev 参考）----------
     # spawn_list 是本关整张出怪表（僵尸 type 序列，-1 结尾）；spawned 估算用
     # 僵尸池分配游标。任何一步读不出合法值就保持 None，绝不猜。
@@ -181,37 +182,86 @@ class BoardState:
 
     def top_occupancy(self, book):
         return {cell: ps for cell, stack in self.occupancy().items()
-                if (ps := [p for p in stack if not book.has_tag(p.type_id, 'platform')])}
+                if (ps := [p for p in stack if self.placement_layer(p.type_id,book) != 'platform'])}
+
+    def placement_profile(self, type_id, book):
+        if hasattr(book,'placement'):
+            return book.placement(type_id)
+        entry = book.kb_by_id.get(type_id)
+        return dict(entry.raw.get('placement',{})) if entry else {}
+
+    def placement_layer(self, type_id, book):
+        return self.placement_profile(type_id,book).get('layer') or (
+            'platform' if book.has_tag(type_id,'platform') else 'body')
+
+    def top_body(self, row, col, book):
+        upper = [p for p in self.occupancy().get((row,col),[])
+                 if self.placement_layer(p.type_id,book) != 'platform']
+        return upper[0] if len(upper)==1 and self.placement_layer(upper[0].type_id,book)=='body' else None
+
+    def can_replace(self, source, type_id, book):
+        top = self.top_body(source.row,source.col,book)
+        return (top is not None and (top.index,top.type_id)==(source.index,source.type_id)
+                and replace(self,plants=[p for p in self.plants if p is not top]).can_plant(
+                    source.row,source.col,type_id,book))
 
     def has_platform(self, row, col, book):
-        return any(book.has_tag(p.type_id, 'platform')
+        return any(self.placement_layer(p.type_id,book)=='platform' and self.platform_fits(row,p.type_id,book)
                    for p in self.occupancy().get((row,col), []))
+
+    def shovel_target(self, row, col, book):
+        """Cell clicks can remove an exposed body, or a lone bare platform."""
+        body = self.top_body(row, col, book)
+        if body is not None:
+            return body
+        stack = self.occupancy().get((row, col), [])
+        if len(stack) == 1 and self.placement_layer(stack[0].type_id, book) == 'platform':
+            return stack[0]
+        return None
 
     def platform_required(self, row: int) -> bool:
         """该行种植是否需要平台卡（2026-09-27 泛化）：水路=睡莲，屋顶=花盆。"""
         return self.is_water(row) or self.scene == 4
 
+    def terrain(self, row):
+        return 'water' if self.is_water(row) else 'roof' if self.scene==4 else 'land'
+
+    def needs_platform(self, row, type_id, book):
+        profile = self.placement_profile(type_id,book)
+        if 'requires_platform' in profile:
+            return bool(profile['requires_platform'])
+        if self.is_water(row) and profile.get('amphibious'):
+            return False
+        return self.platform_required(row)
+
     def platform_fits(self, row: int, type_id: int, book) -> bool:
-        """平台卡与地形是否匹配 —— 别把睡莲种上屋顶、花盆种进水里。
-        未登记名字的平台卡（杂交版新平台）按"可用"处理。"""
-        nm = book.name(type_id)
-        if self.is_water(row):
-            return '花盆' not in nm and 'Pot' not in nm
-        if self.scene == 4:
-            return '睡莲' not in nm and 'Lily' not in nm
-        return True
+        """Only explicit support mechanisms and known legacy platform IDs fit."""
+        profile = self.placement_profile(type_id,book)
+        kind = profile.get('support_kind')
+        if kind is None:
+            kind = 'lily' if type_id in (16,67) else 'pot' if type_id in (33,66) else None
+        terrain = self.terrain(row)
+        allowed = profile.get('terrain')
+        if allowed is not None and terrain not in allowed:
+            return False
+        return kind == 'universal' or (kind=='lily' and terrain=='water') or (kind=='pot' and terrain in ('land','roof'))
 
     def can_plant(self, row, col, type_id, book):
         if not (0 <= row < self.rows and 0 <= col < self.cols):
             return False
         if self.placement_blocked(row,col): return False
         stack = self.occupancy().get((row,col), [])
-        if book.has_tag(type_id,'platform'):
-            return (not stack and self.platform_fits(row, type_id, book)
-                    and (self.is_water(row) or self.scene == 4))
+        profile = self.placement_profile(type_id,book)
+        if profile.get('terrain') is not None and self.terrain(row) not in profile['terrain']:
+            return False
+        layer = self.placement_layer(type_id,book)
+        if layer=='platform':
+            return not stack and self.platform_fits(row,type_id,book)
+        if layer=='shell':
+            return self.top_body(row,col,book) is not None
         if (row,col) in self.top_occupancy(book):
             return False
-        return not self.platform_required(row) or self.has_platform(row,col,book)
+        return not self.needs_platform(row,type_id,book) or self.has_platform(row,col,book)
 
     def placement_blocked(self,row,col):
         return self.rejected_cells.get((row,col),0) > time.time()
@@ -416,6 +466,7 @@ class BoardReader:
         st.slots = self._read_slots(board)
         st.dropped_seeds = self._read_dropped_seeds(board)
         st.mowers = self._read_mowers(board, st.rows) if st.ui == O.UI_PLAYING else {}
+        st.mower_diagnostics = dict(getattr(self,'mower_diagnostics',{})) if st.ui == O.UI_PLAYING else {'validated':False,'reason':'not_playing'}
         self._read_cursor(board, st)
         if st.ui == O.UI_PLAYING:
             # 出怪表一次要扫 1000 项，而一轮决策里 read() 会被调用 5~7 次 ——
@@ -560,11 +611,18 @@ class BoardReader:
         return helmet + shield if helmet is not None and shield is not None else None
 
     def _read_mowers(self, board: int, rows: int) -> dict[int, bool]:
-        """Validate object pool before treating absent rows as lost mowers."""
+        """Validate object pool before treating absent rows as lost mowers.
+
+        Base-engine structure and states agree with Lawn/LawnMower.h and
+        ConstEnums.h in https://github.com/ruslan831/PlantsVsZombies-decompilation.
+        A hybrid runtime mismatch stays unknown with its rejected raw values.
+        """
         pm = self.pm
         base = pm.u32(board + O.OFF_MOWER)
         cap = pm.i32(board + O.OFF_MOWER_COUNT_MAX)
         count = pm.i32(board + O.OFF_MOWER_COUNT)
+        diagnostics = self.mower_diagnostics = dict(validated=False, reason='invalid_pool_header',
+            base=base, capacity=cap, count=count, objects_seen=0, live_objects=0)
         if not base or cap is None or count is None or not (0 < cap <= 64 and 0 <= count <= cap):
             return {}
         lawn = self.lawn_app_ptr()
@@ -576,12 +634,24 @@ class BoardReader:
                 continue
             row, dead, state = pm.i32(a + O.M_ROW), pm.u8(a + O.OFF_MOWER_DEAD), pm.i32(a + O.M_STATE)
             if row is None or not 0 <= row < rows or dead not in (0, 1) or state not in range(4):
+                diagnostics.update(reason='invalid_object',rejected_index=i,
+                                   rejected_row=row,rejected_dead=dead,rejected_state=state)
                 return {}  # incompatible layout: never invent lost lanes
+            if row in seen:
+                diagnostics.update(reason='duplicate_row',rejected_index=i,rejected_row=row)
+                return {}
             live += dead == 0
             ready = dead == 0 and state == O.M_READY
             seen[row] = seen.get(row, False) or ready
-        if not seen or live != count:
+            diagnostics.update(objects_seen=len(seen),live_objects=live)
+        diagnostics.update(objects_seen=len(seen),live_objects=live)
+        if not seen:
+            diagnostics['reason']='no_valid_objects'
             return {}
+        if live != count:
+            diagnostics['reason']='live_count_mismatch'
+            return {}
+        diagnostics.update(validated=True,reason='validated')
         return {r: seen.get(r, False) for r in range(rows)}
 
     # -- 种子栏 ---------------------------------------------------------

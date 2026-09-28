@@ -42,6 +42,12 @@ def snapshot(record,book,legacy_names=None):
     names=dict(legacy_names or {})
     names.update({book.en(t):t for t in book.kb_by_id})
     names.update(book.bound_ids)
+    if book.catalog and (book.catalog.edition, book.catalog.game_version) == ('classic', '3.9.9'):
+        # State-only logs before the version catalogue called verified type16
+        # "Lily Pad". Keep this explicit historical alias; it is not a generic
+        # inference that every lily/pad card is interchangeable.
+        names.setdefault('Lily Pad', 16)
+        names.setdefault('Peashooter Lily Pad', 16)
     water={lane['lane']-1 for lane in state['lanes'] if lane.get('terrain','').startswith('water')}
     board=BoardState(ok=True,sun=game['sun'],rows=game['rows'],cols=game['cols'],
         scene=2 if water else 0,level=game.get('level'),game_clock=game['clock'],clock_advancing=True)

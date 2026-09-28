@@ -14,6 +14,7 @@ from dataclasses import asdict
 from .board import BoardState
 from .plants import PlantBook
 from .tactics import lane_facts, saving_plan, economy_summary
+from .relations import relationship_summary, domain_context
 
 SCENE_NAMES = {
     0: "白天草地 day_lawn",
@@ -21,7 +22,7 @@ SCENE_NAMES = {
     2: "泳池 pool",
     3: "浓雾泳池 fog_pool",
     4: "屋顶 roof",
-    5: "月夜月地 moon_night",
+    5: "未知特殊场景 unknown_special_scene",
 }
 
 COL_LABEL = "ABCDEFGHI"
@@ -39,6 +40,7 @@ def board_snapshot(board):
         'slots':[asdict(s) for s in board.slots],
         'dropped_seeds':[asdict(d) for d in board.dropped_seeds],
         'row_types':dict(board.row_types), 'mowers':dict(board.mowers),
+        'mower_diagnostics': dict(getattr(board, 'mower_diagnostics', {}) or {}),
         'snow_cells':[[r,c,t] for (r,c),t in (board.snow_cells or {}).items()],
         'rejected_cells':[[r,c,t] for (r,c),t in (getattr(board,'rejected_cells',None) or {}).items()]}
 
@@ -158,6 +160,8 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
                 "field_copies": book.copies_on_field.get(s.type_id,0),
                 "effect": info["effect"],
                 "combat": info["combat"],
+                "placement": info.get('placement') or {},
+                "source_confidence": info.get('source_confidence'),
                 "usage": usage or "",
                 "hp": info["hp"],
                 "almanac_cooldown_s": info["cooldown_s"],
@@ -185,6 +189,9 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         "lanes": lanes,
         "seed_cards": seeds,
         "economy": economy_summary(board,book),
+        "relationships": relationship_summary(board, book, limit=8),
+        "domain_context": domain_context(board, book),
+        "mower_diagnostics": dict(getattr(board, 'mower_diagnostics', {}) or {}),
         "doctrine": {
             "principles": playbook.get("principles_en") or [],
             "enemy_notes": playbook.get("enemy_notes_en") or [],

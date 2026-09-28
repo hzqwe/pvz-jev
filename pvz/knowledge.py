@@ -7,6 +7,25 @@ if TYPE_CHECKING:
     from .plants import PlantBook
 
 
+def domain_coverage(book) -> dict:
+    """Reference count is not complete mechanic support or verified-version count."""
+    data = getattr(book, 'domain_knowledge', {}) or {}
+    plants = data.get('plants', {})
+    profiles = [record.get('profile', {}) for record in plants.values() if isinstance(record, dict)]
+    attacks = sum(isinstance(p.get('combat', {}).get('dps'), (int, float))
+                  and not isinstance(p.get('combat', {}).get('dps'), bool)
+                  and p['combat']['dps'] > 0 for p in profiles)
+    supported = sum(bool(p.get('tags')) and p.get('cost') is not None
+                    and bool(p.get('combat') or p.get('placement')) for p in profiles)
+    return dict(plant_reference_records=len(plants), plant_quantitative_attack_records=attacks,
+                plant_rule_profile_records=supported,
+                plant_reference_only_records=len(profiles)-supported,
+                zombie_reference_records=len(data.get('zombies', {})),
+                relation_records=len(data.get('relations', [])),
+                scene_records=len(data.get('scenes', {})),
+                note='Reference fields may be version-unverified. Rule profiles are partial, not complete gameplay support or measured performance.')
+
+
 def audit_book(catalog: VersionCatalog, book: PlantBook, deck_ids: list[int]) -> dict:
     cards, aliases, conflicts = [], [], []
     for tid in dict.fromkeys(t for t in deck_ids if t >= 0):

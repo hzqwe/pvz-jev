@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes
 
 MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -85,9 +85,13 @@ class Candidate:
     crush_recovery: bool = field(default=False, kw_only=True)  # recover before instant crushing
     intercept: bool = field(default=False, kw_only=True)  # deliberate sacrificial blocker
     drop_index: int | None = field(default=None, kw_only=True)
+    replacement_type: int | None = field(default=None, kw_only=True)
+    source_index: int | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
     def total_cost(self, book):
+        if self.replacement_type is not None:
+            return book.cost(self.replacement_type)
         if self.kind != 'plant':
             return 0
         cost = book.cost(self.type_id)
@@ -110,6 +114,8 @@ class Candidate:
                 mode = 'recover seed card; leave it on lawn for later safe planting'
             # Salvage must never imply the plant can be replanted.
             if self.salvage: mode = 'salvage for dropped sun; removes this plant'
+            if self.replacement_type is not None:
+                mode = f'replace immediately with "{book.en(self.replacement_type)}"; reserve {self.total_cost(book)} sun; preserve platform'
             head = f'Shovel up "{book.en(self.type_id)}" at {at}: {mode}, hp={self.hp}.'
         elif self.kind == 'pick':
             head = f'Pick up "{book.en(self.type_id)}" seed card lying on the lawn at {at}; replant free.'
@@ -208,7 +214,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 用户 2026-09-26：阳光充裕且不紧急时**把前四列种满，不许发呆** ——
     # 阵型成型后也要继续铺（多种向日葵/射手永远不亏）。给两边分支当开关。
     calm_fill = (calm or develop) and sun >= 600
-    producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
+    producers = economy_summary(board,book)['producer_count']
     plan = saving_plan(board, book)
     candidates = []
 
@@ -279,7 +285,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 value += 8  # Combination preference, not an invented damage multiplier.
                 reason += ' Peas cross a live torch; fire synergy, multiplier unverified.'
             if book.combat(slot.type_id).get('piercing'):
-                hits = sum(can_hit(book,slot.type_id,row,col,z) for z in board.zombies_in_lane(row))
+                hits = sum(can_hit(book,slot.type_id,row,col,z) for z in board.zombies if not z.friendly)
                 reason += f' Beam reaches {hits} lane target(s).'
         if T_BURN_AURA in tags:
             # 光环只烧植物周围 3x3：只统计与落点同行/邻排、且还在光环射程内的僵尸，
@@ -301,6 +307,13 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             value = 65 + (value - 65) * 0.12
         if not board.can_plant(row,col,slot.type_id,book):
             if board.platform_required(row) and (row,col) not in board.occupancy():
+                placement = book.placement(slot.type_id)
+                allowed_terrain = placement.get('terrain')
+                if (isinstance(allowed_terrain, list)
+                        and board.terrain(row) not in allowed_terrain):
+                    # A platform can satisfy the support layer, but it cannot
+                    # turn a land-only or roof-only plant into a water plant.
+                    return
                 pad = next((s for s in board.slots if s.ready
                             and book.has_tag(s.type_id,T_PLATFORM)
                             and board.platform_fits(row, s.type_id, book)
@@ -370,7 +383,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 and not (emergency or close_intercept
                          or (zero_defence_pressure and cost <= 150)
                          or (eager and T_INSTANT in tags))
-                and T_PRODUCER not in tags
+                and not stable_sun_producer(book,tid)
                 and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
             # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
@@ -601,13 +614,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             continue
 
         if T_PRODUCER in tags and T_SHOOTER not in tags:
+            # Currency and conditional/unknown sun effects cannot rebuild the
+            # recurring battle-sun economy. Other explicit combat/support tags
+            # have already been evaluated above.
+            if not stable_sun_producer(book, tid):
+                continue
             # 产阳光上限：常规 2株/行；阳光充裕的平静期（calm_fill）放宽到
             # 4株/行 —— 用户要求把前四列种满、不许发呆（多种向日葵不亏）。
             producer_cap = max(6, board.rows*2) + (board.rows*2 if calm_fill else 0)
             if producers >= producer_cap:
                 continue
-            for r in sorted(quiet, key=lambda r: (min(rear_cols(board,book,r,producer=True), default=99), facts[r]["priority"], r)):
-                cols = rear_cols(board,book,r,producer=True)
+            for r in sorted(quiet, key=lambda r: (min(rear_cols(board,book,r,producer=True,type_id=tid), default=99), facts[r]["priority"], r)):
+                cols = rear_cols(board,book,r,producer=True,type_id=tid)
                 if not cols or facts[r]['threat_level'] == 'critical':
                     continue
                 # 经济重建（实战 2026-09-26 教训）：产阳光被打到 4 株以下、
@@ -625,10 +643,12 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if T_SHOOTER in tags:
             tracking = T_TRACKING in tags
             rng = book.range_cells(tid)
+            radius = coverage_lanes(book,tid)//2
             # 平静期（没僵尸）：照常补火力，但只补还没有射手的路，保持阵型整齐。
             for r in (quiet if tracking else
                       (list(range(board.rows)) if calm else hot)):
-                if not tracking and not facts[r]['zombie_count'] and not (calm or develop):
+                cover = list(range(board.rows)) if tracking else list(range(max(0,r-radius),min(board.rows,r+radius+1)))
+                if not tracking and not any(facts[x]['zombie_count'] for x in cover) and not (calm or develop):
                     continue
                 # 用户 2026-09-26：平静且阳光充裕时允许同路第二个射手（填满四列、
                 # 不发呆）；否则每路一个射手就够了。
@@ -637,20 +657,23 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                         and any(book.has_tag(p.type_id, T_SHOOTER)
                                 for p in board.plants_in_lane(r))):
                     continue
-                cols = rear_cols(board,book,r)
+                cols = rear_cols(board,book,r,type_id=tid)
                 if not cols:
                     continue
                 if T_TORCH in tags and plan and tid == plan['type_id'] and not total:
                     cols = [c for c in cols if c in (1,2)]
                     if not cols:
                         continue
-                nx_r = facts[r]['nearest_zombie_x']
-                if rng is not None:
-                    # 短射程植物（喷菇系≈4格等）：种下了就必须够得着最近僵尸，
-                    # 并尽量靠前贴住射程边缘 —— 放最后一排是纯浪费
-                    # （用户实测反馈：激光大喷菇被放到后排打不着人）。
+                nx_r = min((facts[x]['nearest_zombie_x'] for x in cover
+                            if facts[x]['nearest_zombie_x'] is not None),default=None)
+                targets = [z for x in cover for z in board.zombies_in_lane(x)]
+                if rng is not None and not targets and total:
+                    continue
+                if rng is not None and targets:
+                    # Forward range includes both boundaries, including adjacent
+                    # lanes whose lead enemy may already have passed this column.
                     reach = [c for c in cols
-                             if nx_r is not None and nx_r <= cell_x(c) + rng*80]
+                             if any(can_hit(book,tid,r,c,z) for z in targets)]
                     if not reach:
                         continue
                     col = max(reach)
@@ -666,7 +689,6 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     else:
                         # Prefer middle rear cells, preserving A/B for the economy.
                         col = min(cols,key=lambda c: abs(c-(1 if book.combat(tid).get('torch_compatible') else 2)))
-                cover = list(range(board.rows)) if tracking else [r]
                 value = 35 + max(facts[x]['priority'] for x in cover)*0.5
                 value -= facts[r]['shooter_support']*8
                 if calm:
@@ -684,6 +706,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 为什么放在卡槽循环之外：铲子不花阳光、不占卡槽，它作用于**已经在场上的植物**。
     for p in board.plants:
         if not book.has_tag(p.type_id, T_WALL_REGEN):
+            continue
+        if board.shovel_target(p.row, p.col, book) != p:
             continue
         hp = p.hp
         # 正在被啃时窗口放宽到 3600（2026-09-26）：100/s 的啃食速度下 2400 只
@@ -715,7 +739,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 + ('use existing support, do not delay shoveling to buy a pad.' if crush_recovery else 'prepare water support first.')
                 if destination else 'No safe supported cell: leave the verified returned card on the lawn for later.')),
             book.tags(p.type_id), False, (() if crush_recovery else (destination[0],)), hp,
-            relocate_to=destination, crush_recovery=crush_recovery,
+            relocate_to=destination, crush_recovery=crush_recovery, source_index=p.index,
         ))
 
     # -- 高级技巧（用户 2026-09-26）：铲掉换阳光 --------------------------
@@ -728,6 +752,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 与回收高坚果的"回收"不同：这里不指望拿回卡片，只要阳光 > 0 就是净赚。
     for p in board.plants:
         if book.has_tag(p.type_id, T_WALL_REGEN) or p.asleep:
+            continue
+        if board.shovel_target(p.row, p.col, book) != p:
             continue
         profile = book.combat(p.type_id)
         anti_crush = bool(profile.get('crush_hits') or profile.get('lethal_hit_burst'))
@@ -749,7 +775,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                  'of letting zombies destroy it for nothing. Do this immediately.'),
                 book.tags(p.type_id),
                 False, (p.row,),
-                salvage=True, hp=p.hp,
+                salvage=True, hp=p.hp, source_index=p.index,
             ))
         # b) 压扁前预铲：撞车僵尸两格内的前排不可防撞植物（还没被啃到）
         if (not anti_crush and not p.recently_eaten and f.get('crush_zombies')
@@ -766,7 +792,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                      f'it outright (this plant is not crush-resistant); shovel it now to '
                      'convert it into sun instead of losing it for nothing.'),
                     book.tags(p.type_id), False, (p.row,),
-                    salvage=True, hp=p.hp,
+                    salvage=True, hp=p.hp, source_index=p.index,
                 ))
 
     # -- 进阶 5-2（用户 2026-09-26）：铲旧换新，让女王身后物尽其用 ---------
@@ -774,7 +800,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 运营结果是她身后那个黄金槽位被向日葵/豌豆这类廉价植物占着，而阳光充裕、
     # 手里有就绪的过火射手 —— 铲掉它换阳光，下一轮自然有强射手候选来补位。
     # 门槛收得很紧：无危急/无高压、该路无僵尸、目标廉价（≤150）非墙非火炬、
-    # 手里有过火射手且买得起+留 300 储备。规划靠"铲完自然补位"，不强行连招。
+    # 手里有过火射手且买得起+留 300 储备。铲除与替换在同一事务中确认。
     if all(f['threat_level'] in ('low', 'none') for f in facts):
         torches = {p.row: p for p in board.plants
                    if book.has_tag(p.type_id, T_TORCH)}
@@ -783,17 +809,17 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     and book.combat(s.type_id).get('torch_compatible')
                     and (book.cost(s.type_id) or 10**9) >= 300]
         for r, q in torches.items():
-            if q.col <= 0:
+            if q.col <= 0 or facts[r]['zombie_count']:
                 continue
-            behind = next((p for p in board.plants_in_lane(r)
-                           if p.col == q.col - 1), None)
+            behind = board.top_body(r,q.col-1,book)
             if behind is None or behind.asleep or behind.recently_eaten:
                 continue
             btags, bcost = book.tags(behind.type_id), book.cost(behind.type_id) or 0
             if bcost > 150 or T_WALL in btags or T_TORCH in btags:
                 continue
             upgrade = next((s for s in upgrades
-                            if (book.cost(s.type_id) or 10**9) + 300 <= (board.sun or 0)), None)
+                            if (book.cost(s.type_id) or 10**9) + 300 <= (board.sun or 0)
+                            and board.can_replace(behind,s.type_id,book)), None)
             if upgrade is None or snow_blocked(board, r, behind.col):
                 continue
             candidates.append(Candidate(
@@ -801,10 +827,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 70 + (book.cost(upgrade.type_id) or 0) * 0.02,
                 (f'Torch-column upgrade: the cell right behind the Sunflower Queen '
                  f'(lane {r+1}) is wasted on a cheap {book.en(behind.type_id)}. Shovel it '
-                 f'(refunds sun) and a torch-boosted {book.en(upgrade.type_id)} is ready '
-                 f'in hand to take that slot next cycle.'),
+                 f'and immediately plant {book.en(upgrade.type_id)} using reserved sun; '
+                 f'confirm the top body and preserve its supporting platform.'),
                 book.tags(behind.type_id), False, (r,),
-                salvage=True, hp=behind.hp,
+                salvage=True, hp=behind.hp, replacement_type=upgrade.type_id, source_index=behind.index,
             ))
 
     # -- 拾回掉落卡（2026-09-26 新增）--------------------------------------
@@ -828,13 +854,6 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                      'Pick it up and replant it at a valid spot.'),
                 book.tags(d.type_id), False, (row,), drop_index=d.index,
             ))
-
-    # 从未用过的卡：试探加成（2026-09-28 泛化）。新登记的卡因为战斗数据
-    # 是估计/百科值，评分天然吃亏 —— 给"一次都没种成功过"的卡 +12，让
-    # agent 轮流把它们用起来（成本由运行时学习校准）。只改排序不改合法性。
-    for c in candidates:
-        if c.kind == 'plant' and book.planted_counts.get(c.type_id, 0) == 0:
-            c.score += 12
 
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
@@ -951,7 +970,7 @@ HOLD_THRESHOLD = 0.6
 
 
 def candidate_key(c):
-    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept, c.drop_index, c.crush_recovery
+    return c.kind, c.slot, c.type_id, c.row, c.col, c.supports_type, c.salvage, c.relocate_to, c.intercept, c.drop_index, c.crush_recovery, c.replacement_type, c.source_index
 
 
 def recovery_status(p,f,*,crush_threat=False):
@@ -1087,6 +1106,25 @@ def action_invalid_reason(candidate, board, book):
         source=SimpleNamespace(cell=(candidate.row,candidate.col),row=candidate.row,
                                type_id=candidate.type_id)
         return None if relocation_target(board,book,source,ready_only=True) is not None else 'no supported recovery destination'
+    if candidate.kind == 'shovel':
+        source = board.shovel_target(candidate.row, candidate.col, book)
+        if source is None or source.type_id != candidate.type_id or (
+                candidate.source_index is not None and source.index != candidate.source_index):
+            return 'shovel source layer or identity changed'
+    if candidate.kind == 'shovel' and candidate.replacement_type is not None:
+        source = board.top_body(candidate.row,candidate.col,book)
+        if source is None or source.type_id!=candidate.type_id or (
+                candidate.source_index is not None and source.index!=candidate.source_index):
+            return 'upgrade source changed'
+        if not board.can_replace(source,candidate.replacement_type,book):
+            return 'upgrade cell unsupported or occupied'
+        if board.snow_blocked(candidate.row,candidate.col): return 'confirmed ice trail'
+        if not any(s.type_id==candidate.replacement_type and s.ready for s in board.slots):
+            return 'replacement card changed or cooling'
+        cost = book.cost(candidate.replacement_type)
+        if cost is None or cost+ECON_RESERVE>(board.sun or 0): return 'insufficient reserved sun for replacement'
+        if board.zombies_in_lane(candidate.row): return 'upgrade lane no longer calm'
+        return None
     if candidate.kind == 'shovel' and not candidate.salvage:
         source=next((p for p in board.plants if p.cell==(candidate.row,candidate.col)
                      and p.type_id==candidate.type_id),None)
@@ -1111,13 +1149,20 @@ def action_invalid_reason(candidate, board, book):
     tags = book.tags(tid)
     if c.supports_type is not None and not any(s.ready and s.type_id==tid for s in board.slots):
         return 'followup card changed or cooling'
+    if (T_SHOOTER in tags and T_WALL not in tags and T_TRACKING not in tags
+            and not c.intercept and book.range_cells(tid) is not None):
+        radius = coverage_lanes(book,tid)//2
+        targets = [z for r in range(max(0,c.row-radius),min(board.rows,c.row+radius+1))
+                   for z in board.zombies_in_lane(r)]
+        if any(not z.friendly for z in board.zombies) and not any(can_hit(book,tid,c.row,c.col,z) for z in targets):
+            return 'short-range shooter has no reachable targets in covered lanes'
     nx = lane_facts(board,c.row,book)['nearest_zombie_x']
     if (T_WALL in tags or c.intercept) and nx is not None and cell_x(c.col)>nx+40: return 'zombie passed blocking cell'
     if T_WALL in tags and lane_facts(board,c.row,book)['nearest_is_crush'] and not (
             book.combat(tid).get('crush_hits') or book.combat(tid).get('lethal_hit_burst')):
         return 'blocker cannot stop confirmed crusher'
     if not c.intercept and not any(t in tags for t in (T_WALL,T_INSTANT,T_GLOBAL_FREEZE,T_SPLASH3,T_TEMPORARY)):
-        if c.col not in rear_cols(board,book,c.row,producer=T_PRODUCER in tags and T_SHOOTER not in tags): return 'rear placement no longer safe'
+        if c.col not in rear_cols(board,book,c.row,producer=T_PRODUCER in tags and T_SHOOTER not in tags,type_id=tid): return 'rear placement no longer safe'
     if any(t in tags for t in (T_INSTANT,T_SPLASH3,T_GLOBAL_FREEZE)) and not burst_targets(c,board,book):
         return 'no targets remain in affected area'
     return None
@@ -1232,7 +1277,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
     if chosen.kind == 'wait' and not plan and plants:
         facts = [lane_facts(board, r, book) for r in range(board.rows)]
         if all(f['threat_level'] not in ('high', 'critical') for f in facts):
-            producers = sum(book.has_tag(p.type_id, T_PRODUCER) for p in board.plants)
+            producers = economy_summary(board,book)['producer_count']
             # 用户 2026-09-26：阳光充裕的平静期把前四列种满、不许发呆 ——
             # 阵型成型后模型再选等待，代码也从候选里挑一个保持储备的建设项。
             # "满"的判据：前四列还有空格才继续填；真满员时允许等待。
@@ -1245,11 +1290,12 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
                 if c.kind != 'plant' or T_TEMPORARY in effective_tags or T_INSTANT in effective_tags:
                     continue
                 cost = c.total_cost(book)
-                reserve = 50 if T_PRODUCER in effective_tags and producers < 4 else (100 if T_PRODUCER in effective_tags and producers < max(6,board.rows*2) else ECON_RESERVE)
+                is_producer = stable_sun_producer(book,c.supports_type if c.supports_type is not None else c.type_id)
+                reserve = 50 if is_producer and producers < 4 else (100 if is_producer and producers < max(6,board.rows*2) else ECON_RESERVE)
                 if cost is None or (board.sun or 0) - cost < reserve:
                     continue
                 producer_cap = max(6,board.rows*2) + (board.rows*2 if calm_fill else 0)
-                economy = T_PRODUCER in effective_tags and producers < producer_cap
+                economy = is_producer and producers < producer_cap
                 missing_fire = T_SHOOTER in effective_tags and not any(
                     book.has_tag(p.type_id,T_SHOOTER) for p in board.plants_in_lane(c.row))
                 missing_wall = T_WALL in effective_tags and not facts[c.row]['blocking_walls']

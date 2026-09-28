@@ -12,6 +12,21 @@ from pvz.serialize import build_state
 
 
 class ReplayVersionTests(unittest.TestCase):
+    def test_old_lily_pad_log_has_explicit_historical_alias(self):
+        book = PlantBook(hybrid_file='',cost_file='',ids_file='')
+        book.bind_one(16,'睡莲')
+        board = BoardState(ok=True,rows=6,cols=9,sun=500,scene=2,game_clock=10000,
+                           plants=[Plant(0,2,1,16)],slots=[SeedSlot(0,16,0,750)])
+        state = build_state(board,book)
+        state['seed_cards'][0]['plant'] = 'Lily Pad'
+        state['lanes'][2]['defenders'][0]['plant'] = 'Lily Pad'
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'old_lily.jsonl'
+            path.write_text(json.dumps({'t':1,'state':state}),encoding='utf-8')
+            report = replay(path,game_version='3.9.9')
+            self.assertEqual(report['snapshots'],1)
+            self.assertEqual(report['invalid_plant_candidates'],[])
+
     def test_explicit_version_reads_legacy_peashooter_state_and_card(self):
         book = PlantBook(hybrid_file='',cost_file='',ids_file='')
         book.bind_one(0,'豌豆射手')

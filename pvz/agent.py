@@ -10,6 +10,7 @@ import os
 import threading
 import time
 import traceback
+import subprocess
 from dataclasses import dataclass, field, asdict
 
 from .board import BoardReader, BoardState, placement_delta
@@ -21,6 +22,7 @@ from .policy import Decision, build_questions, generate_candidates, merge_decisi
 from .serialize import COL_LABEL, build_state, render_text, board_snapshot
 from .tactics import cell_x
 from .transactions import run_transaction
+from .control import GameInputOwner, OwnedClicker, InputOwnershipError
 from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab, memory_sun_positions
 from .win32 import (
     capture_window,
@@ -186,6 +188,48 @@ class PvZJevAgent:
         self.sun_tracker = SunTracker()
         # 屋顶坡度 per-row 修正（基准 px）。种歪证据自动校准，换图清零。
         self._roof_row_dx = {}
+        self._roof_calibration_attempts = {}
+        self._input_owner = None
+        self._code_revision = self._read_code_revision()
+
+    @staticmethod
+    def _read_code_revision():
+        try:
+            return subprocess.run(['git', 'rev-parse', 'HEAD'],
+                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                capture_output=True, text=True, timeout=2,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout.strip() or 'unknown'
+        except (OSError, subprocess.TimeoutExpired):
+            return 'unknown'
+
+    def _release_input_owner(self):
+        owner = getattr(self, '_input_owner', None)
+        if owner is not None:
+            owner.release()
+            self._input_owner = None
+
+    def _acquire_input_owner(self, game_pid):
+        if self.cfg.dry_run:
+            return False
+        owner = getattr(self, '_input_owner', None)
+        if owner is not None and owner.game_pid != game_pid:
+            self._release_input_owner()
+            owner = None
+        if owner is None:
+            owner = GameInputOwner(game_pid)
+            self._input_owner = owner
+        if not owner.acquire():
+            self._exit_reason = 'input_owned_elsewhere'
+            self.log_event('input_ownership_blocked', game_pid=game_pid)
+            raise InputOwnershipError(f'Another controller owns game PID {game_pid}')
+        return True
+
+    def runtime_metadata(self):
+        return {'controller_pid': os.getpid(),
+                'game_pid': getattr(getattr(self, '_input_owner', None), 'game_pid', None) or getattr(self, '_seen_pid', None),
+                'code_revision': getattr(self, '_code_revision', 'unknown'),
+                'knowledge_revision': getattr(getattr(self, 'book', None), 'knowledge_revision', None),
+                'knowledge_generation': getattr(getattr(self, 'book', None), 'knowledge_generation', 0)}
 
     # -- 卡槽绑定 -------------------------------------------------------
     def configure_catalog(self, win) -> None:
@@ -311,6 +355,10 @@ class PvZJevAgent:
                 win = find_game_window(self.reader.pid)
             if win is None:
                 return False
+        # Acquire before restore/focus, pause dismissal, collection or placement.
+        # Read-only agents may observe the same game without an input lease.
+        if not self.cfg.dry_run:
+            self._acquire_input_owner(win.pid)
         if win.client_size[0] <= 0:
             # 最小化的窗口：客户区是 0x0、坐标 -32000，抓屏/点击全是废的。
             # 实测 `ShowWindow(SW_RESTORE)` 一次就能恢复（client 0x0 -> 2560x1600），
@@ -321,7 +369,7 @@ class PvZJevAgent:
             #    它会丢 primary surface，重建失败就整个卡死、占住屏幕。
             #    安全模式下只提示用户自己把游戏切回前台。
             self.win = win
-            if not self.cfg.allow_window_ops:
+            if self.cfg.dry_run or not self.cfg.allow_window_ops:
                 if not self._warned_minimized:
                     self._warned_minimized = True
                     print("[窗口] ⚠ 游戏窗口是最小化状态，而当前是安全模式"
@@ -351,14 +399,15 @@ class PvZJevAgent:
         if size_changed or self.layout is None:
             self.layout = Layout.load(client_size=win.client_size)
         if size_changed or window_changed or self.clicker is None:
-            self.clicker = Clicker(win, foreground=self.cfg.foreground)
+            raw_clicker = Clicker(win, foreground=self.cfg.foreground)
+            self.clicker = raw_clicker if self.cfg.dry_run else OwnedClicker(raw_clicker, self._input_owner)
             if self.cfg.verbose:
                 sx, sy = self.layout.scale()
                 print(f"[窗口] client={win.client_size} 缩放=({sx:.3f},{sy:.3f}) "
                       f"卡0中心={self.layout.card_center(0)} 格(0,0)中心={self.layout.cell_center(0, 0)}")
         else:
             self.clicker.win = win
-        if self._need_focus and self.cfg.allow_window_ops:
+        if self._need_focus and self.cfg.allow_window_ops and not self.cfg.dry_run:
             # ⚠️ 抢焦点**只在允许动窗口时**才做。
             #    它唯一的作用是让 PvZ 重新开始处理输入 —— 但实测**后台
             #    PostMessage 点击本来就能种植物**，不需要前台光标。
@@ -404,6 +453,9 @@ class PvZJevAgent:
         """
         if self.win is None:
             return False
+        if self.cfg.dry_run:
+            return False
+        self._acquire_input_owner(self.win.pid)
         # ★★ 安全模式：**不做任何改变窗口状态的动作**（2026-09-26 新增）。
         #    `cycle_window`（minimize→restore）和 `sendinput_click`（真实移动光标）
         #    正是"用户一按回车就卡死"的头号嫌疑 —— 对 DirectDraw 游戏，
@@ -612,11 +664,15 @@ class PvZJevAgent:
         if context != getattr(self,'_terrain_context',None) or restarted:
             self._bad_cells.clear()
             if hasattr(self,'_roof_row_dx'): self._roof_row_dx.clear()
+            self._roof_calibration_attempts = {}
             self._blocked_cells = {}
             # 新对局从磁盘重载静态数据（卡组登记/教条/僵尸特征）——
             # 进程跨局长活，数据文件会在局间被更新（2026-09-28 屋顶局教训：
             # 数据修了、老进程看不到 -> 全 hold）。运行时学习保留。
-            if hasattr(self,'book'): self.book.reload_data()
+            if hasattr(self,'book'):
+                reload_summary = self.book.reload_data()
+                self._catalog_deck = None
+                self.log_event('knowledge_reload', **reload_summary)
             self._binding_checked = False
             self._battle_serial = getattr(self,'_battle_serial',0)+1
             self._battle_id = f'{self.run_id()}-b{self._battle_serial}'
@@ -669,6 +725,8 @@ class PvZJevAgent:
         record = {
             'record_type':'decision', 'schema_version':2, 'run_id':self.run_id(),
             'battle_id':self._battle_id, 'sequence':self._decision_sequence,
+            'runtime': self.runtime_metadata(),
+            'action_id': f'{self._battle_id}-a{self._decision_sequence}',
             'timing':{'snapshot_at':input_at, 'jev_returned_at':returned_at},
             'board':board_snapshot(board),
             "t": time.time(),
@@ -692,7 +750,8 @@ class PvZJevAgent:
                  "why": c.why, "covers": list(c.covers), "emergency": c.emergency,
                  "salvage": c.salvage, "intercept": c.intercept, "supports_type": c.supports_type,
                  "total_cost": c.total_cost(self.book), "relocate_to": c.relocate_to,
-                 "drop_index": c.drop_index, "crush_recovery": c.crush_recovery}
+                 "drop_index": c.drop_index, "crush_recovery": c.crush_recovery,
+                 "replacement_type": c.replacement_type, "source_index": c.source_index}
                 for c in cands
             ],
             "jev": {
@@ -714,6 +773,8 @@ class PvZJevAgent:
                 "confidence": dec.confidence,
                 "fallback": dec.fallback,
                 "notes": dec.notes,
+                "replacement_type": dec.candidate.replacement_type if dec.candidate else None,
+                "source_index": dec.candidate.source_index if dec.candidate else None,
             },
             "executed": None,
         }
@@ -920,7 +981,7 @@ class PvZJevAgent:
         if self._geometry_error == geometry or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
             record['executed'] = {'kind':'blocked_geometry','note':'落点越界或已发现种歪；重新校准并重启后再种植'}
             return
-        # 2026-09-27 泛化：4=屋顶、5=月夜加入白名单（此前屋顶被拒种，
+        # 2026-09-27 泛化：4=屋顶、5=特殊场景加入白名单（此前屋顶被拒种，
         # agent 只捡阳光不防守 —— 用户实测）。未知 scene 仍然拒绝。
         if chk.scene not in (None,0,1,2,3,4,5) and not (chk.rows == 6 and len(chk.row_types) == 6):
             record['executed'] = {'kind':'unsupported_layout','scene':chk.scene,'note':'未知地图几何，暂不猜测坐标'}
@@ -1094,30 +1155,35 @@ class PvZJevAgent:
                 placed = True
                 after = after2
                 misplaced = False
-        if chk.scene == 4 and misplaced and not placed and after.ok:
-            # ★ 屋顶坡度自校准（2026-09-27）：种歪的落点就是最好的量测——
-            #   读回"实际落到哪格"，把横向偏差记成该行的 dx，之后同行的
-            #   点击全部修正；同时解除几何熔断（校准过的点击值得再试）。
-            for (ar_, ac_) in misplaced:
-                if ar_ == cand.row and ac_ != cand.col:
-                    dx_fix = (ac_ - cand.col) * self.layout.cell_w
-                    self._roof_row_dx[cand.row] = self._roof_row_dx.get(cand.row, 0) + dx_fix
-                    self._geometry_error = None
-                    self._bad_cells.pop((cand.type_id, cand.row, cand.col), None)
-                    note = (f"Roof slope calibrated: lane {cand.row + 1} clicks shifted "
-                            f"{dx_fix:+.0f} base-px (plant landed at column {ac_ + 1}).")
-                    record.setdefault("warnings", []).append(note)
-                    if self.cfg.verbose:
-                        print(f"  📐 {note}")
-                    break
-        if misplaced and not placed:
+        calibrated = False
+        if chk.scene == 4 and misplaced and not placed:
+            calibrated = self._calibrate_roof_offset(cand.row, cand.col, misplaced, mid, after)
+            if calibrated:
+                self._geometry_error = None
+                self._bad_cells.pop((cand.type_id, cand.row, cand.col), None)
+                record.setdefault('warnings', []).append(
+                    f'Limited roof correction on lane {cand.row + 1}: offset {self._roof_row_dx[cand.row]:+.0f} base px; slope geometry remains unverified.')
+        if misplaced and not placed and not calibrated:
             self._geometry_error = geometry
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。
         # 所以这里量的才是真实成本；顺便把"点卡不扣阳光"这件事变成证据留档。
         spent = None
+        cost_observation = None
         if placed and sun0 is not None and after.sun is not None and after.sun < sun0:
-            spent = sun0 - after.sun
-            self.book.set_real_cost(cand.type_id, spent)
+            coherent = ((mid.pid, mid.board, mid.scene, mid.rows) ==
+                        (after.pid, after.board, after.scene, after.rows) and
+                        mid.game_clock is not None and after.game_clock is not None and
+                        after.game_clock > mid.game_clock)
+            # Conservative reference-price sampling: one added plant, no removals,
+            # and no income-bearing or unidentified plant can alter the balance.
+            isolated = (coherent and len(after.plants) == len(mid.plants) + 1 and
+                all(self.book.is_known(p.type_id) and not self.book.has_tag(p.type_id, 'producer')
+                    and not self.book.combat(p.type_id).get('economy')
+                    and not self.book.combat(p.type_id).get('sun_per_25s') for p in mid.plants))
+            cost_observation = self.book.observe_placement_cost(cand.type_id, sun0, after.sun,
+                isolated=isolated, observation_id=record.get('action_id'))
+            if cost_observation['accepted']:
+                spent = cost_observation['expected_price']
         record["executed"] = {
             "kind": "click",
             "placed": placed,
@@ -1126,6 +1192,7 @@ class PvZJevAgent:
             "scene": chk.scene,
             "rows": chk.rows,
             "real_cost": spent,
+            "cost_observation": cost_observation,
             "sun_before": sun0,
             "sun_after": after.sun,
             "plants_before": len(board.plants),
@@ -1170,6 +1237,29 @@ class PvZJevAgent:
                       f"该格 {self._bad_cell_ttl:.0f}s 内不再尝试")
 
     # -- 铲子执行 ---------------------------------------------------------
+    def _calibrate_roof_offset(self, row, col, misplaced, before, after):
+        """Only a unique same-row, one-column miss supports a bounded correction."""
+        if (not before.ok or not after.ok or len(misplaced) != 1 or
+                (before.pid, before.board, before.scene, before.rows) !=
+                (after.pid, after.board, after.scene, after.rows) or before.scene != 4 or
+                before.game_clock is None or after.game_clock is None or
+                after.game_clock <= before.game_clock):
+            return False
+        actual_row, actual_col = misplaced[0]
+        if actual_row != row or abs(actual_col - col) != 1:
+            return False
+        attempts = getattr(self, '_roof_calibration_attempts', {})
+        if attempts.get(row, 0) >= 2:
+            return False
+        correction = (col - actual_col) * self.layout.cell_w
+        offset = self._roof_row_dx.get(row, 0) + correction
+        if abs(offset) > self.layout.cell_w * 1.5:
+            return False
+        self._roof_row_dx[row] = offset
+        attempts[row] = attempts.get(row, 0) + 1
+        self._roof_calibration_attempts = attempts
+        return True
+
     def _execute_shovel(self, cand, record: dict, board: BoardState) -> None:
         """执行一次"铲子"动作：点铲子按钮 → 验证光标 → 点目标植物 → 验证移除。
 
@@ -1198,8 +1288,6 @@ class PvZJevAgent:
         """
         # 启动前先确认游戏真的在跑。暂停状态下开局的话，前几轮的点卡
         # 会被游戏无视，而旧代码会把它记成"植物太贵"，把成本模型污染掉。
-        if self.refresh_window():
-            self.ensure_running()
         end = time.time() + duration_s if duration_s > 0 else float('inf')
         give_up = time.time() + wait_play_s
         self._missing_since = None
@@ -1209,20 +1297,29 @@ class PvZJevAgent:
         if self.cfg.verbose:
             print(f"[提示] 想停就按 Ctrl+C；万一没反应，新建一个空文件 "
                   f"{self._stop_path} 即可（看门狗会在 10 秒内强制结束进程）。")
-        self._start_watchdog()
         try:
+            if self.refresh_window():
+                self.ensure_running()
+            self._start_watchdog()
             return self._loop(end, give_up, wait_play_s)
+        except InputOwnershipError as exc:
+            self._exit_reason = 'input_owned_elsewhere'
+            self.log_event('input_ownership_blocked', reason=str(exc))
+            if self.cfg.verbose:
+                print(f'[停止] {exc}')
+            return self.stats
         except KeyboardInterrupt:
             self._exit_reason = 'keyboard_interrupt'
             raise
         finally:
+            self._release_input_owner()
             self._wd_stop.set()
             self.log_event('session_end', reason=self._exit_reason or 'duration_elapsed',
                            stats=vars(self.stats))
 
     def log_event(self, name, **details):
         if callable(getattr(getattr(self,'log',None),'event',None)):
-            self.log.event(name, run_id=self.run_id(), **details)
+            self.log.event(name, run_id=self.run_id(), **{**self.runtime_metadata(), **details})
 
     def run_id(self):
         if not getattr(self, '_run_id', None):
@@ -1307,11 +1404,12 @@ class PvZJevAgent:
                 #    这里再补一次强制恢复 + 重新附着，避免整局空转。
                 #    ⚠️ 顺序：**先确认进程活着，再去碰窗口**（顺序反了就是上面那个坑）。
                 #    ⚠️ 安全模式下这一整段跳过 —— 恢复窗口本身就是危险动作。
-                if (self.cfg.allow_window_ops
+                if (not self.cfg.dry_run and self.cfg.allow_window_ops
                         and self.reader.attach()
                         and is_process_alive(self.reader.pid)):
                     w = find_game_window(self.reader.pid)
                     if w is not None and not is_stuck(w.hwnd):
+                        self._acquire_input_owner(w.pid)
                         restore_window(w.hwnd)
                 time.sleep(1.5)
                 continue
@@ -1431,7 +1529,7 @@ class PvZJevAgent:
             #     ⚠️ 手上拿着东西（种子/铲子）时**绝不**收阳光：阳光点击落在
             #        草坪上，会把种子随手种掉/把铲子拍在某个植物上 —— 事务
             #        失败路径都会复位光标，这里是最后一道闸（综合审查补）。
-            if (self._responsive
+            if (not self.cfg.dry_run and self._responsive
                     and not board.holding
                     and now - self._last_sun >= self.cfg.collect_sun_every_s):
                 self._last_sun = now
@@ -1567,11 +1665,15 @@ class PvZJevAgent:
         "游戏从没出现过"。
         """
         if self.reader.pid is not None:
+            owner = getattr(self, '_input_owner', None)
+            if owner is not None and owner.game_pid != self.reader.pid:
+                self._release_input_owner()
             self._seen_pid = self.reader.pid
         if self._seen_pid is None:
             return True  # 还没见过游戏 → 交给 --wait-play 决定等多久
         if is_process_alive(self._seen_pid):
             return True
+        self._release_input_owner()
         # 进程没了。先确认一下是不是用户**重启**了游戏（pid 会变）——
         # 只重新附着，**不做任何窗口操作**。
         self._dead_misses += 1

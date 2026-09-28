@@ -118,8 +118,7 @@ class PlantTransaction:
         self.bank(slot.type_id,row,col)
     def relocate(self,candidate):
         self.read()
-        source=next((p for p in self.board.plants if p.cell==(candidate.row,candidate.col)
-                     and p.type_id==candidate.type_id),None)
+        source = self.shovel_source(candidate)
         if source is None or source.hp is None or source.hp<=800:
             raise TransactionStopped('Source cannot return a viable card')
         urgent=bool(getattr(candidate,'crush_recovery',False))
@@ -135,7 +134,7 @@ class PlantTransaction:
             # Ordinary relocation can prepare water before taking the seed.
             self.support(source.type_id,*destination)
             self.read();self.cell_valid(source.type_id,*destination)
-        source=next((p for p in self.board.plants if p.cell==source.cell and p.type_id==source.type_id),None)
+        source = self.shovel_source(candidate)
         if source is None or source.hp is None or source.hp<=800:
             raise TransactionStopped('Source changed before shovel')
         old_drops={(d.index,d.type_id) for d in self.board.dropped_seeds}
@@ -148,7 +147,7 @@ class PlantTransaction:
             self.read()
             self.agent.clicker.click_shovel(self.agent.layout,'shovel button fallback')
             self.read(lambda b:b.holding_shovel)
-        current=next((p for p in self.board.plants if p.cell==source.cell and p.type_id==source.type_id),None)
+        current = self.shovel_source(candidate)
         if current is None or current.hp is None or current.hp<=800:
             raise TransactionStopped('Recovery health window closed before shovel hit')
         if urgent:
@@ -227,15 +226,31 @@ class PlantTransaction:
         if dest is None:raise TransactionStopped('No supported destination for held seed')
         self.place_recovered(candidate.type_id,*dest,pseudo)
 
+    def shovel_source(self, candidate):
+        source = self.board.shovel_target(candidate.row, candidate.col, self.agent.book)
+        if (source is None or source.type_id != candidate.type_id or
+                (getattr(candidate, 'source_index', None) is not None and
+                 source.index != candidate.source_index)):
+            raise TransactionStopped('Shovel source layer or identity changed')
+        return source
+
     def salvage(self,candidate):
         """铲掉换阳光（用户高级技巧 2026-09-26）：植物快被啃死/即将被压扁时，
         铲掉它把损失变成阳光。与 relocate 不同——不期待掉落卡片，只确认
         植物消失，并记录铲前铲后的阳光差供后续校准返还量。"""
         self.read()
-        source=next((p for p in self.board.plants if p.cell==(candidate.row,candidate.col)
-                     and p.type_id==candidate.type_id),None)
+        source = self.shovel_source(candidate)
         if source is None:
             raise TransactionStopped('Nothing left to salvage')
+        replacement = getattr(candidate,'replacement_type',None)
+        def replacement_valid():
+            if replacement is None: return
+            from .policy import action_invalid_reason
+            reason = action_invalid_reason(candidate,self.board,self.agent.book)
+            if reason: raise TransactionStopped(reason)
+        replacement_valid()
+        support_ids = {(p.index,p.type_id) for p in self.board.plants if p.cell==source.cell
+                       and self.board.placement_layer(p.type_id,self.agent.book)=='platform'}
         sun0=self.board.sun
         self.agent.clicker.cancel_seed('pre-salvage reset')
         self.read(lambda b:not b.holding)
@@ -246,10 +261,10 @@ class PlantTransaction:
             self.read()
             self.agent.clicker.click_shovel(self.agent.layout,'shovel button fallback')
             self.read(lambda b:b.holding_shovel)
-        current=next((p for p in self.board.plants if p.cell==source.cell
-                      and p.type_id==source.type_id),None)
+        current = self.shovel_source(candidate)
         if current is None:
             raise TransactionStopped('Plant gone before shovel hit')
+        replacement_valid()
         removals = getattr(self.agent, '_intentional_removals', set())
         removals.add((source.row, source.col, source.type_id))
         self.agent._intentional_removals = removals
@@ -263,6 +278,11 @@ class PlantTransaction:
             # 少数植物铲掉可能附带掉卡；捡不起来就复位光标，交给用户/后续轮次。
             self.agent.clicker.cancel_seed('post-salvage reset')
             self.read(lambda b:not b.holding)
+        if replacement is not None:
+            if not support_ids.issubset({(p.index,p.type_id) for p in self.board.plants if p.cell==source.cell}):
+                raise TransactionStopped('Supporting platform changed during replacement')
+            self.bank(replacement,source.row,source.col)
+            self.steps.append({'step':'replacement_confirmed','type_id':replacement,'cell':list(source.cell)})
         # 返还的阳光是**落在草坪上的拾取物**（夜战实测 9 次里 5 次即时读数为 0，
         # 有一次 +100 其实是天上掉的）—— 解除该区域的假阳性抑制，让收阳光
         # 流程能把这份返还捡回来，而不是被之前的误点记录压着烂掉。
@@ -277,7 +297,8 @@ def run_transaction(agent,board,*,candidate=None,followup=None,pick=None):
         if candidate is not None:
             if getattr(candidate,'salvage',False):
                 tx.salvage(candidate)
-                return {'kind':'salvaged','completed':True,'steps':tx.steps}
+                return {'kind':'replaced' if getattr(candidate,'replacement_type',None) is not None else 'salvaged',
+                        'completed':True,'steps':tx.steps}
             kind=tx.relocate(candidate)
             return {'kind':kind,'completed':True,'steps':tx.steps}
         if pick is not None:
