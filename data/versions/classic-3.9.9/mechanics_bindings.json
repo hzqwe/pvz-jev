@@ -72,6 +72,54 @@
     "66": {
       "profile_name": "花盆",
       "canonical_name": "花盆"
+    },
+    "106": {
+      "profile_name": "寒光菇",
+      "canonical_name": "寒光菇"
+    },
+    "83": {
+      "profile_name": "寒冰仙人掌",
+      "canonical_name": "寒冰仙人掌"
+    },
+    "5": {
+      "profile_name": "寒冰香蒲",
+      "canonical_name": "寒冰香蒲"
+    },
+    "152": {
+      "profile_name": "伪装的向日葵",
+      "canonical_name": "伪装的向日葵"
+    },
+    "155": {
+      "profile_name": "棱镜向日葵",
+      "canonical_name": "棱镜向日葵"
+    },
+    "91": {
+      "profile_name": "财神金盏花",
+      "canonical_name": "财神金盏花"
+    },
+    "160": {
+      "profile_name": "天使向日葵",
+      "canonical_name": "天使向日葵"
+    },
+    "206": {
+      "profile_name": "卡牌模仿者",
+      "canonical_name": "卡牌模仿者"
+    },
+    "125": {
+      "profile_name": "招财猫",
+      "canonical_name": "招财猫"
+    },
+    "233": {
+      "profile_name": "钻石坚果",
+      "canonical_name": "钻石坚果"
+    },
+    "129": {
+      "profile_name": "钻石种子",
+      "canonical_name": "钻石种子"
+    },
+    "168": {
+      "profile_name": "豌豆炸弹",
+      "canonical_name": "豌豆炸弹"
     }
   }
 }

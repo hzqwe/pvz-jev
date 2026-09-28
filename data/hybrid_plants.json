@@ -523,6 +523,163 @@
         "coverage": "tile",
         "notes": "Field furniture on roof levels; never a seed card."
       }
+    },
+    "寒冰仙人掌": {
+      "en": "Frost Cactus",
+      "cost": 350,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "slow"
+      ],
+      "hp": null,
+      "effect_en": "寒冰仙人掌: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "冰系仙人掌（按名推断，行为 unverified）"
+      }
+    },
+    "寒冰香蒲": {
+      "en": "Frost Cattail",
+      "cost": 250,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "tracking",
+        "slow"
+      ],
+      "hp": null,
+      "effect_en": "寒冰香蒲: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "冰系香蒲，全屏追踪（按名推断，unverified）"
+      }
+    },
+    "伪装的向日葵": {
+      "en": "Disguised Sunflower",
+      "cost": 50,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "伪装的向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "伪装机制 unverified"
+      }
+    },
+    "棱镜向日葵": {
+      "en": "Prism Sunflower",
+      "cost": 188,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "棱镜向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "卡面价 188，unverified"
+      }
+    },
+    "财神金盏花": {
+      "en": "Fortune Marigold",
+      "cost": 888,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "财神金盏花: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "金卡经济单位"
+      }
+    },
+    "天使向日葵": {
+      "en": "Angel Sunflower",
+      "cost": 288,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "天使向日葵: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "卡面价 288，unverified"
+      }
+    },
+    "卡牌模仿者": {
+      "en": "Card Imitator",
+      "cost": 500,
+      "role": "special",
+      "tags": [
+        "imitator"
+      ],
+      "hp": null,
+      "effect_en": "卡牌模仿者: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "模仿者：出牌行为特殊，机制 unverified"
+      }
+    },
+    "招财猫": {
+      "en": "Fortune Cat",
+      "cost": 288,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "招财猫: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "卡面价 288，unverified"
+      }
+    },
+    "钻石坚果": {
+      "en": "Diamond Nut",
+      "cost": 100,
+      "role": "wall",
+      "tags": [
+        "wall"
+      ],
+      "hp": null,
+      "effect_en": "钻石坚果: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "卡面价 100，unverified"
+      }
+    },
+    "钻石种子": {
+      "en": "Diamond Seed",
+      "cost": 128,
+      "role": "producer",
+      "tags": [
+        "producer"
+      ],
+      "hp": null,
+      "effect_en": "钻石种子: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "卡面价 128，unverified"
+      }
+    },
+    "豌豆炸弹": {
+      "en": "Pea Bomb",
+      "cost": 50,
+      "role": "instant",
+      "tags": [
+        "instant"
+      ],
+      "hp": null,
+      "effect_en": "豌豆炸弹: new deck plant (2026-09-28 前院告急 deck). Behaviour UNVERIFIED - registered from the card face so the agent can use it.",
+      "combat": {
+        "coverage": "unknown",
+        "notes": "按名推断 instant，行为 unverified"
+      }
     }
   }
 }

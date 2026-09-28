@@ -189,6 +189,455 @@
         }
       },
       "unverified_fields": {}
+    },
+    "106": {
+      "canonical_name": "寒光菇",
+      "profile_name": "寒光菇",
+      "patch": {
+        "tags": [
+          "instant",
+          "global_freeze",
+          "sun_on_freeze"
+        ],
+        "en": "Frost-shroom",
+        "effect_en": "寒光菇 (cost 200 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 200"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 200"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 200"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 200,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "83": {
+      "canonical_name": "寒冰仙人掌",
+      "profile_name": "寒冰仙人掌",
+      "patch": {
+        "tags": [
+          "shooter",
+          "slow"
+        ],
+        "en": "Frost Cactus",
+        "effect_en": "寒冰仙人掌 (cost 350 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 350"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 350"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 350"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 350,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "5": {
+      "canonical_name": "寒冰香蒲",
+      "profile_name": "寒冰香蒲",
+      "patch": {
+        "tags": [
+          "shooter",
+          "tracking",
+          "slow"
+        ],
+        "en": "Frost Cattail",
+        "effect_en": "寒冰香蒲 (cost 250 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 250"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 250"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 250"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 250,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "152": {
+      "canonical_name": "伪装的向日葵",
+      "profile_name": "伪装的向日葵",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Disguised Sunflower",
+        "effect_en": "伪装的向日葵 (cost 50 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 50,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "155": {
+      "canonical_name": "棱镜向日葵",
+      "profile_name": "棱镜向日葵",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Prism Sunflower",
+        "effect_en": "棱镜向日葵 (cost 188 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 188"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 188"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 188"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 188,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "91": {
+      "canonical_name": "财神金盏花",
+      "profile_name": "财神金盏花",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Fortune Marigold",
+        "effect_en": "财神金盏花 (cost 888 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 888"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 888"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 888"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 888,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "160": {
+      "canonical_name": "天使向日葵",
+      "profile_name": "天使向日葵",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Angel Sunflower",
+        "effect_en": "天使向日葵 (cost 288 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 288,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "206": {
+      "canonical_name": "卡牌模仿者",
+      "profile_name": "卡牌模仿者",
+      "patch": {
+        "tags": [
+          "imitator"
+        ],
+        "en": "Card Imitator",
+        "effect_en": "卡牌模仿者 (cost 500 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 500"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 500"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 500"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 500,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "125": {
+      "canonical_name": "招财猫",
+      "profile_name": "招财猫",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Fortune Cat",
+        "effect_en": "招财猫 (cost 288 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 288"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 288,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "233": {
+      "canonical_name": "钻石坚果",
+      "profile_name": "钻石坚果",
+      "patch": {
+        "tags": [
+          "wall"
+        ],
+        "en": "Diamond Nut",
+        "effect_en": "钻石坚果 (cost 100 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 100"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 100"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 100"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 100,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "129": {
+      "canonical_name": "钻石种子",
+      "profile_name": "钻石种子",
+      "patch": {
+        "tags": [
+          "producer"
+        ],
+        "en": "Diamond Seed",
+        "effect_en": "钻石种子 (cost 128 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 128"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 128"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 128"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 128,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
+    },
+    "168": {
+      "canonical_name": "豌豆炸弹",
+      "profile_name": "豌豆炸弹",
+      "patch": {
+        "tags": [
+          "instant"
+        ],
+        "en": "Pea Bomb",
+        "effect_en": "豌豆炸弹 (cost 50 from the card face, UNVERIFIED). Behaviour registered from the deck screenshot so the agent can use it."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "card_face_observed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User screenshot 前院告急 1-5 deck, card face cost 50"
+        }
+      },
+      "unverified_fields": {
+        "cost": {
+          "value": 50,
+          "reason": "Read from the card face screenshot; confirm from the almanac"
+        }
+      }
     }
   }
 }
