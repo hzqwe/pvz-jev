@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "edition": "classic",
+  "game_version": "3.9.9",
+  "identity_source_revision": "ce3363868d087363b1b69df656a582c29b099db5",
+  "plants": {
+    "0": {
+      "canonical_name": "豌豆向日葵",
+      "profile_name": "豌豆射手",
+      "patch": {
+        "en": "Pea Sunflower",
+        "tags": [
+          "shooter",
+          "producer"
+        ],
+        "effect_en": "Lane pea shooter that also produces sun. Classic sources corroborate 25 sun per 25s (version-inferred, not measured). Preserve the observed 125-sun base price; pea damage uses the existing conservative estimate until version-specific firing cadence is verified.",
+        "combat": {
+          "sun_per_25s": 25,
+          "projectile_type": "pea",
+          "notes": "Dual shooting and sun production corroborated by classic wiki and 2024 handbook. Income is inferred for 3.9.9; current wiki 20/s conflicts with legacy 20/1.4s. Retain lower DPS estimate. Peas passing a live torch in the same lane gain fire; exact multiplier unverified."
+        }
+      },
+      "field_sources": {
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        },
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        },
+        "combat.sun_per_25s": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        },
+        "combat.projectile_type": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        },
+        "combat.notes": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_inferred",
+          "observed_at": "2026-09-28",
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "corroborating_source": "https://github.com/squirre1Bear/PVZ_illustrated_handbook/blob/b449e2f0a81ef98a06538a1dae47a14f716d192c/lib/plant.dart"
+        }
+      },
+      "unverified_fields": {
+        "shot_dps": {
+          "value": 20,
+          "source_url": "https://pvzhe.wiki/w/豌豆向日葵",
+          "reason": "Current wiki differs from legacy 20/1.4s; exact 3.9.9 cadence not verified"
+        }
+      }
+    },
+    "86": {
+      "canonical_name": "向日葵女王",
+      "profile_name": "向日葵女王",
+      "patch": {
+        "combat": {
+          "notes": "User confirms peas passing the Queen gain fire. Aura affects only her nearby 3x3 area; homing fire covers the board. Surrounding freeze immunity remains unverified for 3.9.9 and is excluded from active capabilities."
+        }
+      },
+      "field_sources": {
+        "combat.notes": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User almanac and explicit torch confirmation, 2026-09-26; source-version isolation"
+        }
+      },
+      "unverified_fields": {
+        "freeze_immunity": {
+          "value": true,
+          "source_version": "v4.0",
+          "reason": "No classic 3.9.9 evidence; do not use in battle calculations"
+        }
+      }
+    },
+    "183": {
+      "canonical_name": "雷果子",
+      "profile_name": "雷果子",
+      "patch": {
+        "combat": {
+          "piercing": true,
+          "projectile_type": "beam",
+          "notes": "User corrected this plant to Thunder Fruit: a laser damages enemies along its forward lane, also a 4000-HP wall. Only reachable enemies in that lane count toward piercing utility. Preserve existing armor interaction, reflect, lethal-hit mitigation and dynamic price rules."
+        }
+      },
+      "field_sources": {
+        "combat.piercing": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User explicitly corrected Thunder Fruit to a lane laser with 4000 HP in conversation, 2026-09-26"
+        },
+        "combat.projectile_type": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User explicitly corrected Thunder Fruit to a lane laser with 4000 HP in conversation, 2026-09-26"
+        },
+        "combat.notes": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "user_confirmed",
+          "observed_at": "2026-09-28",
+          "local_evidence": "User explicitly corrected Thunder Fruit to a lane laser with 4000 HP in conversation, 2026-09-26"
+        }
+      }
+    }
+  }
+}

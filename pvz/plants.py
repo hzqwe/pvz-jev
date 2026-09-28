@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 from .catalog import CatalogIdentity, VersionCatalog, DEFAULT_CATALOG, load_catalog, load_profile_bindings
+from .mechanics import load_mechanics, overlay
 import os
 import time
 from dataclasses import dataclass, field
@@ -227,6 +228,7 @@ class PlantBook:
         self.binding_notes: list[str] = []
         self.catalog: VersionCatalog | None = None
         self._catalog_profiles: dict[int, str] = {}
+        self._catalog_mechanics: dict[int, dict] = {}
         self._catalog_restore: dict[int, dict] = {}
         # 运行时校准出来的真实成本 / 已知下界
         self.real_cost: dict[int, int] = {}
@@ -575,7 +577,13 @@ class PlantBook:
         self.deactivate_catalog()
         catalog = load_catalog(str(DEFAULT_CATALOG), edition, game_version)
         profiles = load_profile_bindings(catalog)
+        mechanics = load_mechanics(catalog, profiles)
         self.catalog, self._catalog_profiles = catalog, profiles
+        self._catalog_mechanics = mechanics
+        for tid in list(self.kb_by_id):
+            if tid in mechanics and self.kb_by_id[tid].cn == profiles.get(tid):
+                self._remember_catalog_binding(tid)
+                self.kb_by_id[tid] = self.catalog_entry(tid)
 
     def deactivate_catalog(self) -> None:
         """Undo derived profiles and their observations, retaining prior user facts."""
@@ -589,7 +597,32 @@ class PlantBook:
                     mapping.pop(tid, None)
         self._catalog_restore.clear()
         self._catalog_profiles.clear()
+        self._catalog_mechanics.clear()
         self.catalog = None
+
+    def catalog_entry(self, type_id: int, catalog=None) -> KBEntry | None:
+        """Resolve bound/available mechanics without mutating binding or cost state."""
+        catalog = catalog or self.catalog
+        if catalog is None:
+            return self.kb_by_id.get(type_id)
+        if catalog is self.catalog:
+            profiles, mechanics = self._catalog_profiles, self._catalog_mechanics
+        else:
+            profiles = load_profile_bindings(catalog)
+            mechanics = load_mechanics(catalog, profiles)
+        name = profiles.get(type_id)
+        entry = self.kb_by_id.get(type_id) or self.kb_by_name.get(name)
+        record = mechanics.get(type_id)
+        if entry is None or record is None or entry.cn != name:
+            return entry
+        return KBEntry.from_json(entry.cn, overlay(entry.raw, record))
+
+    def _remember_catalog_binding(self, type_id: int) -> None:
+        attributes = ('table', 'kb_by_id', 'real_cost', 'min_cost', 'min_cost_ts',
+                      'cost_mismatch', 'copies_on_field')
+        self._catalog_restore.setdefault(type_id, {
+            attribute: (type_id in getattr(self, attribute), getattr(self, attribute).get(type_id))
+            for attribute in attributes})
 
     def identity(self, type_id: int) -> CatalogIdentity | None:
         return self.catalog.resolve('plant', type_id) if self.catalog else None
@@ -606,16 +639,12 @@ class PlantBook:
         if not identity:
             return False
         name = self._catalog_profiles.get(type_id)
-        entry = self.kb_by_name.get(name)
+        entry = self.catalog_entry(type_id)
         if entry is None:
             return False
         # Keep automatic assignments out of bound_ids/save_ids. Restore prior
         # table and cost observations on a version switch, including failed loads.
-        attributes = ('table', 'real_cost', 'min_cost', 'min_cost_ts',
-                      'cost_mismatch', 'copies_on_field')
-        self._catalog_restore[type_id] = {
-            attribute: (type_id in getattr(self, attribute), getattr(self, attribute).get(type_id))
-            for attribute in attributes}
+        self._remember_catalog_binding(type_id)
         self.kb_by_id[type_id] = entry
         self.table[type_id] = (name, entry.cost if entry.cost is not None else -1, entry.role)
         return True
