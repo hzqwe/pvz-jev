@@ -631,6 +631,19 @@ class PvZJevAgent:
             for c in cs:
                 if c.kind != 'plant' or c.score < 20:
                     continue
+                # pad-chain 候选（花盆/睡莲 → 墙/producer 连锁）按两步总价校验：
+                # 2026-09-30 屋顶审查 —— 以前一律排除 33，屋顶预置花盆种满后
+                # 富余期无法向 3-8 列扩张（平台连锁是唯一的落脚方式）。
+                if c.supports_type is not None:
+                    body_tags = self.book.tags(c.supports_type)
+                    total = ((self.book.cost(c.type_id) or 10**9)
+                             + (self.book.cost(c.supports_type) or 10**9))
+                    if total > 320 or (b.sun or 0) - total < 300:
+                        continue
+                    if 'producer' in body_tags or 'wall' in body_tags:
+                        pick = c
+                        break
+                    continue
                 tags = self.book.tags(c.type_id)
                 cost = self.book.cost(c.type_id) or 10**9
                 if cost > 250 or (b.sun or 0) - cost < 300:

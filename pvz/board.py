@@ -192,7 +192,14 @@ class BoardState:
 
     def placement_layer(self, type_id, book):
         return self.placement_profile(type_id,book).get('layer') or (
-            'platform' if book.has_tag(type_id,'platform') else 'body')
+            'platform' if (book.has_tag(type_id,'platform')
+                           # 2026-09-30 屋顶审查：catalog 激活后未绑定的 id 一律
+                           # UNKNOWN（防错绑设计），但这会把 plant_names.json 已知
+                           # 的预置花盆(66)/睡莲(16,67) 误判成 body —— 花盆格被当
+                           # 占用、has_platform 判 False，producer/墙候选全灭。
+                           # 与 platform_fits 的 legacy 平台表保持同一份认知。
+                           or type_id in (16, 67, 33, 66))
+                      else 'body')
 
     def top_body(self, row, col, book):
         upper = [p for p in self.occupancy().get((row,col),[])

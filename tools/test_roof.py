@@ -154,3 +154,46 @@ class RoofLearningTests(unittest.TestCase):
         b = _roof_board(scene=4, zombies=[Zombie(0, 0, 5, x=400)])
         b2 = J.dumps(__import__('pvz.serialize', fromlist=['build_state']).build_state(b, self.book), ensure_ascii=False)
         self.assertIn('冰车二爷', b2, 'state 应包含目录里的僵尸真名')
+
+
+class RoofCatalogGapTests(unittest.TestCase):
+    """2026-09-30 屋顶审查回归：catalog 激活、预置花盆(66)未绑定时不能瘫痪。
+
+    sync_binding 每轮会补绑场上 66，但卡槽读取失败的轮次里 generate 会在
+    未绑状态运行 —— 此时 role(66) 因 catalog 的防错绑门返回 UNKNOWN，
+    placement_layer 必须用 legacy 平台表兜住（与 platform_fits 同一份认知）。
+    """
+
+    DECK = [14, 189, 2, 20, 9, 147, 160, 155, 142, 34, 33, 106, 46, 161, 233, 183]
+
+    def setUp(self):
+        # 全默认数据文件（与生产同源）+ catalog 激活 + 只绑卡槽 16 卡
+        self.book = PlantBook()
+        self.book.activate_catalog('classic', '3.9.9')
+        for tid in self.DECK:
+            self.assertTrue(self.book.bind_identity(tid), f'bind {tid} 失败')
+
+    def test_preset_pots_usable_while_66_unbound(self):
+        self.assertIsNone(self.book.kb_by_id.get(66), '前置：66 应处于未绑定状态')
+        plants = [Plant(r * 3 + c, r, c, 66, hp=300) for r in range(5) for c in range(3)]
+        b = BoardState(ok=True, sun=150, rows=5, cols=9, game_clock=40000, scene=4,
+                       slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                       plants=plants, zombies=[])
+        self.assertTrue(b.has_platform(0, 0, self.book), '预置花盆格应被识别为有平台')
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and 'producer' in self.book.tags(c.type_id)]
+        self.assertTrue(cs, '预置花盆上必须能出 producer 候选（66 未绑定时）')
+        self.assertTrue(all(b.can_plant(c.row, c.col, c.type_id, self.book) for c in cs))
+
+    def test_crush_lane_offers_pot_chain_for_steel_nut(self):
+        # 撞车路且落点无预置花盆时，钢刺坚果王以"花盆+钢刺"连锁候选出现。
+        # 阳光 800：经济闸（sun-cost>=300）放行非紧急墙，属富余期正常建墙。
+        plants = [Plant(r * 3 + c, r, c, 66, hp=300) for r in range(5) for c in range(3)]
+        b = BoardState(ok=True, sun=800, rows=5, cols=9, game_clock=40000, scene=4,
+                       slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                       plants=plants, zombies=[Zombie(0, 0, 5, x=460)])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.supports_type == 46]
+        self.assertTrue(cs, '冰车路应出"花盆+钢刺坚果王"连锁候选')
+        self.assertTrue(any('Crush-resistant' in c.why for c in cs),
+                        '连锁候选应保留防撞标注')

@@ -339,15 +339,16 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                                      and (facts[row]['nearest_zombie_x'] or 9999) < 560))
                     if pressured and not board.has_platform(row, col, book):
                         score = max(value, 75)
-                        tag = 'Plant Lily Pad and immediately chain the defender onto it'
+                        tag = 'Plant the platform (pad/pot) and immediately chain the defender onto it'
                     else:
                         score = value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45)
-                        tag = 'First place Lily Pad to support'
+                        tag = 'First place the platform (pad/pot) to support'
                     c = Candidate('', 'plant', row, col, pad.index, pad.type_id,
                         score,
-                        f'{tag} {book.en(best.type_id)} at this water cell; '
+                        f'{tag} {book.en(best.type_id)} at this supported cell; '
                         'Execute as a continuous pad-then-plant transaction; only the completed defender helps. '
-                        'Re-read and confirm both placements without another model call.',
+                        'Re-read and confirm both placements without another model call.'
+                        + (f' Why this defender: {reason}' if reason else ''),
                         book.tags(pad.type_id), rescue and T_WALL in tags, tuple(covers),
                         supports_type=best.type_id, intercept=intercept)
                     c.emergency = rescue and rescue_is_effective(c,board,book)
@@ -402,13 +403,27 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # 例外：eager（大波/坦克/撞车）时灰烬绕过储备闸 —— 提前交牌优先。
             continue
 
-        # ---- 开局储蓄到账：女王（plan 目标）买得起就直接出高分候选 ----
-        # 正常路径给不出她（平静期压分/无僵尸不出射手候选），必须显式生成，
-        # 否则 merge 的"兑现升级"找不到候选、开局永远在等待。
-        # 落点 B/C/D 三列都允许（2026-09-26 扩展）：B/C 被垫背/救场占住时，
-        # 卡在 (1,2) 硬筛会让到账的女王永远出不了候选、储蓄死循环。
+        # ---- 储蓄到账：plan 目标买得起就直接出高分候选 ----
+        # 正常路径给不出它（平静期压分/无僵尸不出射手候选），必须显式生成，
+        # 否则 merge 的"兑现升级"找不到候选、储蓄永远在等待。
         if (plan and plan.get('slot') == slot.index
                 and (board.sun or 0) >= (plan.get('cost') or 10**9)):
+            if not plan.get('opening', True):
+                # 中段储蓄大件（2026-09-30 屋顶审查）：此前复用女王块 —— 文案
+                # 硬编码"Sunflower Queen"、落点被限 (1,2,3)。大件按正常
+                # rear_cols 选列，文案按植物身份生成。
+                for r in sorted(range(board.rows),
+                                key=lambda r: (facts[r]['priority'], r)):
+                    cols = [c for c in rear_cols(board, book, r, type_id=tid)
+                            if board.can_plant(r, c, tid, book)]
+                    if cols:
+                        candidates.append(Candidate(
+                            '', 'plant', r, cols[-1], slot.index, tid, 120,
+                            f'Reserved upgrade is affordable: plant the {book.en(tid)} now '
+                            '(saved for its coverage/armor/control value).',
+                            tags, False))
+                        break
+                continue
             # 用户 2026-09-26 硬约束（2026-09-29 泳池局加固）：女王**绝不**与
             # 现有女王同行 —— 排序偏好不够，泳池局水路无荷叶时直接候选失败
             # 会退回火炬行（23:05:54 实测同排两女王）。已有火炬的行直接跳过，
