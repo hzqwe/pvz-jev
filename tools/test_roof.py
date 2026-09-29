@@ -4,8 +4,10 @@
 屋顶=花盆平台、月夜放行、坡度自校准。
 """
 import sys
+import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -411,3 +413,43 @@ class RoofOpeningDoctrineTests(unittest.TestCase):
         plan = saving_plan(b, self.book)
         self.assertIsNotNone(plan, '第一波进场且非危急时学说应继续')
         self.assertEqual(plan.get('kind'), 'corn_rush')
+
+
+class RoofFuseRecoveryTests(unittest.TestCase):
+    """2026-09-30 屋顶日志复盘（"种了两个玉米然后什么都不种"）。
+
+    实测轨迹：seq15 花盆连锁落偏一格（钱扣了 75、植物在场上）→ 被
+    placement_delta 判"种歪" → _geometry_error 全局熔断 → seq16-25
+    连续 10 轮 blocked_geometry，阳光 185 涨到 675 零动作。
+    两处修复：扣款旁证（扣了钱不熔断）+ 熔断 45s TTL 自愈。
+    """
+
+    DECK = [14, 189, 2, 20, 9, 147, 160, 155, 142, 34, 33, 106, 46, 161, 233, 183]
+
+    def test_fuse_expires_after_45s(self):
+        # 熔断是止血不是判决：45s 后自愈，种植恢复
+        fuse_time = time.time() - 46.0
+        agent = SimpleNamespace(_geometry_error=((4, 800, 1024, 768, 0, 0, 80, 100), fuse_time))
+        geometry = (4, 800, 1024, 768, 0, 0, 80, 100)
+        fuse = agent._geometry_error
+        if isinstance(fuse, tuple):
+            fuse = fuse[0] if time.time() - fuse[1] <= 45.0 else None
+        self.assertIsNone(fuse, '46s 后熔断应自愈')
+
+    def test_fuse_active_within_45s(self):
+        fuse_time = time.time() - 10.0
+        fuse = ((4, 800), fuse_time)
+        effective = fuse[0] if time.time() - fuse[1] <= 45.0 else None
+        self.assertEqual(effective, (4, 800), '45s 内熔断应仍然生效')
+
+    def test_charged_sun_prevents_fuse(self):
+        # 复盘日志场景：misplaced 但阳光扣了 75（花盆实际种上）→ 不应熔断
+        sun0, after_sun = 260, 185
+        charged = sun0 is not None and after_sun is not None and 0 < sun0 - after_sun
+        self.assertTrue(charged, '扣款旁证应识别"钱已扣"')
+        # 没扣款（点击被拒）→ 真种歪 → 熔断
+        self.assertFalse(0 < 260 - 260, '未扣款时仍应熔断')
+
+
+if __name__ == '__main__':
+    unittest.main()

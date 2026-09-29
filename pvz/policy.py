@@ -1137,7 +1137,9 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "Answer yes only if planting right now would be wasteful, premature, or "
                 "would leave the sun reserve too low for an imminent emergency. Honor saving_plan "
                 "when safe. A quiet board still needs economy and missing-lane defence; do not hoard "
-                "surplus sun indefinitely. Never hold if a listed rescue can address a near-house threat."
+                "surplus sun indefinitely. Never hold if a listed rescue can address a near-house threat. "
+                "Never hold while a cheap sun producer (sunflower) is listed as an option: economy "
+                "growth IS the saving plan - sunflowers pay for the upgrade you are waiting for."
             ),
             "criteria": {"true": "yes - hold and save the sun", "false": "no - spend sun now"},
         },

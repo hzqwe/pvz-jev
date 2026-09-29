@@ -1025,7 +1025,18 @@ class PvZJevAgent:
         # 屋顶坡度 per-row 修正（自学习，见 placement 校准块）
         dx = (self._roof_row_dx.get(cand.row, 0) if chk.scene == 4 else 0)
         x,y = self.layout.cell_center(cand.row,cand.col,dx)
-        if self._geometry_error == geometry or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
+        # 种歪熔断带 45s TTL（2026-09-30 屋顶实测：一次误判瘫痪整局 ——
+        # seq16 起连续 10 轮 blocked_geometry，什么都不种）。熔断是止血，
+        # 不是判决：给自愈窗口让后续读数/校准重建信任。
+        fuse = self._geometry_error
+        if isinstance(fuse, tuple):
+            if time.time() - fuse[1] > 45.0:
+                self._geometry_error = None
+                fuse = None
+                getattr(self, 'log_event', lambda *a, **k: None)('geometry_fuse_cleared')
+            else:
+                fuse = fuse[0]
+        if (fuse is not None and fuse == geometry) or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
             record['executed'] = {'kind':'blocked_geometry','note':'落点越界或已发现种歪；重新校准并重启后再种植'}
             return
         # 2026-09-27 泛化：4=屋顶、5=特殊场景加入白名单（此前屋顶被拒种，
@@ -1211,7 +1222,19 @@ class PvZJevAgent:
                 record.setdefault('warnings', []).append(
                     f'Limited roof correction on lane {cand.row + 1}: offset {self._roof_row_dx[cand.row]:+.0f} base px; slope geometry remains unverified.')
         if misplaced and not placed and not calibrated:
-            self._geometry_error = geometry
+            # ★ 阳光扣款 = 放置的铁证（点卡不扣、放置才扣，见 offsets 注释）。
+            #   2026-09-30 屋顶实测：连锁第一步（花盆 75）落偏一格 —— 钱已扣、
+            #   植物在场上，却被判"种歪"触发 _geometry_error 全局熔断，此后
+            #   连续 10 轮 blocked_geometry，什么都不种。扣了钱就只记告警、
+            #   不熔断（下一轮读数自会发现真实位置）。
+            charged = (sun0 is not None and getattr(after, 'sun', None) is not None
+                       and 0 < sun0 - after.sun)
+            if charged:
+                record.setdefault('warnings', []).append(
+                    f'Sun was charged ({sun0}->{after.sun}) though no new plant at the '
+                    'target cell: treating as a misplant, geometry fuse NOT blown.')
+            else:
+                self._geometry_error = (geometry, time.time())
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。
         # 所以这里量的才是真实成本；顺便把"点卡不扣阳光"这件事变成证据留档。
         spent = None
