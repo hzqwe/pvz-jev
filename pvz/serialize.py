@@ -245,7 +245,7 @@ def _wave_info(board: BoardState) -> dict | None:
         info["upcoming_estimate"] = board.spawn_upcoming
     if board.spawn_upcoming_kinds:
         info["upcoming_kinds"] = {
-            f"zombie_type_{t} (identity unverified)": n
+            f"{book.zombie_name(t)} (identity from version catalog)": n
             for t, n in sorted(board.spawn_upcoming_kinds.items(), key=lambda kv: -kv[1])
         }
     if board.spawnable_types is not None:

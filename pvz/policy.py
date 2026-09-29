@@ -364,6 +364,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         tags, cost = book.tags(tid), book.cost(tid)
         if tid < 0 or not slot.ready or cost is None or sun < cost:
             continue
+        # 白天睡觉的蘑菇（忧郁菇投手等，combat.day_sleeper）：白天场景
+        # 种了也是白睡 —— 跳过。夜间场景（月夜 5）照常可用。
+        if book.combat(tid).get('day_sleeper') and board.scene in (0, 2, 3, 4):
+            continue
         if T_PLATFORM in tags or book.role(tid) == PLATFORM:
             continue
         if book.role(tid) == SUPPORT and T_CHARM not in tags:
@@ -580,7 +584,12 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 defenders = [p.col for p in board.plants_in_lane(r)
                              if not book.has_tag(p.type_id,T_WALL) and cell_x(p.col) < nx]
                 front = max(defenders,default=-1)
-                preferred = [c for c in cols if c > front]
+                # 屋顶预置花盆格是"能种的平台"而非空地：优先选真正种得下的列。
+                # 否则会越过花盆选中一块没有平台的空屋顶 —— add() 里又没有
+                # 花盆卡可连锁，整个墙候选被吞掉（2026-09-30 屋顶 3-5 实测）。
+                plantable = [c for c in cols if board.can_plant(r, c, tid, book)]
+                preferred = ([c for c in plantable if c > front] or plantable
+                             or [c for c in cols if c > front])
                 col = preferred[-1] if preferred else cols[-1]
                 profile = book.combat(tid)
                 bonus, extra = 0, ''

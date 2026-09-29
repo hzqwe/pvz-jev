@@ -761,6 +761,130 @@
         "coverage": "tile",
         "notes": "Producer; production amount unverified (pvzhe page not fetched)."
       }
+    },
+    "玉米卷迫击炮": {
+      "en": "Corn-roll Mortar",
+      "cost": 300,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "lobbed",
+        "splash"
+      ],
+      "hp": 300,
+      "cooldown_s": 15,
+      "effect_en": "Lobbed mortar: 100 dmg per 3s (~33 dps) with splash and a chance of butter (stun). Lobbed shots ignore the roof slope.",
+      "effects": [
+        "抛射迫击炮",
+        "溅射",
+        "概率黄油"
+      ],
+      "combat": {
+        "dps": 33,
+        "coverage": "lane+splash",
+        "lobbed": true,
+        "splash": true,
+        "notes": "Lobbed mortar, splash on hit, butter chance. Wiki pvzhe 2026-09-30"
+      }
+    },
+    "黄金西瓜投手": {
+      "en": "Golden Melon-pult",
+      "cost": 500,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "lobbed"
+      ],
+      "hp": 1000,
+      "cooldown_s": 30,
+      "effect_en": "Lobbed golden melons 150x2/3s (~100 dps) + LOTTERY per hit: 50% extra melon, 35% ice-melon (slow), 10% 100-sun drop, 4% armour destroyed, 1% charm. 1000 hp.",
+      "effects": [
+        "抛射",
+        "抽奖:额外西瓜/冰瓜减速/掉阳光/破防/魅惑"
+      ],
+      "combat": {
+        "dps": 100,
+        "coverage": "lane+splash",
+        "lobbed": true,
+        "armour_break_chance": 0.04,
+        "charm_chance": 0.01,
+        "notes": "Lottery per hit: 50% melon, 35% ice-melon (slow), 10% 100-sun, 4% armour destroyed, 1% charm. Wiki pvzhe 2026-09-30"
+      }
+    },
+    "忧郁菇投手": {
+      "en": "Gloom-shroom Pult",
+      "cost": 225,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "lobbed",
+        "day_sleeper"
+      ],
+      "hp": 300,
+      "cooldown_s": 15,
+      "effect_en": "Close-range lobbed gloom spores 20x4/3s (~27 dps) with AoE. SLEEPS ON DAY MAPS - useless without waking; do not plant on day/roof scenes.",
+      "effects": [
+        "抛射",
+        "范围伤害",
+        "白天睡觉"
+      ],
+      "combat": {
+        "dps": 27,
+        "coverage": "close aoe",
+        "lobbed": true,
+        "day_sleeper": true,
+        "notes": "Close-range AoE lob; SLEEPS on day maps (mushroom trait). Wiki pvzhe 2026-09-30"
+      }
+    },
+    "三线玉米投手": {
+      "en": "Three-line Kernel-pult",
+      "cost": 175,
+      "role": "shooter",
+      "tags": [
+        "shooter",
+        "lobbed",
+        "stun"
+      ],
+      "hp": 300,
+      "cooldown_s": 7.5,
+      "effect_en": "Covers THREE lanes with corn (40 dps) and butter (40 dmg + 3s stun chance). Lobbed - explicitly ignores the roof slope angle.",
+      "effects": [
+        "三行覆盖",
+        "抛射无视屋顶坡度",
+        "黄油定身"
+      ],
+      "combat": {
+        "dps": 40,
+        "coverage": "3 lanes",
+        "lobbed": true,
+        "stun": true,
+        "notes": "Corn 40 dps + butter with 3s stun chance, covers 3 lanes, ignores the roof slope angle. Wiki pvzhe 2026-09-30"
+      }
+    },
+    "钢刺坚果王": {
+      "en": "Steel-spike Nut King",
+      "cost": 300,
+      "role": "wall",
+      "tags": [
+        "wall",
+        "spikes"
+      ],
+      "hp": 8000,
+      "cooldown_s": 30,
+      "effect_en": "8000-hp wall with close-range spikes (40 dps, own cell +/- 1) that pops vehicle TIRES. Resists 8 hammer/smash hits at 1001 each - ANTI-CRUSH wall against ice-trucks. Price +100 per copy on field.",
+      "effects": [
+        "8000血墙",
+        "左中右霸气爆胎",
+        "抵御8次锤击碾压"
+      ],
+      "combat": {
+        "crush_hits": 8,
+        "crush_hp_loss": 1001,
+        "dps": 40,
+        "coverage": "own cell +/-1",
+        "price_increment": 100,
+        "notes": "Spikes pop vehicle tyres (anti ice-truck); resists 8 hammer/smash hits at 1001 each. Price +100 per copy on field. Wiki pvzhe 2026-09-30"
+      }
     }
   }
 }

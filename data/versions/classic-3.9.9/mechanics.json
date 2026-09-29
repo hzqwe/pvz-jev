@@ -769,6 +769,194 @@
         }
       },
       "unverified_fields": {}
+    },
+    "189": {
+      "canonical_name": "玉米卷迫击炮",
+      "profile_name": "玉米卷迫击炮",
+      "patch": {
+        "tags": [
+          "shooter",
+          "lobbed",
+          "splash"
+        ],
+        "en": "Corn-roll Mortar",
+        "effect_en": "Lobbed mortar 100/3s (~33 dps) with splash and butter chance. Ignores the roof slope."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+        }
+      },
+      "unverified_fields": {
+        "true_cost_details": {
+          "reason": "hp not on the wiki page"
+        }
+      }
+    },
+    "147": {
+      "canonical_name": "黄金西瓜投手",
+      "profile_name": "黄金西瓜投手",
+      "patch": {
+        "tags": [
+          "shooter",
+          "lobbed"
+        ],
+        "en": "Golden Melon-pult",
+        "effect_en": "Lobbed golden melons ~100 dps with a lottery per hit: 50% extra melon, 35% ice-melon slow, 10% 100-sun drop, 4% armour destroyed, 1% charm. 1000 hp."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+        }
+      },
+      "unverified_fields": {
+        "in_game_lottery": {
+          "reason": "lottery rates from wiki; in-game verification pending"
+        }
+      }
+    },
+    "142": {
+      "canonical_name": "忧郁菇投手",
+      "profile_name": "忧郁菇投手",
+      "patch": {
+        "tags": [
+          "shooter",
+          "lobbed",
+          "day_sleeper"
+        ],
+        "en": "Gloom-shroom Pult",
+        "effect_en": "Close-range lobbed AoE ~27 dps. SLEEPS ON DAY MAPS - do not plant on day/roof scenes without a wake-up plan."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+        }
+      },
+      "unverified_fields": {
+        "coverage": {
+          "reason": "close-range radius not specified on the wiki page"
+        }
+      }
+    },
+    "34": {
+      "canonical_name": "三线玉米投手",
+      "profile_name": "三线玉米投手",
+      "patch": {
+        "tags": [
+          "shooter",
+          "lobbed",
+          "stun"
+        ],
+        "en": "Three-line Kernel-pult",
+        "effect_en": "Covers THREE lanes: corn 40 dps + butter with 3s stun chance. Lobbed - explicitly ignores the roof slope angle."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+        }
+      },
+      "unverified_fields": {
+        "butter_rate": {
+          "reason": "butter chance per 0.5s shot not quantified on the wiki page"
+        }
+      }
+    },
+    "46": {
+      "canonical_name": "钢刺坚果王",
+      "profile_name": "钢刺坚果王",
+      "patch": {
+        "tags": [
+          "wall",
+          "spikes"
+        ],
+        "en": "Steel-spike Nut King",
+        "effect_en": "8000-hp wall, close spikes 40 dps (own cell +/-1), pops vehicle tyres, resists 8 hammer/smash hits at 1001 each. Price +100 per copy on field."
+      },
+      "field_sources": {
+        "tags": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+        },
+        "en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+        },
+        "effect_en": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "wiki_pvzhe",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+        }
+      },
+      "unverified_fields": {
+        "spike_range": {
+          "reason": "own cell +/-1 estimated from '左中右' on the wiki page"
+        }
+      }
     }
   }
 }

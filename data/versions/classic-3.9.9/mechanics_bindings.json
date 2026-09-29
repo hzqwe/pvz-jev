@@ -136,6 +136,26 @@
     "123": {
       "profile_name": "小猫向日葵",
       "canonical_name": "小猫向日葵"
+    },
+    "189": {
+      "profile_name": "玉米卷迫击炮",
+      "canonical_name": "玉米卷迫击炮"
+    },
+    "147": {
+      "profile_name": "黄金西瓜投手",
+      "canonical_name": "黄金西瓜投手"
+    },
+    "142": {
+      "profile_name": "忧郁菇投手",
+      "canonical_name": "忧郁菇投手"
+    },
+    "34": {
+      "profile_name": "三线玉米投手",
+      "canonical_name": "三线玉米投手"
+    },
+    "46": {
+      "profile_name": "钢刺坚果王",
+      "canonical_name": "钢刺坚果王"
     }
   }
 }

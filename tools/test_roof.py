@@ -115,3 +115,42 @@ class RoofDeckBindingTests(unittest.TestCase):
         self.assertTrue(b.platform_fits(0, 33, self.book))
         water = _roof_board(scene=2)
         self.assertFalse(water.platform_fits(2, 33, self.book), '花盆不能下水')
+
+
+class RoofLearningTests(unittest.TestCase):
+    """2026-09-30 屋顶学习批次：钢刺坚果王防撞 / 白天睡觉门槛 / 僵尸真名。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        # 测试手工登记（与 mechanics_bindings 等价的测试注册）
+        for tid, name in ((189, '玉米卷迫击炮'), (142, '忧郁菇投手'),
+                          (46, '钢刺坚果王'), (16, '睡莲'), (33, '花盆')):
+            self.book.kb_by_name.setdefault(name, KBEntry(cn=name, en=name, cost=0, role='x'))
+            self.book.bind_one(tid, name)
+        # 预置花盆（type 66）不在杂交图鉴，由 plant_names.json 提供
+        # （role=platform）；空文件测试里按同款手工登记。
+        self.book.table[66] = ('屋顶花盆', 0, 'platform')
+
+    def test_steel_nut_king_is_recognized_as_crush_resistant(self):
+        # 撞车路（冰车二爷 type 5 最近）：普通墙被 nearest_is_crush 禁掉，
+        # 防撞墙（钢刺坚果王）在预置花盆格正常出候选并标注 Crush-resistant
+        b = _roof_board(scene=4, cards=[46], zombies=[Zombie(0, 0, 5, x=460)],
+                        plants=[Plant(0, 0, 4, 66, hp=300)])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 46]
+        self.assertTrue(cs, '预置花盆格上防撞墙应能出候选')
+        self.assertTrue(any('Crush-resistant' in c.why for c in cs),
+                        '钢刺坚果王应被识别为防撞墙')
+
+    def test_day_sleeper_skipped_on_day_map(self):
+        b = _roof_board(scene=4, cards=[142], zombies=[Zombie(0, 0, 0, x=600)])
+        self.book.bind_one(142, '忧郁菇投手') if self.book.kb_by_name.get('忧郁菇投手') else None
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 142]
+        self.assertFalse(cs, '白天地图不应给出睡觉蘑菇的种植候选')
+
+    def test_zombie_names_via_catalog(self):
+        import io, json as J
+        b = _roof_board(scene=4, zombies=[Zombie(0, 0, 5, x=400)])
+        b2 = J.dumps(__import__('pvz.serialize', fromlist=['build_state']).build_state(b, self.book), ensure_ascii=False)
+        self.assertIn('冰车二爷', b2, 'state 应包含目录里的僵尸真名')

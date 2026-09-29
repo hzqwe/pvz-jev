@@ -12,6 +12,7 @@
   },
   "principles_en": [
     "HARD CONSTRAINT (user-confirmed 2026-09-26): the opening Sunflower Queen is MANDATORY - games are very hard to win without her. Save sky-dropped sun toward her while the board is calm (no zombies, or within the opening grace with no critical lane); once zombies are on the lawn past that grace, build minimum defence first and return to the queen when calm. Only cheap (<=150 sun) defensive cards may bypass an active queen save (threatened plant or a zero-defence pressured lane). Once she is down, fill sunflowers behind her.",
+    "ROOF MAPS (user playing them now): the pre-placed pots in columns A-C are FREE planting spots - use them first. Beyond column C every plant needs a Flower Pot first (the code chains pot->plant automatically). Lobbed/mortar plants IGNORE the roof slope angle, so pult decks are the natural roof choice. A garden rake on the roof one-shot-kills the first zombie that steps on it - do not count it as a defender.",
     "SUNFLOWER PRIORITY (user hard constraint 2026-09-28): plant sun-type producers PROACTIVELY - whenever a rear slot is free and sun allows, plant one, even while saving for a premium card (a 100-sun sunflower pays for itself in ~2 sky drops and buys the premium sooner). Not mindlessly: respect the formation caps, but never sit on 300+ sun with free rear slots.",
     "TRACKING-FIRST (user hard constraint 2026-09-28): when choosing ATTACK plants, prefer full-board TRACKING ones over lane-locked ones - tracking fire covers whichever lane the zombies pick. Between two similar attackers, the tracking one wins.",
     "Economy first: establish 4 producers before buying expensive cards; keep ~300 sun as emergency reserve; never dump all sun at once.",
@@ -39,7 +40,8 @@
     "SALVAGE TECHNIQUE (user-confirmed): shoveling a plant in this build REFUNDS SUN. A nearly-dead plant (about to be chewed through within one decision cycle) or a non-crush-resistant plant about to be squashed should be shoveled immediately - sun beats a wasted plant. 雷果子/高冰果 are never salvage-shoveled for crushing (they survive it).",
     "BLACK FOOTBALL-type zombies eat AND move faster than normal zombies (bite ~150/s vs 100/s). Judge timing per zombie type, not by the average pace.",
     "SUN BOMB geometry: the blast is a 3x3 grid (nine cells) around the target cell. Prefer placements that catch the MOST zombies in that grid - every kill refunds sun - but never wait for a full grid when the situation is urgent.",
-    "TORCH COLUMN SPACING: never plant Sunflower Queens in the same row - each one is a torch column, spread them across lanes. Torch-compatible shooters (Wild Gatling first, Corn Cattail second, Peashooter last) should sit BEHIND a queen to pass through fire for bonus damage. Mid-late game, if a cheap sunflower/peashooter occupies the golden cell right behind a queen and sun is ample, shovel it (refunds sun) and upgrade to a torch-boosted heavy hitter."
+    "TORCH COLUMN SPACING: never plant Sunflower Queens in the same row - each one is a torch column, spread them across lanes. Torch-compatible shooters (Wild Gatling first, Corn Cattail second, Peashooter last) should sit BEHIND a queen to pass through fire for bonus damage. Mid-late game, if a cheap sunflower/peashooter occupies the golden cell right behind a queen and sun is ample, shovel it (refunds sun) and upgrade to a torch-boosted heavy hitter.",
+    "海豚机枪僵尸 (dolphin machine-gun): rides a dolphin then goes ashore shooting - faster than normal zombies, treats them as priority targets. Identities now come from the version catalog (普僵/路障/铁桶/铁门/黑橄榄/冰车二爷/海豚机枪/旗帜)."
   ],
   "usage_en": {
     "向日葵女王": "First costs 500 sun; add 100 for each same-type plant currently on the field. Prefer column C (third column), with torch-compatible peas behind in A/B. Produces 150 sun per 25s and 80 nominal tracking DPS; when this covers weak enemies, keep growing the economy. Do not classify every ordinary zombie as an emergency.",
@@ -67,6 +69,11 @@
     "天使向日葵": "288-sun sky-economy amplifier: each planting raises sky-sun yield +25 (max 4); after the 4th it produces 600 sun once. Plant all 4 early.",
     "伪装的向日葵": "50-sun disguised sunflower that produces 25 sun per 37 hp LOST - being chewed is its production mode. Cheap decoy economy; do NOT salvage-shovel it early, its sun comes from taking damage.",
     "豌豆炸弹": "50-sun one-shot 360-degree pea spray - light AoE stall. Weaker than Sun Bomb; use for cheap crowds or emergency stall.",
-    "钻石种子": "128-sun seed that grows into a Diamond Flower firing tracking diamonds every 5s - a wallet producer, not battle sun. Plant when rich, but do not count it as defence."
+    "钻石种子": "128-sun seed that grows into a Diamond Flower firing tracking diamonds every 5s - a wallet producer, not battle sun. Plant when rich, but do not count it as defence.",
+    "玉米卷迫击炮": "300-sun lobbed mortar (~33 dps + splash + butter chance, cd 15s). Lobbed shots ignore the roof slope - a core roof-deck plant. Mid-cost lane pressure.",
+    "黄金西瓜投手": "500-sun PREMIUM lobbed pult (~100 dps, 1000 hp) with a lottery per hit: 50% extra melon, 35% ice-melon slow, 10% 100-sun drop, 4% armour destroyed, 1% CHARM. The strongest roof plant in this deck - protect it like a Queen.",
+    "忧郁菇投手": "225-sun close-range lobbed AoE (~27 dps) that SLEEPS ON DAY MAPS - on the day roof it is useless without waking, so the agent skips it there. Fine on night maps.",
+    "三线玉米投手": "175-sun THREE-lane corn pult (40 dps + butter stun chance) that explicitly ignores the roof slope angle. The best value pult for roof coverage - early pick.",
+    "钢刺坚果王": "300-sun (+100 per copy) 8000-hp spike wall: close spikes 40 dps and pops vehicle TIRES; resists 8 hammer/smash hits at 1001 each. The anti-ice-truck wall of this deck - front line against trucks."
   }
 }
