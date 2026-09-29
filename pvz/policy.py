@@ -409,13 +409,19 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         #   阳光不够用的根因）。
         # 豁免范围（2026-09-30 屋顶战术修正）：产阳光卡豁免上限 150→200 ——
         # 屋顶卡组的棱镜向日葵 188 也必须积极种（用户硬约束，与三线站位同级）。
-        # 便宜产阳光卡只在中盘储蓄（opening=False）时绕过 —— 开局女王储蓄期
-        # 向日葵仍要让位（女王硬约束优先）。
+        # 开局储蓄目标便宜（三线 175 ≤300）时向日葵交替种：前 2 株自由种
+        # （撑起经济增速，否则三线之后 70s 空窗裸奔第一波），之后只在
+        # "种完仍买得起三线"时种 —— 防止向日葵 85 分每次在阳光刚过 100
+        # 时把钱吸走、三线永远攒不齐（两种极端都模拟实测过）。女王（500）
+        # 开局向日葵仍整体让位（女王硬约束优先）。
         if (plan and tid != plan['type_id'] and sun - cost < plan['cost']
                 and not (cost <= 150 and rescue_now
                          and (rescue_bypass_tags & set(tags)))
                 and not (T_PRODUCER in tags and cost <= 200
-                         and not plan.get('opening', True))):
+                         and (not plan.get('opening', True)
+                              or ((plan.get('cost') or 999) <= 300
+                                  and (producers < 2
+                                       or sun - cost >= (plan.get('cost') or 999)))))):
             continue
         close_intercept = T_WALL in tags and any(
             f['nearest_zombie_x'] is not None and any(
@@ -427,6 +433,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                          or (zero_defence_pressure and cost <= 150)
                          or (eager and T_INSTANT in tags))
                 and not stable_sun_producer(book,tid)
+                and not (plan and tid == plan['type_id'] and plan.get('opening'))
                 and cost >= ECON_CHEAP and sun - cost < ECON_RESERVE):
             # ⚠️ 注意是 >=：冰冻坚果/回收高坚果恰好 150/125，曾用 > 把它们
             # 全放行了 —— 开局阳光全被墙吃掉、向日葵种不下去（用户实测反馈）。
@@ -438,6 +445,28 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # 否则 merge 的"兑现升级"找不到候选、储蓄永远在等待。
         if (plan and plan.get('slot') == slot.index
                 and (board.sun or 0) >= (plan.get('cost') or 10**9)):
+            if plan.get('kind') == 'corn_rush':
+                # ★ 屋顶学说落点（用户硬约束）：2/4 路（row idx 1, rows-2），
+                #   还没种上的行优先；列用预置花盆最靠前的空位（C 列）。
+                #   covers 按该卡的覆盖半径标 —— 3 路覆盖植物的防线价值就在
+                #   扫相邻路，Jev 要看到这一点。
+                allowed = (1, board.rows - 2)
+                rad = coverage_lanes(book, tid)//2
+                planted = {p.row for p in board.plants
+                           if p.type_id == tid and not p.asleep and p.hp != 0}
+                for r in sorted(allowed, key=lambda r: r in planted):
+                    cols = [c for c in rear_cols(board, book, r, type_id=tid)
+                            if board.can_plant(r, c, tid, book)]
+                    if cols:
+                        candidates.append(Candidate(
+                            '', 'plant', r, cols[-1], slot.index, tid, 150,
+                            'Opening doctrine: the three-lane shooter goes on lane '
+                            '2/4 FIRST - two of them sweep every lane; this IS the '
+                            'first-wave defence. Never plant it anywhere else.',
+                            tags, False,
+                            tuple(range(max(0, r-rad), min(board.rows, r+rad+1)))))
+                        break
+                continue
             if not plan.get('opening', True):
                 # 中段储蓄大件（2026-09-30 屋顶审查）：此前复用女王块 —— 文案
                 # 硬编码"Sunflower Queen"、落点被限 (1,2,3)。大件按正常
@@ -723,10 +752,12 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             rng = book.range_cells(tid)
             radius = coverage_lanes(book,tid)//2
             # ★ 屋顶战术硬约束（用户 2026-09-30，必须履行否则打不过）：
-            #   多路覆盖植物（三线玉米投手等）**只**站 1 行和 rows-2 行
-            #   （5 行图 = 2/4 路）—— 两株 3 路覆盖恰好扫全场无死角；站
-            #   0/2/4 行会留整行死角。6 行图同理 1 和 rows-2。
-            if radius > 0:
+            #   **全行射程**的多路覆盖植物（三线玉米投手等，range_cells 为空）
+            #   **只**站 1 行和 rows-2 行（5 行图 = 2/4 路）—— 两株 3 路覆盖
+            #   恰好扫全场无死角；站 0/2/4 行会留整行死角。6 行图同理。
+            #   短射程的 3 路植物（喷菇类）不在此列 —— 它们靠前排才能
+            #   支撑相邻路，站位自由（range_cells 有限即豁免）。
+            if radius > 0 and rng is None:
                 allowed_rows = {1, board.rows - 2}
             else:
                 allowed_rows = None

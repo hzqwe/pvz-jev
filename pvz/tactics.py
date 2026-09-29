@@ -328,10 +328,39 @@ def saving_plan(board, book):
                 return dict(type_id=slot.type_id,slot=slot.index,plant=book.en(slot.type_id),
                             cost=cost,missing_sun=max(0,cost-(board.sun or 0)),
                             utility=upgrade_value(board,book,slot.type_id),
+                            opening=True,
                             reason='HARD CONSTRAINT (user-confirmed): the opening Sunflower Queen is '
                                    'mandatory. Save while the board is calm; once zombies are on the '
                                    'lawn past the opening grace, build minimum defence first and '
                                    'return to her when calm.')
+    # ★ 屋顶学说（2026-09-30 用户硬约束："开局就种三线在 2/4 路，必须履行
+    #   否则打不过"）：卡组没有女王但有**多路覆盖射手**时，开局目标就是它
+    #   —— 两株 3 路覆盖（2/4 路各一株）恰好扫全场，它们本身就是第一波
+    #   的防线本体，必须抢在第一波前落地。向日葵照常并行种（便宜经济卡
+    #   豁免见 policy）。独立于女王块：不受 30s 宽限限制（第一波前后正是
+    #   它最该落地的时候），放弃条件同样只有危急路 —— 攒防线不等于放弃防线。
+    if no_critical and not any(
+            book.has_tag(p.type_id,T_TORCH) for p in board.plants):
+        corn = min((s for s in board.slots
+                    if s.ready and coverage_lanes(book, s.type_id) > 1
+                    and book.range_cells(s.type_id) is None
+                    and (book.cost(s.type_id) or 999) <= 300),
+                   key=lambda s: (book.cost(s.type_id) or 999), default=None)
+        if corn is not None:
+            cost = book.cost(corn.type_id)
+            allowed_rows = (1, board.rows - 2)
+            on_duty = sum(1 for p in board.plants
+                          if p.type_id == corn.type_id and not p.asleep
+                          and p.hp != 0 and p.row in allowed_rows)
+            if on_duty < 2:
+                return dict(type_id=corn.type_id, slot=corn.index,
+                            plant=book.en(corn.type_id), cost=cost,
+                            missing_sun=max(0, cost - (board.sun or 0)),
+                            utility=upgrade_value(board, book, corn.type_id),
+                            opening=True, kind='corn_rush',
+                            reason='HARD CONSTRAINT (user): open with the three-lane shooter '
+                                   'on lanes 2&4 - two of them sweep every lane; that IS the '
+                                   'first-wave defence. Sunflowers keep planting alongside.')
     # 中段储蓄门槛 4→3（用户 2026-09-26：女王算一株产阳光，3 株就该开始攒
     # 第二个高价值植物增强前期强度，向日葵保持勤奋补种即可）。
     if producers < 3 or not any(f['zombie_count'] for f in facts) or any(

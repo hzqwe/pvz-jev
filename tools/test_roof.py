@@ -328,3 +328,86 @@ class RoofTacticsTests(unittest.TestCase):
         self.assertTrue(cs, '阳光充足且僵尸在中圈外时应出铲向日葵换火力候选')
         self.assertTrue(any(c.replacement_type is not None for c in cs),
                         '铲子候选应带 replacement（同一事务换上火力卡）')
+
+
+class RoofOpeningDoctrineTests(unittest.TestCase):
+    """2026-09-30 屋顶开局学说（用户："第一波都守不住"）。
+
+    两株三线玉米（2/4 路）恰好扫全场 = 第一波防线本体，必须抢在第一波
+    前落地；向日葵并行种。流程：150 阳光 → 向日葵(100) → 攒到 175 →
+    三线@R2 → 攒 → 三线@R4 → 学说完成转正常运营。
+    """
+
+    DECK = [14, 189, 2, 20, 9, 147, 160, 155, 142, 34, 33, 106, 46, 161, 233, 183]
+
+    def setUp(self):
+        self.book = PlantBook()
+        self.book.activate_catalog('classic', '3.9.9')
+        for tid in self.DECK:
+            self.assertTrue(self.book.bind_identity(tid), f'bind {tid} 失败')
+
+    def _board(self, plants=(), zombies=(), sun=150, clock=2000):
+        ps = [Plant(r * 3 + c, r, c, 66, hp=300) for r in range(5) for c in range(3)]
+        ps += list(plants)
+        return BoardState(ok=True, sun=sun, rows=5, cols=9, game_clock=clock, scene=4,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                          plants=ps, zombies=list(zombies))
+
+    def test_opening_plan_targets_three_lane_corn(self):
+        from pvz.tactics import saving_plan
+        b = self._board()
+        plan = saving_plan(b, self.book)
+        self.assertIsNotNone(plan, '无女王卡组开局应有储蓄计划')
+        self.assertEqual(plan.get('kind'), 'corn_rush', f'开局目标应为三线: {plan}')
+        self.assertEqual(plan['type_id'], 34)
+
+    def test_sunflower_plants_alongside_corn_rush(self):
+        # 150 阳光买不起三线(175)：向日葵豁免储蓄闸，照常出候选
+        b = self._board(sun=150)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and 'producer' in self.book.tags(c.type_id)
+              and c.supports_type is None]
+        self.assertTrue(cs, '三线储蓄期向日葵应并行种（豁免）')
+
+    def test_corn_arrives_on_lane_2_first(self):
+        # 200 阳光：三线到账，落点 R2(idx1)C3，150 分压过向日葵
+        b = self._board(sun=200)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 34]
+        self.assertTrue(cs, '三线到账应出高分候选')
+        top = max(cs, key=lambda c: c.score)
+        self.assertEqual(top.row, 1, f'第一株三线应落 2 路: {[(c.row, c.col) for c in cs]}')
+        self.assertGreater(top.score, 120, '开局学说候选应压过常规候选')
+
+    def test_second_corn_goes_to_lane_4(self):
+        # R2 已有三线：第二株落 R4(idx3)
+        plants = [Plant(100, 1, 1, 34)]
+        b = self._board(plants=plants, sun=200, clock=20000)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 34
+              and c.score >= 100]
+        self.assertTrue(cs, '第二株三线应仍走开局学说候选')
+        self.assertTrue(all(c.row == 3 for c in cs),
+                        f'第二株应落 4 路: {[(c.row, c.col, c.score) for c in cs]}')
+
+    def test_doctrine_done_after_two_corns(self):
+        # 2/4 路各一株后：学说完成，plan 退出（转中段储蓄/正常运营）
+        from pvz.tactics import saving_plan
+        plants = [Plant(100, 1, 1, 34), Plant(101, 3, 1, 34)]
+        b = self._board(plants=plants, sun=300, clock=20000)
+        plan = saving_plan(b, self.book)
+        self.assertTrue(plan is None or plan.get('kind') != 'corn_rush',
+                        f'两株三线到位后学说应完成: {plan}')
+        # 且三线不再在 0/2/4 行出候选
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 34]
+        self.assertTrue(all(c.row in (1, 3) for c in cs),
+                        f'三线永远只许 2/4 路: {[(c.row, c.col) for c in cs]}')
+
+    def test_rush_survives_first_wave_on_field(self):
+        # 第一波已进场（30s 后）但非危急：学说继续 —— 攒三线就是攒防线
+        from pvz.tactics import saving_plan
+        b = self._board(zombies=[Zombie(0, 2, 0, x=600)], sun=120, clock=35000)
+        plan = saving_plan(b, self.book)
+        self.assertIsNotNone(plan, '第一波进场且非危急时学说应继续')
+        self.assertEqual(plan.get('kind'), 'corn_rush')
