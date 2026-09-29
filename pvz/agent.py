@@ -76,7 +76,7 @@ class AgentConfig:
     foreground: bool = False
     decide_every_s: float = 3.0
     collect_sun_every_s: float = 1.0
-    max_actions_per_min: int = 20
+    max_actions_per_min: int = 30   # 2026-09-28：种植提速后 20 会误拦（阳光点击也计数）
     log_path: str = "out/decisions.jsonl"
     verbose: bool = True
     # ★★ 默认**不允许改变游戏窗口的状态**（2026-09-26 改成安全默认值）。
@@ -614,6 +614,40 @@ class PvZJevAgent:
                     if edge_l <= x_max and edge_r >= x_cur:
                         self._snow_cells[(r, c)] = now + melt
         board.snow_cells = dict(self._snow_cells)
+
+    def rapid_fill(self, board: BoardState, count: int = 2) -> None:
+        """富余期快速补种（用户 2026-09-28 硬约束：种植速度要快）。
+
+        上一株种成功且阳光充裕、各路都不危急时，跳过 3s 决策计时器，
+        用确定性候选（不经 Jev）连续补种便宜的产阳光/防御卡，每轮最多
+        `count` 株。任何一步没有"种上了"的内存证据就立即停 —— 速度
+        不以牺牲验证为代价。"""
+        for _ in range(count):
+            b = self.reader.read()
+            if not b.ok or not getattr(self, '_responsive', False) or (b.sun or 0) < 400:
+                return
+            cs = generate_candidates(b, self.book)
+            pick = None
+            for c in cs:
+                if c.kind != 'plant' or c.score < 20:
+                    continue
+                tags = self.book.tags(c.type_id)
+                cost = self.book.cost(c.type_id) or 10**9
+                if cost > 250 or (b.sun or 0) - cost < 300:
+                    continue
+                if ('producer' in tags or 'wall' in tags) and c.type_id != 33:
+                    pick = c
+                    break
+            if pick is None:
+                return
+            dec = Decision(candidate=pick, action_id=pick.cid, fallback=True,
+                           notes=['Rapid fill: rich and calm - keep planting without waiting for the timer.'])
+            rec2 = {'t': time.time(), 'iso': time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'rapid_fill': True}
+            self.execute(dec, rec2, b)
+            self.log.append(rec2)
+            if (rec2.get('executed') or {}).get('placed') is not True:
+                return
 
     @staticmethod
     def learn_crush_events(prev: BoardState, cur: BoardState, book: PlantBook) -> list[str]:
@@ -1586,6 +1620,10 @@ class PvZJevAgent:
                     proposed=record.get('decision',{})
                     record['proposed_decision']={**proposed,'notes':list(proposed.get('notes',[]))}
                     self.execute(dec, record, board)
+                    # ★ 富余期快速补种（用户硬约束：种植速度要快）——
+                    #   上一株成功且阳光≥400 时连续补种便宜的产阳光/防御卡。
+                    if (record.get('executed') or {}).get('placed') and not dec.hold:
+                        self.rapid_fill(board)
                     if dec.fallback:
                         self.stats.fallbacks += 1
                     # 连续 hold 观测（2026-09-26）：等待本身常常是对的（攒女王/攒大件），

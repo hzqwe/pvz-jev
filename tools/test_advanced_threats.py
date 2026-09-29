@@ -471,3 +471,38 @@ class UserConstraintTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LateGameRefitTests(unittest.TestCase):
+    """用户 2026-09-28 硬约束：阵成型+阳光够用后铲向日葵换攻击卡，优先级高。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        for tid, name in ((430, '向日葵女王'), (431, '阳光向日葵'), (421, '高冰果'),
+                          (440, '豌豆射手')):
+            self.assertTrue(self.book.bind_one(tid, name))
+
+    def test_rich_mature_lane_shovels_sunflower_for_attacker(self):
+        # 一路 3 向日葵+1 豌豆（有防御）、高冰果在手、阳光 900 → 铲换候选
+        # （refit 稳定性门槛：目标路已有防御单位才拆经济）
+        plants = [Plant(r, 0, r, 431) for r in range(3)] + [Plant(10, 0, 4, 440)]
+        b = BoardState(ok=True, sun=900, rows=5, cols=9, game_clock=40000, scene=0,
+                       slots=[SeedSlot(0, 421, 0, 1000)], plants=plants, zombies=[])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'shovel' and c.replacement_type is not None]
+        self.assertTrue(cs, '阵成型+富余应有"铲向日葵换攻击卡"候选')
+        self.assertGreaterEqual(cs[0].score, 85, '用户要求此优先级高')
+        self.assertEqual(cs[0].replacement_type, 421)
+
+    def test_refit_needs_richness(self):
+        # 阳光只有 300（买不起 500 攻击卡+400 储备）→ 不拆经济
+        plants = [Plant(r, 0, r, 431) for r in range(3)] + [Plant(10, 0, 4, 440)]
+        b = BoardState(ok=True, sun=300, rows=5, cols=9, game_clock=40000, scene=0,
+                       slots=[SeedSlot(0, 421, 0, 1000)], plants=plants, zombies=[])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'shovel' and c.replacement_type is not None]
+        self.assertFalse(cs, '经济没起来不应拆向日葵')
+
+
+if __name__ == '__main__':
+    unittest.main()

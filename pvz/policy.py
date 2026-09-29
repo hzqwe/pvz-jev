@@ -813,7 +813,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 手里有就绪的过火射手 —— 铲掉它换阳光，下一轮自然有强射手候选来补位。
     # 门槛收得很紧：无危急/无高压、该路无僵尸、目标廉价（≤150）非墙非火炬、
     # 手里有过火射手且买得起+留 300 储备。铲除与替换在同一事务中确认。
-    if all(f['threat_level'] in ('low', 'none') for f in facts):
+    # 2026-09-28 用户硬约束放宽：火炬柱换新优先级提高 —— 目标路保持安静、
+    # 其余路不许危急即可（此前要求全图安静，实战从不触发）；储备 300→200。
+    if all(f['threat_level'] != 'critical' for f in facts):
         torches = {p.row: p for p in board.plants
                    if book.has_tag(p.type_id, T_TORCH)}
         upgrades = [s for s in board.slots if s.ready
@@ -830,19 +832,64 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             if bcost > 150 or T_WALL in btags or T_TORCH in btags:
                 continue
             upgrade = next((s for s in upgrades
-                            if (book.cost(s.type_id) or 10**9) + 300 <= (board.sun or 0)
+                            if (book.cost(s.type_id) or 10**9) + 200 <= (board.sun or 0)
                             and board.can_replace(behind,s.type_id,book)), None)
             if upgrade is None or snow_blocked(board, r, behind.col):
                 continue
             candidates.append(Candidate(
                 '', 'shovel', r, behind.col, -1, behind.type_id,
-                70 + (book.cost(upgrade.type_id) or 0) * 0.02,
+                85 + (book.cost(upgrade.type_id) or 0) * 0.02,
                 (f'Torch-column upgrade: the cell right behind the Sunflower Queen '
                  f'(lane {r+1}) is wasted on a cheap {book.en(behind.type_id)}. Shovel it '
                  f'and immediately plant {book.en(upgrade.type_id)} using reserved sun; '
                  f'confirm the top body and preserve its supporting platform.'),
                 book.tags(behind.type_id), False, (r,),
                 salvage=True, hp=behind.hp, replacement_type=upgrade.type_id, source_index=behind.index,
+            ))
+
+    # -- 后期阵型改造（用户 2026-09-28 硬约束，优先级高）-------------------
+    # 阵成型+阳光够用后：把前中排的廉价向日葵铲掉换成攻击/防御卡。
+    # 门槛：全场非危急、目标路安静、该路 ≥3 株产阳光（拆不垮经济）、
+    # 手里有就绪的攻击/防御卡（≥200）且阳光够买它再留 400。经济没起来不动。
+    if all(f['threat_level'] != 'critical' for f in facts) and (board.sun or 0) >= 600:
+        producers_by_lane = {}
+        shooters_by_lane = {}
+        for p in board.plants:
+            if book.has_tag(p.type_id, T_PRODUCER):
+                producers_by_lane[p.row] = producers_by_lane.get(p.row, 0) + 1
+            if book.has_tag(p.type_id, T_SHOOTER) and not book.has_tag(p.type_id, T_PRODUCER):
+                shooters_by_lane[p.row] = shooters_by_lane.get(p.row, 0) + 1
+        refit_cards = [s for s in board.slots if s.ready
+                       and (book.has_tag(s.type_id, T_SHOOTER) or book.has_tag(s.type_id, T_WALL))
+                       and (book.cost(s.type_id) or 10**9) >= 200]
+        for r, cnt in sorted(producers_by_lane.items()):
+            if cnt < 3 or shooters_by_lane.get(r, 0) < 1:
+                continue
+            if facts[r]['threat_level'] in ('high', 'critical') or facts[r]['zombie_count']:
+                continue
+            front = [p for p in board.plants_in_lane(r)
+                     if p.col <= 3 and not book.has_tag(p.type_id, T_TORCH)
+                     and (book.cost(p.type_id) or 0) <= 150
+                     and book.has_tag(p.type_id, T_PRODUCER)]
+            target = max(front, key=lambda p: p.col, default=None)
+            if target is None or target.recently_eaten or snow_blocked(board, r, target.col):
+                continue
+            upgrade = next((s for s in refit_cards
+                            if (book.cost(s.type_id) or 10**9) + 400 <= (board.sun or 0)
+                            and board.can_replace(target, s.type_id, book)), None)
+            if upgrade is None:
+                continue
+            candidates.append(Candidate(
+                '', 'shovel', r, target.col, -1, target.type_id,
+                90 + (book.cost(upgrade.type_id) or 0) * 0.02,
+                (f'Late-game refit: lane {r+1} has {cnt} producers and its defence is '
+                 f'stable - shovel the cheap {book.en(target.type_id)} at column '
+                 f'{target.col+1} (refunds sun) and replace it with {book.en(upgrade.type_id)} '
+                 'in the same transaction. Economy is established; this is the '
+                 'high-priority strength upgrade the user asked for.'),
+                book.tags(target.type_id), False, (r,),
+                salvage=True, hp=target.hp, replacement_type=upgrade.type_id,
+                source_index=target.index,
             ))
 
     # -- 拾回掉落卡（2026-09-26 新增）--------------------------------------
