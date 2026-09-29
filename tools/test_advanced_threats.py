@@ -412,3 +412,62 @@ class CrushLearningTests(unittest.TestCase):
         cur.game_clock = 1350
         self.assertFalse(PvZJevAgent.learn_crush_events(prev, cur, self.book))
         self.assertFalse(self.book.zombie_flag(9, 'crush'))
+
+
+class UserConstraintTests(unittest.TestCase):
+    """用户 2026-09-28 两条硬约束：向日葵积极种 / 攻击手追踪优先。"""
+
+    def setUp(self):
+        self.book = PlantBook(hybrid_file='', cost_file='', ids_file='')
+        for tid, name in ((430, '向日葵女王'), (431, '阳光向日葵'), (432, '棱镜向日葵'),
+                          (421, '高冰果'), (433, '寒冰香蒲'), (440, '豌豆射手'),
+                          (435, '寒冰仙人掌'), (78, '冰瓜香蒲')):
+            self.assertTrue(self.book.bind_one(tid, name))
+
+    def board(self, cards, zombies=(), plants=(), sun=600):
+        return BoardState(ok=True, sun=sun, rows=5, cols=9, game_clock=40000,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(cards)],
+                          plants=list(plants), zombies=list(zombies))
+
+    def test_cheap_producer_bypasses_saving_reserve(self):
+        # 复刻前院告急局：3 向日葵在场、中盘攒高冰果(500)时阳光 270 ——
+        # 100 的向日葵必须能种（种向日葵是攒钱买大件的最快方式）
+        from pvz.tactics import saving_plan
+        b = self.board([421, 431],
+                       [Zombie(0, 0, 0, x=700)],
+                       [Plant(r, r, 0, 431) for r in range(3)], sun=270)
+        plan = saving_plan(b, self.book)
+        self.assertIsNotNone(plan, '3 株产阳光+僵尸在场：中盘储蓄应激活')
+        self.assertFalse(plan.get('opening'), '这是中盘储蓄不是开局')
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 431]
+        self.assertTrue(cs, '中盘储蓄期内便宜向日葵必须能出候选（向日葵积极种）')
+
+    def test_tracking_shooter_outranks_lane_locked(self):
+        # 同等压力：追踪卡（寒冰香蒲）的候选分应高于非追踪（豌豆射手）——
+        # 追踪卡可能种在安静路（它全屏追踪，这正是它的价值）
+        b = self.board([433, 440], [Zombie(0, 0, 0, x=600)], sun=800)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id in (433, 440)]
+        self.assertTrue(cs)
+        by_type = {}
+        for c in cs:
+            by_type.setdefault(c.type_id, []).append(c.score)
+        self.assertTrue(by_type.get(433) and by_type.get(440))
+        self.assertGreater(max(by_type[433]), max(by_type[440]), '追踪射手应优先于非追踪')
+
+    def test_saving_plan_prefers_tracking_target(self):
+        # 两个 ≥300 的储蓄候选，upgrade_value 打平（mock）——
+        # 追踪卡（冰瓜香蒲）凭追踪优先加成胜出
+        from unittest.mock import patch
+        from pvz import tactics
+        b = self.board([78, 421], [Zombie(0, 0, 0, x=700)],
+                       [Plant(r, r, 0, 431) for r in range(3)], sun=300)
+        with patch.object(tactics, 'upgrade_value', return_value=100):
+            plan = tactics.saving_plan(b, self.book)
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan['type_id'], 78, 'upgrade_value 打平时追踪卡应优先')
+
+
+if __name__ == '__main__':
+    unittest.main()

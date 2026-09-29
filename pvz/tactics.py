@@ -355,12 +355,15 @@ def saving_plan(board, book):
                 (T_TRACKING in tags or facts[r]['zombie_count']) and
                 (T_WALL not in tags or not facts[r]['blocking_walls'] or facts[r]['pressure']>0)]
         if rows:
-            options.append((-upgrade_value(board,book,s.type_id), cost, s.index, s.type_id))
+            # 追踪卡储蓄优先（用户 2026-09-28：攻击手必须追踪优先）
+            options.append((-upgrade_value(board,book,s.type_id)
+                            - (30 if book.has_tag(s.type_id,T_TRACKING) else 0),
+                            cost, s.index, s.type_id))
     if not options:
         return None
     _, cost, slot, tid = min(options)
     return dict(type_id=tid, slot=slot, plant=book.en(tid), cost=cost,
-                missing_sun=max(0, cost - (board.sun or 0)),
+                missing_sun=max(0, cost - (board.sun or 0)), opening=False,
                 utility=upgrade_value(board,book,tid),
                 reason='Choose the upgrade matching coverage, armor, control and economy needs; not simply the cheapest card.')
 

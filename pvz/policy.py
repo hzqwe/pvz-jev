@@ -370,9 +370,17 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             continue
         # A reservation also constrains repeated cheap purchases. Emergency cancels it.
         # 女王储蓄期内只放行**便宜（≤150）救场卡**（见上方 rescue_now 的说明）。
+        # ★ 用户 2026-09-28 硬约束：种向日葵必须积极 —— 储蓄大件时，便宜的
+        #   产阳光卡（≤150）豁免储蓄闸：种向日葵正是攒钱买大件的最快方式，
+        #   锁死它等于拖延大件本身（前院告急局实测：攒冰瓜时向日葵全被闸住，
+        #   阳光不够用的根因）。
+        # 豁免范围（2026-09-28 修正）：便宜产阳光卡只在中盘储蓄（opening=False）
+        # 时绕过 —— 开局女王储蓄期向日葵仍要让位（女王硬约束优先）。
         if (plan and tid != plan['type_id'] and sun - cost < plan['cost']
                 and not (cost <= 150 and rescue_now
-                         and (rescue_bypass_tags & set(tags)))):
+                         and (rescue_bypass_tags & set(tags)))
+                and not (T_PRODUCER in tags and cost <= 150
+                         and not plan.get('opening', True))):
             continue
         close_intercept = T_WALL in tags and any(
             f['nearest_zombie_x'] is not None and any(
@@ -690,6 +698,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                         # Prefer middle rear cells, preserving A/B for the economy.
                         col = min(cols,key=lambda c: abs(c-(1 if book.combat(tid).get('torch_compatible') else 2)))
                 value = 35 + max(facts[x]['priority'] for x in cover)*0.5
+                # ★ 用户 2026-09-28 硬约束：攻击手必须优先自带追踪 ——
+                #    全屏追踪 > 锁定单路，同样火力下追踪卡价值高得多。
+                if tracking:
+                    value += 25
                 value -= facts[r]['shooter_support']*8
                 if calm:
                     value = min(value, 24)

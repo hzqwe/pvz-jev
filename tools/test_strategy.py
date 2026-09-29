@@ -55,10 +55,13 @@ class StrategyTests(unittest.TestCase):
         self.assertEqual(self.choices(self.board([WALL], zs))[0].row, 4)
 
     def test_saves_for_strong_card_after_economy_established(self):
+        # 2026-09-28 教条修订：中盘储蓄期**便宜产阳光卡豁免**（种向日葵是
+        # 攒钱买大件的最快方式），非产阳光支出仍被拦 —— 大件继续攒。
         ps = [Plant(r, r, 0, SUN) for r in range(4)] + [Plant(10, 0, 2, PEA)]
         b = self.board([SUN, PEA, STRONG], [Zombie(0, 0, 0, x=720)], ps, sun=400)
         cs = generate_candidates(b, self.book)
-        self.assertEqual(merge_decision(None, cs, b, self.book).candidate.kind, 'wait')
+        dec = merge_decision(None, cs, b, self.book).candidate
+        self.assertEqual(dec.type_id, SUN, '储蓄期应继续种便宜向日葵（用户硬约束）')
 
     def test_emergency_overrides_model_hold(self):
         b = self.board([BOMB, SUN], [Zombie(0, 4, 0, x=110)], sun=300)
@@ -141,10 +144,12 @@ class StrategyTests(unittest.TestCase):
         self.assertTrue(all(c.col > 4 for c in cs))
 
     def test_sleeping_upgrade_does_not_cancel_saving(self):
+        # 2026-09-28 同上：睡眠大件不取消储蓄本身，但便宜向日葵照种（用户硬约束）
         ps = [Plant(r,r,0,SUN) for r in range(4)]
         ps += [Plant(10,0,2,PEA), Plant(11,1,2,STRONG,asleep=True)]
         b = self.board([SUN,PEA,STRONG], [Zombie(0,0,0,x=720)], ps, sun=400)
-        self.assertEqual(merge_decision(None,generate_candidates(b,self.book),b,self.book).candidate.kind,'wait')
+        dec = merge_decision(None,generate_candidates(b,self.book),b,self.book).candidate
+        self.assertEqual(dec.type_id, SUN, '储蓄继续且便宜向日葵照种')
 
     def test_ready_saving_target_is_bought_instead_of_waiting_forever(self):
         ps = [Plant(r,r,0,SUN) for r in range(4)] + [Plant(10,0,2,PEA)]

@@ -12,6 +12,8 @@
   },
   "principles_en": [
     "HARD CONSTRAINT (user-confirmed 2026-09-26): the opening Sunflower Queen is MANDATORY - games are very hard to win without her. Save sky-dropped sun toward her while the board is calm (no zombies, or within the opening grace with no critical lane); once zombies are on the lawn past that grace, build minimum defence first and return to the queen when calm. Only cheap (<=150 sun) defensive cards may bypass an active queen save (threatened plant or a zero-defence pressured lane). Once she is down, fill sunflowers behind her.",
+    "SUNFLOWER PRIORITY (user hard constraint 2026-09-28): plant sun-type producers PROACTIVELY - whenever a rear slot is free and sun allows, plant one, even while saving for a premium card (a 100-sun sunflower pays for itself in ~2 sky drops and buys the premium sooner). Not mindlessly: respect the formation caps, but never sit on 300+ sun with free rear slots.",
+    "TRACKING-FIRST (user hard constraint 2026-09-28): when choosing ATTACK plants, prefer full-board TRACKING ones over lane-locked ones - tracking fire covers whichever lane the zombies pick. Between two similar attackers, the tracking one wins.",
     "Economy first: establish 4 producers before buying expensive cards; keep ~300 sun as emergency reserve; never dump all sun at once.",
     "Slow beats burst: a slowed cluster dies to the same DPS many times over; prefer control (slow/stun) plus sustained fire over raw single-target damage.",
     "Every lane needs coverage; zombies pick lanes randomly, one undefended lane loses the game. Keep the hottest lane covered first.",
