@@ -246,3 +246,85 @@ class RoofCatalogGapTests(unittest.TestCase):
         s = J.dumps(build_state(b, self.book), ensure_ascii=False)
         self.assertIn('jumps_first_plant', s, '跳跃僵尸情报应呈现给 Jev')
         self.assertIn('海豚', s, '僵尸应显示目录真名')
+
+
+class RoofTacticsTests(unittest.TestCase):
+    """2026-09-30 屋顶 3-5 困难战术（用户硬约束，必须履行否则打不过）。
+
+    1. 三线玉米投手(34)只种 2/4 路（row idx 1,3）—— 两株 3 路覆盖扫全场。
+    2. 阳光向日葵/棱镜向日葵积极多种 —— 行均衡轮转（修复"第二行种不了"）。
+    3. 黄金西瓜投手(147)优先 2/4 路（combat.preferred_rows 温和偏好）。
+    4. 阳光充足铲后排向日葵换火力（改造块放宽：≥2 株、僵尸在中圈外）。
+    """
+
+    DECK = [14, 189, 2, 20, 9, 147, 160, 155, 142, 34, 33, 106, 46, 161, 233, 183]
+
+    def setUp(self):
+        self.book = PlantBook()
+        self.book.activate_catalog('classic', '3.9.9')
+        for tid in self.DECK:
+            self.assertTrue(self.book.bind_identity(tid), f'bind {tid} 失败')
+
+    def _board(self, plants=(), zombies=(), sun=900, clock=40000, pots=True):
+        ps = ([Plant(r * 3 + c, r, c, 66, hp=300) for r in range(5) for c in range(3)]
+              if pots else [])
+        ps += list(plants)
+        return BoardState(ok=True, sun=sun, rows=5, cols=9, game_clock=clock, scene=4,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                          plants=ps, zombies=list(zombies))
+
+    def test_three_lane_shooter_only_on_rows_2_and_4(self):
+        # 硬约束：三线玉米投手候选只允许 R2/R4（idx 1,3）
+        b = self._board(sun=800, clock=80000)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 34]
+        self.assertTrue(cs, 'develop 期应出三线玉米投手候选')
+        self.assertTrue(all(c.row in (1, 3) for c in cs),
+                        f'三线只许种 2/4 路: {[c.row for c in cs]}')
+        self.assertTrue(all(b.can_plant(c.row, c.col, 34, self.book) for c in cs))
+
+    def test_golden_melon_prefers_rows_2_and_4(self):
+        # 用户战术：黄金西瓜尽量种 2/4 路 —— preferred_rows 加分 + 每卡最多
+        # 2 条落点上限的合力，使非偏好行的候选被挤出（这正是想要的行为）。
+        zs = [Zombie(0, r, 0, x=600) for r in range(5)]
+        b = self._board(zombies=zs, sun=1000)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 147]
+        self.assertTrue(cs, '黄金西瓜应出候选')
+        self.assertTrue(all(c.row in (1, 3) for c in cs),
+                        f'黄金西瓜候选应全部落在 2/4 路: {[(c.row, c.score) for c in cs]}')
+
+    def test_sunflowers_rotate_lanes_evenly(self):
+        # 修复"第二行种不了"：R1 已有 3 株向日葵、R2 空 → 下一 producer 候选在 R2
+        plants = [Plant(100 + i, 0, i, 9) for i in range(3)]
+        b = self._board(plants=plants, sun=600, clock=80000)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and 'producer' in self.book.tags(c.type_id)
+              and c.type_id != 33]
+        self.assertTrue(cs, '应出向日葵候选')
+        rows = {c.row for c in cs}
+        self.assertIn(1, rows, f'第 2 行(idx 1)必须有向日葵候选: {rows}')
+
+    def test_producer_on_high_lane_without_wall_when_far(self):
+        # R2 受压（high：铁桶力量碾压）无墙，但僵尸还在 460px 中圈外
+        # → 向日葵仍可种（修复"第二行种不了"的一部分）
+        b = self._board(plants=[Plant(100, 0, 0, 9)],
+                        zombies=[Zombie(0, 1, 4, x=460, hp=1100, armor_hp=1100)],
+                        sun=600)
+        facts = __import__('pvz.tactics', fromlist=['lane_facts']).lane_facts(b, 1, self.book)
+        self.assertEqual(facts['threat_level'], 'high', '前置：该路应为 high（力量碾压）')
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and 'producer' in self.book.tags(c.type_id)
+              and c.type_id != 33]
+        self.assertTrue(any(c.row == 1 for c in cs),
+                        'high 路僵尸未贴脸时应允许补种向日葵')
+
+    def test_refit_shovels_sunflower_for_firepower(self):
+        # 阳光充足：R1 有 3 株向日葵、僵尸在远处(700px) → 铲+换火力候选
+        plants = [Plant(100 + i, 0, i, 9) for i in range(3)]
+        b = self._board(plants=plants, zombies=[Zombie(0, 1, 0, x=700)], sun=1000)
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'shovel' and c.row == 0]
+        self.assertTrue(cs, '阳光充足且僵尸在中圈外时应出铲向日葵换火力候选')
+        self.assertTrue(any(c.replacement_type is not None for c in cs),
+                        '铲子候选应带 replacement（同一事务换上火力卡）')

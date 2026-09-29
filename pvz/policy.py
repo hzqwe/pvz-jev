@@ -29,9 +29,11 @@ from .plants import (
 from .serialize import COL_LABEL, lane_threat
 from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes
 
-MAX_CANDIDATES = 14         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
+MAX_CANDIDATES = 18         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
-                            # 都在前；14 条足够覆盖"每类一张+备选落点"。
+                            # 都在前。2026-09-30 屋顶 16 卡局实测：14 连"每张卡
+                            # 一条 first 候选"都装不下（16 卡+wait=17），低分卡
+                            # （向日葵）整卡静音 —— 提到 18 保证 first 全覆盖。
 
 
 def snow_blocked(board, row: int, col: int) -> bool:
@@ -405,12 +407,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         #   产阳光卡（≤150）豁免储蓄闸：种向日葵正是攒钱买大件的最快方式，
         #   锁死它等于拖延大件本身（前院告急局实测：攒冰瓜时向日葵全被闸住，
         #   阳光不够用的根因）。
-        # 豁免范围（2026-09-28 修正）：便宜产阳光卡只在中盘储蓄（opening=False）
-        # 时绕过 —— 开局女王储蓄期向日葵仍要让位（女王硬约束优先）。
+        # 豁免范围（2026-09-30 屋顶战术修正）：产阳光卡豁免上限 150→200 ——
+        # 屋顶卡组的棱镜向日葵 188 也必须积极种（用户硬约束，与三线站位同级）。
+        # 便宜产阳光卡只在中盘储蓄（opening=False）时绕过 —— 开局女王储蓄期
+        # 向日葵仍要让位（女王硬约束优先）。
         if (plan and tid != plan['type_id'] and sun - cost < plan['cost']
                 and not (cost <= 150 and rescue_now
                          and (rescue_bypass_tags & set(tags)))
-                and not (T_PRODUCER in tags and cost <= 150
+                and not (T_PRODUCER in tags and cost <= 200
                          and not plan.get('opening', True))):
             continue
         close_intercept = T_WALL in tags and any(
@@ -686,16 +690,28 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             producer_cap = max(6, board.rows*2) + (board.rows*2 if calm_fill else 0)
             if producers >= producer_cap:
                 continue
-            for r in sorted(quiet, key=lambda r: (min(rear_cols(board,book,r,producer=True,type_id=tid), default=99), facts[r]["priority"], r)):
+            def _lane_producer_count(r):
+                return sum(1 for p in board.plants_in_lane(r)
+                           if book.has_tag(p.type_id, T_PRODUCER)
+                           and not p.asleep and p.hp != 0)
+            # ★ 行均衡轮转（2026-09-30 屋顶战术，用户硬约束"积极种"）：
+            #   旧行序按 min(rear_cols) 排 —— 屋顶各行都返回同样的列，等于
+            #   永远第 1 行优先 + 每轮 break 一行，第 2 行长期轮空（用户实测
+            #   "向日葵种不到第二行"）。改成按**行内已种产阳光数**升序、行号
+            #   次序轮转：缺的行先补，全场均匀铺开（priority 不参与 —— 受压
+            #   行的向日葵由"贴脸才禁种"闸把关，不该被排序饿死）。
+            for r in sorted(quiet, key=lambda r: (_lane_producer_count(r), r)):
                 cols = rear_cols(board,book,r,producer=True,type_id=tid)
                 if not cols or facts[r]['threat_level'] == 'critical':
                     continue
                 # 经济重建（实战 2026-09-26 教训）：产阳光被打到 4 株以下、
                 # 全路 high 时，旧规则会因"高压路不种向日葵"而完全断掉经济
-                # —— 螺旋死亡。high 路只要**有墙护着**（rear_cols 本来就只给
-                # 墙后空位、且僵尸未走过），就允许补种向日葵恢复产能。
+                # —— 螺旋死亡。high 路只要**有墙护着**就允许补种；2026-09-30
+                # 屋顶战术放宽：无墙但僵尸还在中圈之外（>320px）也种 ——
+                # 预置花盆格在 A-C 远离来敌方向，种下时是安全的。
                 if (facts[r]['threat_level'] == 'high'
-                        and not facts[r]['blocking_walls']):
+                        and not facts[r]['blocking_walls']
+                        and (facts[r]['nearest_zombie_x'] or 9999) < 320):
                     continue
                 add(slot,r,cols[0],85 if producers < max(6,board.rows*2) else 25,
                     f'Safe rear economy; {producers} producers currently alive.')
@@ -706,9 +722,22 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             tracking = T_TRACKING in tags
             rng = book.range_cells(tid)
             radius = coverage_lanes(book,tid)//2
+            # ★ 屋顶战术硬约束（用户 2026-09-30，必须履行否则打不过）：
+            #   多路覆盖植物（三线玉米投手等）**只**站 1 行和 rows-2 行
+            #   （5 行图 = 2/4 路）—— 两株 3 路覆盖恰好扫全场无死角；站
+            #   0/2/4 行会留整行死角。6 行图同理 1 和 rows-2。
+            if radius > 0:
+                allowed_rows = {1, board.rows - 2}
+            else:
+                allowed_rows = None
+            # 黄金西瓜投手等 combat.preferred_rows（用户战术：优先 2/4 路）：
+            # 温和偏好 —— 这些行加 8 分，不是硬禁。
+            pref_rows = set(book.combat(tid).get('preferred_rows') or ())
             # 平静期（没僵尸）：照常补火力，但只补还没有射手的路，保持阵型整齐。
             for r in (quiet if tracking else
                       (list(range(board.rows)) if calm else hot)):
+                if allowed_rows is not None and r not in allowed_rows:
+                    continue
                 cover = list(range(board.rows)) if tracking else list(range(max(0,r-radius),min(board.rows,r+radius+1)))
                 if not tracking and not any(facts[x]['zombie_count'] for x in cover) and not (calm or develop):
                     continue
@@ -759,6 +788,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 value -= facts[r]['shooter_support']*8
                 if calm:
                     value = min(value, 24)
+                if r in pref_rows:
+                    value += 8  # combat.preferred_rows: user lane preference.
+                               # 放在 calm 压分之后，平静期偏好仍领先。
                 if plan and tid == plan['type_id']:
                     value += 100
                 why = ('Pre-building the line while the board is quiet; keeps the formation uniform.'
@@ -895,7 +927,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 continue
             candidates.append(Candidate(
                 '', 'shovel', r, behind.col, -1, behind.type_id,
-                85 + (book.cost(upgrade.type_id) or 0) * 0.02,
+                # 95：高于后期改造块的 90 —— 机枪过火（用户最早的核心硬约束）
+                # 与 refit 竞争同一格时，过火必须赢。
+                95 + (book.cost(upgrade.type_id) or 0) * 0.02,
                 (f'Torch-column upgrade: the cell right behind the Sunflower Queen '
                  f'(lane {r+1}) is wasted on a cheap {book.en(behind.type_id)}. Shovel it '
                  f'and immediately plant {book.en(upgrade.type_id)} using reserved sun; '
@@ -904,25 +938,23 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 salvage=True, hp=behind.hp, replacement_type=upgrade.type_id, source_index=behind.index,
             ))
 
-    # -- 后期阵型改造（用户 2026-09-28 硬约束，优先级高）-------------------
+    # -- 后期阵型改造（用户 2026-09-28 硬约束，优先级高；2026-09-30 屋顶放宽）---
     # 阵成型+阳光够用后：把前中排的廉价向日葵铲掉换成攻击/防御卡。
-    # 门槛：全场非危急、目标路安静、该路 ≥3 株产阳光（拆不垮经济）、
-    # 手里有就绪的攻击/防御卡（≥200）且阳光够买它再留 400。经济没起来不动。
+    # 屋顶 3-5 实战教训：僵尸一波接一波，"该路安静"几乎不存在 —— 门槛放宽为
+    # 非危急且僵尸在中圈之外（>560px，铲+补种的空窗期安全）；该路 ≥2 株产阳光
+    # （拆不垮经济）即可，不再要求同路已有射手（换上去的就是火力）。
     if all(f['threat_level'] != 'critical' for f in facts) and (board.sun or 0) >= 600:
         producers_by_lane = {}
-        shooters_by_lane = {}
         for p in board.plants:
             if book.has_tag(p.type_id, T_PRODUCER):
                 producers_by_lane[p.row] = producers_by_lane.get(p.row, 0) + 1
-            if book.has_tag(p.type_id, T_SHOOTER) and not book.has_tag(p.type_id, T_PRODUCER):
-                shooters_by_lane[p.row] = shooters_by_lane.get(p.row, 0) + 1
         refit_cards = [s for s in board.slots if s.ready
                        and (book.has_tag(s.type_id, T_SHOOTER) or book.has_tag(s.type_id, T_WALL))
                        and (book.cost(s.type_id) or 10**9) >= 200]
         for r, cnt in sorted(producers_by_lane.items()):
-            if cnt < 3 or shooters_by_lane.get(r, 0) < 1:
+            if cnt < 2:
                 continue
-            if facts[r]['threat_level'] in ('high', 'critical') or facts[r]['zombie_count']:
+            if facts[r]['threat_level'] == 'critical' or (facts[r]['nearest_zombie_x'] or 9999) < 560:
                 continue
             front = [p for p in board.plants_in_lane(r)
                      if p.col <= 3 and not book.has_tag(p.type_id, T_TORCH)
@@ -939,8 +971,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             candidates.append(Candidate(
                 '', 'shovel', r, target.col, -1, target.type_id,
                 90 + (book.cost(upgrade.type_id) or 0) * 0.02,
-                (f'Late-game refit: lane {r+1} has {cnt} producers and its defence is '
-                 f'stable - shovel the cheap {book.en(target.type_id)} at column '
+                (f'Late-game refit: lane {r+1} has {cnt} producers and the enemy is '
+                 f'far from the house - shovel the cheap {book.en(target.type_id)} at column '
                  f'{target.col+1} (refunds sun) and replace it with {book.en(upgrade.type_id)} '
                  'in the same transaction. Economy is established; this is the '
                  'high-priority strength upgrade the user asked for.'),

@@ -808,7 +808,18 @@
         "lobbed": true,
         "armour_break_chance": 0.04,
         "charm_chance": 0.01,
-        "notes": "Lottery per hit: 50% melon, 35% ice-melon (slow), 10% 100-sun, 4% armour destroyed, 1% charm. Wiki pvzhe 2026-09-30"
+        "notes": "Lottery per hit: 50% melon, 35% ice-melon (slow), 10% 100-sun, 4% armour destroyed, 1% charm. Wiki pvzhe 2026-09-30 User tactic 2026-09-30: prefer lanes 2&4 (row idx 1,3) over 1/3/5 on the 5-row roof.",
+        "preferred_rows": [
+          1,
+          3
+        ]
+      },
+      "field_sources": {
+        "combat.preferred_rows": {
+          "confidence": "user_confirmed",
+          "source_url": "user tactic 2026-09-30 (roof 3-5 hard)",
+          "note": "Prioritize rows 1&3; mortar (189) has no lane preference."
+        }
       }
     },
     "忧郁菇投手": {
