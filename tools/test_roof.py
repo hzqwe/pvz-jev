@@ -234,3 +234,15 @@ class RoofCatalogGapTests(unittest.TestCase):
                    if c.kind == 'plant' and c.type_id == 33]
         self.assertTrue(all(c.col >= 3 for c in cs_pots),
                         '预置花盆格上不能叠铺，只能落空屋顶格')
+
+    def test_dolphin_jump_visible_to_jev(self):
+        # 2026-09-30 屋顶审查：目录 provisional 情报（海豚豌豆骑士会跃过第一株
+        # 植物）应知情呈现给 Jev —— 不驱动硬闸门，但单墙拦不住它得让它知道。
+        import json as J
+        from pvz.serialize import build_state
+        b = BoardState(ok=True, sun=400, rows=5, cols=9, game_clock=40000, scene=4,
+                       slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                       plants=[], zombies=[Zombie(0, 0, 14, x=500)])
+        s = J.dumps(build_state(b, self.book), ensure_ascii=False)
+        self.assertIn('jumps_first_plant', s, '跳跃僵尸情报应呈现给 Jev')
+        self.assertIn('海豚', s, '僵尸应显示目录真名')

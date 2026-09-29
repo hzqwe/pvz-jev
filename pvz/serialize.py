@@ -226,6 +226,12 @@ def _zombie_traits(book: PlantBook, z) -> dict:
         tr['stationary_maybe_ranged'] = True
         tr.setdefault('note', 'Standing still while the clock advances: likely a ranged '
                               'zombie (e.g. zombie peashooter) shooting uncovered plants.')
+    # 跳跃僵尸（2026-09-30 屋顶审查：海豚豌豆骑士等，目录 provisional 情报）：
+    # 只做"知情呈现"让 Jev 自己权衡纵深，不参与硬闸门 —— 单墙拦不住它。
+    if book.zombie_flag(z.type_id, 'jumping'):
+        tr['jumps_first_plant'] = True
+        tr.setdefault('note', 'Likely vaults over the first plant it meets: a single '
+                              'wall is not enough, keep depth or an anti-jump wall behind.')
     return tr
 
 
