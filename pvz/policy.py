@@ -366,8 +366,34 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if tid < 0 or not slot.ready or cost is None or sun < cost:
             continue
         # 白天睡觉的蘑菇（忧郁菇投手等，combat.day_sleeper）：白天场景
-        # 种了也是白睡 —— 跳过。夜间场景（月夜 5）照常可用。
-        if book.combat(tid).get('day_sleeper') and board.scene in (0, 2, 3, 4):
+        # 种了也是白睡 —— 跳过。场景语义（原版 0..5 → 日/夜/泳池日/雾夜/屋顶）：
+        # 0=白天、2=泳池白天、4=屋顶白天才睡觉；1=黑夜、3=雾夜（夜间！蘑菇
+        # 醒着）、5=月夜照常可用。（2026-09-30 屋顶审查：此前误把雾夜 3 当白天。）
+        if book.combat(tid).get('day_sleeper') and board.scene in (0, 2, 4):
+            continue
+        # ★ 阳光花盆（platform+producer 双身份，2026-09-30 屋顶审查）：它是
+        #   屋顶上唯一能直接上空屋顶格的经济卡。平台卡在下面被无条件跳过，
+        #   它只能当连锁垫子 —— 平静富余期允许**独立预铺**（低分，不抢防御
+        #   和产阳光主线的优先级）：先赚阳光，同时成为下一株的落点。
+        #   落点限前四列（与"把前四列种满"一致）；can_plant 自动排除预置
+        #   花盆格（花盆上不能叠花盆）和被占格。
+        if T_PLATFORM in tags and T_PRODUCER in tags and (calm or develop) and sun >= 600:
+            nx_any = min((f['nearest_zombie_x'] for f in facts
+                          if f['nearest_zombie_x'] is not None), default=None)
+            for r in sorted(quiet, key=lambda r: facts[r]['priority']):
+                if facts[r]['threat_level'] == 'critical':
+                    continue
+                cols = [c for c in range(0, 4)
+                        if (r, c) not in occ
+                        and board.can_plant(r, c, tid, book)
+                        and (nx_any is None or cell_x(c) + 35 < nx_any)
+                        and not board.snow_blocked(r, c)
+                        and not board.placement_blocked(r, c)]
+                if cols:
+                    add(slot, r, cols[0], 30,
+                        'Pre-place a sun-producing pot on this roof cell: it earns sun now '
+                        'and becomes the platform for the next plant.', [r])
+                    break
             continue
         if T_PLATFORM in tags or book.role(tid) == PLATFORM:
             continue

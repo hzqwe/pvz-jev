@@ -197,3 +197,40 @@ class RoofCatalogGapTests(unittest.TestCase):
         self.assertTrue(cs, '冰车路应出"花盆+钢刺坚果王"连锁候选')
         self.assertTrue(any('Crush-resistant' in c.why for c in cs),
                         '连锁候选应保留防撞标注')
+
+    def test_fog_night_does_not_skip_sleepers(self):
+        # 2026-09-30 屋顶审查：雾(scene 3)是夜间 —— 蘑菇醒着，不得按白天跳过。
+        # 阳光 600：越过经济储备闸（sun-cost>=300），只验证场景语义。
+        b = BoardState(ok=True, sun=600, rows=6, cols=9, game_clock=40000, scene=3,
+                       slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                       plants=[], zombies=[Zombie(0, 0, 0, x=600)])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 142]
+        self.assertTrue(cs, '雾夜(3)是夜间场景，忧郁菇投手不应被白天睡觉门槛跳过')
+
+    def test_sun_pot_standalone_preplace(self):
+        # 阳光花盆(platform+producer)：平静富余期允许独立预铺到空屋顶格
+        b = BoardState(ok=True, sun=800, rows=5, cols=9, game_clock=40000, scene=4,
+                       slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                       plants=[], zombies=[])
+        cs = [c for c in generate_candidates(b, self.book)
+              if c.kind == 'plant' and c.type_id == 33]
+        self.assertTrue(cs, '平静富余期应能独立预铺阳光花盆')
+        self.assertTrue(all(c.col <= 3 for c in cs), '预铺应限前四列')
+        # 阳光紧张时不做"独立预铺"（连锁候选 pad+body 总价 ≤300 仍合法）
+        poor = BoardState(ok=True, sun=300, rows=5, cols=9, game_clock=40000, scene=4,
+                          slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                          plants=[], zombies=[])
+        cs_poor = [c for c in generate_candidates(poor, self.book)
+                   if c.kind == 'plant' and c.type_id == 33
+                   and c.supports_type is None]
+        self.assertFalse(cs_poor, '阳光紧张时不应独立预铺阳光花盆')
+        # 有预置花盆时只能铺到空屋顶格（花盆上不能叠花盆）
+        pots = [Plant(r * 3 + c, r, c, 66, hp=300) for r in range(5) for c in range(3)]
+        withpots = BoardState(ok=True, sun=800, rows=5, cols=9, game_clock=40000, scene=4,
+                              slots=[SeedSlot(i, t, 0, 1000) for i, t in enumerate(self.DECK)],
+                              plants=pots, zombies=[])
+        cs_pots = [c for c in generate_candidates(withpots, self.book)
+                   if c.kind == 'plant' and c.type_id == 33]
+        self.assertTrue(all(c.col >= 3 for c in cs_pots),
+                        '预置花盆格上不能叠铺，只能落空屋顶格')
