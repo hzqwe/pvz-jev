@@ -405,10 +405,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # 卡在 (1,2) 硬筛会让到账的女王永远出不了候选、储蓄死循环。
         if (plan and plan.get('slot') == slot.index
                 and (board.sun or 0) >= (plan.get('cost') or 10**9)):
-            # 用户 2026-09-26：女王不该种在同一行 —— 她是火炬柱，多行各立一支
-            # 才能让更多路的豌豆吃到过火加成。无火炬的行排最前。
-            for r in sorted(range(board.rows),key=lambda r:(
-                    any(book.has_tag(p.type_id,T_TORCH) for p in board.plants_in_lane(r)),
+            # 用户 2026-09-26 硬约束（2026-09-29 泳池局加固）：女王**绝不**与
+            # 现有女王同行 —— 排序偏好不够，泳池局水路无荷叶时直接候选失败
+            # 会退回火炬行（23:05:54 实测同排两女王）。已有火炬的行直接跳过，
+            # 水路无荷叶的行由荷叶+女王连锁候选接管（天然落在新行）。
+            for r in sorted((r0 for r0 in range(board.rows)
+                             if not any(book.has_tag(p.type_id,T_TORCH)
+                                        for p in board.plants_in_lane(r0))),
+                            key=lambda r:(
                     not (2 in rear_cols(board,book,r) and board.can_plant(r,2,tid,book)),
                     facts[r]['priority'],abs(r-(board.rows-1)/2))):
                 cols = [c for c in rear_cols(board, book, r)
@@ -823,7 +827,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     and book.combat(s.type_id).get('torch_compatible')
                     and (book.cost(s.type_id) or 10**9) >= 300]
         for r, q in torches.items():
-            if q.col <= 0 or facts[r]['zombie_count']:
+            # 僵尸很远（>560，>1 分钟路程）时不拦换新 —— 旧门槛"该路有僵尸
+            # 就跳过"让换新在实战从不触发（僵尸几乎总在路上）。
+            nx_r = facts[r]['nearest_zombie_x']
+            if q.col <= 0 or (nx_r is not None and nx_r <= 560):
                 continue
             behind = board.top_body(r,q.col-1,book)
             if behind is None or behind.asleep or behind.recently_eaten:
