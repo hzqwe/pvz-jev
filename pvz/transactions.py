@@ -1,6 +1,7 @@
 """Short verified input transactions; never call Jev or collect sun between steps."""
 import time
 from types import SimpleNamespace
+from .geometry import geometry_blocked, record_geometry_failure
 from .board import placement_delta
 from .tactics import cell_x,relocation_target,crusher_approaching
 from .serialize import board_snapshot
@@ -44,6 +45,8 @@ class PlantTransaction:
         if cell_x(col)>nx+40:
             raise TransactionStopped('Zombie has passed destination')
         self.agent.layout.configure_board(b)
+        if geometry_blocked(self.agent, b, row, col):
+            raise TransactionStopped('Destination has a confirmed geometry fault')
         x,y=self.agent.layout.cell_center(row,col)
         if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
             raise TransactionStopped('Destination outside client')
@@ -54,9 +57,7 @@ class PlantTransaction:
         def completed(b):
             placed,other=placement_delta(before,b,tid,row,col)
             if other and not placed:
-                lay=self.agent.layout
-                self.agent._geometry_error=(b.scene,b.rows,lay.client_w,lay.client_h,
-                    lay.grid_left,lay.grid_top,lay.cell_w,lay.row_height())
+                record_geometry_failure(self.agent, b, row, col)
                 raise TransactionStopped(f'Plant landed elsewhere: {other}')
             return placed
         self.read(completed)
@@ -74,7 +75,7 @@ class PlantTransaction:
                 raise TransactionStopped('Confirmed crusher entered recovery destination lane')
             self.cell_valid(tid,row,col)
         except TransactionStopped as exc:
-            if getattr(self.agent,'_geometry_error',None): raise
+            if geometry_blocked(self.agent, self.board, row, col): raise
             destination=relocation_target(self.board,self.agent.book,source,ready_only=True)
             if destination is None: raise
             self.steps.append({'step':'recovery_retargeted','from':[row,col],
@@ -101,7 +102,7 @@ class PlantTransaction:
         except TransactionStopped as exc:
             # Preserve the intended defender and threatened lane. A new pad
             # purchase would break the continuous action and its budget.
-            if not self.agent.book.has_tag(tid,'wall') or getattr(self.agent,'_geometry_error',None): raise
+            if not self.agent.book.has_tag(tid,'wall') or geometry_blocked(self.agent, self.board, row, col): raise
             source=SimpleNamespace(type_id=tid,cell=(row,col),row=row)
             dest=relocation_target(self.board,self.agent.book,source,ready_only=True,rows=(row,))
             if dest is None: raise
@@ -159,6 +160,8 @@ class PlantTransaction:
         else:
             self.cell_valid(source.type_id,*destination)
         self.agent.layout.configure_board(self.board)
+        if geometry_blocked(self.agent, self.board, source.row, source.col):
+            raise TransactionStopped('Recovery source has a confirmed geometry fault')
         x,y=self.agent.layout.cell_center(source.row,source.col)
         if not (0<=x<self.agent.layout.client_w and 0<=y<self.agent.layout.client_h):
             raise TransactionStopped('Recovery source outside client')

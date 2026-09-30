@@ -67,12 +67,21 @@ class Layout:
     shovel_xy: tuple[int, int] = (2220, 95)
 
     board_rows: int = 5
+    board_scene: int | None = None
     pool_cell_h: float | None = None  # Optional separately measured pool row spacing.
+    # Reference hit-test geometry, mapped through the measured lawn scale.
+    # Independently configurable: these are not claimed as hybrid pixel measurements.
+    roof_cell_h: float | None = None
+    roof_slope_h: float | None = None
+    roof_flat_col: int = 4
 
     def configure_board(self, board):
         self.board_rows = board.rows
+        self.board_scene = board.scene
 
     def row_height(self):
+        if self.board_scene == 4:
+            return self.roof_cell_h if self.roof_cell_h is not None else self.cell_h * 0.85
         # Original logical grid: grass 100, pool 85 pixels. Keep measured scaling.
         return (self.pool_cell_h if self.pool_cell_h is not None else self.cell_h * 0.85) if self.board_rows == 6 else self.cell_h
 
@@ -116,6 +125,11 @@ class Layout:
         sx, sy = self.scale()
         x = self.grid_left + col * self.cell_w + self.cell_w / 2 + dx
         y = self.grid_top + (row + 0.5) * self.row_height()
+        if self.board_scene == 4:
+            # Board::PixelToGridY subtracts 20*max(4-col,0) before /85.
+            # Use the centre of that HIT region, not GridToPixelY's sprite origin.
+            slope = self.roof_slope_h if self.roof_slope_h is not None else self.cell_h * 0.20
+            y += max(self.roof_flat_col - col, 0) * slope
         return int(x * sx), int(y * sy)
 
     def dropped_seed_center(self, seed):
@@ -146,11 +160,13 @@ class Layout:
         if rows is None:
             rows = self.board_rows
         sx, sy = self.scale()
+        slope = (self.cell_h * .20 if self.roof_slope_h is None else self.roof_slope_h)
+        roof_extra = max(0, self.roof_flat_col * slope) if self.board_scene == 4 else 0
         return (
             int(self.grid_left * sx),
             int(self.grid_top * sy),
             int((self.grid_left + cols * self.cell_w) * sx),
-            int((self.grid_top + rows * self.row_height()) * sy),
+            min(self.client_h, int((self.grid_top + rows * self.row_height() + roof_extra) * sy)),
         )
 
     def pause_resume(self) -> tuple[int, int] | None:

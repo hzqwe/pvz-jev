@@ -12,6 +12,18 @@ from pvz.serialize import build_state
 
 
 class ReplayVersionTests(unittest.TestCase):
+    def test_old_rapid_record_is_reported_as_unreplayable(self):
+        raw = {'t': 1, 'board': {'ok': True, 'sun': 125,
+               'rows': 5, 'cols': 9, 'game_clock': 10000, 'slots': []}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'mixed.jsonl'
+            path.write_text('\n'.join(json.dumps(r) for r in
+                            [raw, {'t': 2, 'rapid_fill': True}, raw]), encoding='utf-8')
+            report = replay(path, game_version='3.9.9')
+            self.assertEqual(report['records'], 3)
+            self.assertEqual(report['snapshots'], 2)
+            self.assertEqual(report['skipped_records'][0]['line'], 2)
+
     def test_old_lily_pad_log_has_explicit_historical_alias(self):
         book = PlantBook(hybrid_file='',cost_file='',ids_file='')
         book.bind_one(16,'睡莲')

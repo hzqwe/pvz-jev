@@ -785,21 +785,24 @@
       "field_sources": {
         "tags": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "version_status": "unverified"
         },
         "en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "version_status": "unverified"
         },
         "effect_en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Corn-roll Mortar"
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "version_status": "unverified"
         }
       },
       "unverified_fields": {
@@ -822,21 +825,24 @@
       "field_sources": {
         "tags": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "version_status": "unverified"
         },
         "en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "version_status": "unverified"
         },
         "effect_en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Golden Melon-pult"
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "version_status": "unverified"
         }
       },
       "unverified_fields": {
@@ -860,21 +866,24 @@
       "field_sources": {
         "tags": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "version_status": "unverified"
         },
         "en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "version_status": "unverified"
         },
         "effect_en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Gloom-shroom Pult"
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "version_status": "unverified"
         }
       },
       "unverified_fields": {
@@ -893,31 +902,34 @@
           "stun"
         ],
         "en": "Three-line Kernel-pult",
-        "effect_en": "Covers THREE lanes: corn 40 dps + butter with 3s stun chance. Lobbed - explicitly ignores the roof slope angle."
+        "effect_en": "Three forward lanes: each lane fires a 20-damage kernel or 40-damage butter every 2s. Kernel-only minimum is 10 emitted dps per lane (30 total across three lanes). Butter can stun for 3s; probability unverified. Lobbed shots ignore roof slope."
       },
       "field_sources": {
         "tags": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "version_status": "unverified"
         },
         "en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "version_status": "unverified"
         },
         "effect_en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Three-line Kernel-pult"
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "version_status": "unverified"
         }
       },
       "unverified_fields": {
         "butter_rate": {
-          "reason": "butter chance per 0.5s shot not quantified on the wiki page"
+          "reason": "butter chance per 2s shot remains unverified"
         }
       }
     },
@@ -935,21 +947,24 @@
       "field_sources": {
         "tags": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "version_status": "unverified"
         },
         "en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "version_status": "unverified"
         },
         "effect_en": {
           "applicable_version": "classic-3.9.9",
-          "confidence": "wiki_pvzhe",
+          "confidence": "classic_reference",
           "observed_at": "2026-09-30",
-          "source_url": "https://pvzhe.wiki/w/Steel-spike Nut King"
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "version_status": "unverified"
         }
       },
       "unverified_fields": {

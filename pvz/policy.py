@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes, deployment_invalid_reason, support_slots, complete_plant_cost, attack_placements
 
 MAX_CANDIDATES = 18         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -41,6 +41,36 @@ def snow_blocked(board, row: int, col: int) -> bool:
     实现在 BoardState.snow_blocked；这里保留函数形式方便测试/分支引用。"""
     return board.snow_blocked(row, col)
 MAX_PER_TYPE = 2          # 同一张卡最多出几条落点候选（见 generate_candidates 末尾）
+
+
+def replacement_safety_reason(board, book, source, replacement_type, facts=None, *, intent=None):
+    """Use the same bank reserve and threat window before and during upgrades."""
+    reason = deployment_invalid_reason(board, book, replacement_type, source.row)
+    if reason:
+        return reason
+    facts = facts or [lane_facts(board, r, book) for r in range(board.rows)]
+    if any(f['threat_level'] == 'critical' for f in facts):
+        return 'upgrade would delay a critical lane rescue'
+    nearest = facts[source.row]['nearest_zombie_x']
+    if nearest is not None and nearest <= 560:
+        return 'enemy entered the replacement safety window'
+    if source.asleep or source.recently_eaten or source.hp == 0:
+        return 'upgrade source is not stable'
+    torch_upgrade = (book.combat(replacement_type).get('torch_compatible') and
+                     any(p.col == source.col + 1 and not p.asleep and p.hp != 0
+                         and book.has_tag(p.type_id, T_TORCH)
+                         for p in board.plants_in_lane(source.row)))
+    if intent == 'torch' and not torch_upgrade:
+        return 'replacement torch synergy changed'
+    reserve = 200 if intent == 'torch' else 400 if intent == 'refit' else ECON_RESERVE
+    if intent == 'refit' and sum(book.has_tag(p.type_id, T_PRODUCER)
+                                 and not p.asleep and p.hp != 0
+                                 for p in board.plants_in_lane(source.row)) < 2:
+        return 'replacement would dismantle the lane economy'
+    cost = book.cost(replacement_type)
+    if cost is None or cost + reserve > (board.sun or 0):
+        return 'insufficient reserved sun for replacement'
+    return None
 
 # ---- 铲子/回收护栏（2026-09-26 新增）-----------------------------------
 # 只有"可回收"的墙（回收高坚果，wall_regen 标签）才允许铲。规则来自图鉴：
@@ -88,6 +118,7 @@ class Candidate:
     intercept: bool = field(default=False, kw_only=True)  # deliberate sacrificial blocker
     drop_index: int | None = field(default=None, kw_only=True)
     replacement_type: int | None = field(default=None, kw_only=True)
+    replacement_intent: str | None = field(default=None, kw_only=True)
     source_index: int | None = field(default=None, kw_only=True)
     hp: int | None = None        # 铲子候选：目标植物当前血量（给 Jev 看的依据）
 
@@ -267,6 +298,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 stall_lanes.append((r, cell))
 
     def add(slot, row, col, value, reason, covers=(), *, intercept=False):
+        if deployment_invalid_reason(board, book, slot.type_id, row): return
         if board.placement_blocked(row,col): return
         nx = facts[row]['nearest_zombie_x']
         if intercept and nx is not None and cell_x(col)>nx+40:
@@ -276,6 +308,10 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if snow_blocked(board, row, col):
             return
         tags = book.tags(slot.type_id)
+        complete_cost = complete_plant_cost(board, book, slot.type_id, row, col)
+        reserved_score = (150 if plan.get('opening') else 120) if (
+            plan and slot.type_id == plan['type_id'] and complete_cost is not None
+            and complete_cost <= sun) else 0
         rescue = any(facts[r]["threat_level"] == "critical" for r in covers)
         if T_SHOOTER in tags and T_TEMPORARY not in tags:
             utility = upgrade_value(board,book,slot.type_id,row,col)
@@ -316,11 +352,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     # A platform can satisfy the support layer, but it cannot
                     # turn a land-only or roof-only plant into a water plant.
                     return
-                pad = next((s for s in board.slots if s.ready
-                            and book.has_tag(s.type_id,T_PLATFORM)
-                            and board.platform_fits(row, s.type_id, book)
-                            and book.cost(s.type_id) is not None
-                            and sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
+                pad = next((s for s in support_slots(board, book, slot.type_id, row, col)
+                            if sun >= book.cost(s.type_id) + (book.cost(slot.type_id) or 0)), None)
                 if pad is not None:
                     # ★ 支撑卡选择（2026-09-27 夜战教训）：以前取"槽位顺序第一张"，
                     #   结果荷叶后面接的是豌豆/阳光菇 —— 水路防线形同虚设。
@@ -345,6 +378,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     else:
                         score = value if rescue and T_WALL in tags else min(value * 0.2 if calm else value, 45)
                         tag = 'First place the platform (pad/pot) to support'
+                    score = max(score, reserved_score)
                     c = Candidate('', 'plant', row, col, pad.index, pad.type_id,
                         score,
                         f'{tag} {book.en(best.type_id)} at this supported cell; '
@@ -357,7 +391,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     candidates.append(c)
             return
         c = Candidate('', 'plant', row, col, slot.index, slot.type_id,
-                                    value * 0.2 if calm else value,
+                                    max(value * 0.2 if calm else value, reserved_score),
                                     reason, tags, rescue, tuple(covers), intercept=intercept)
         c.emergency = rescue and rescue_is_effective(c,board,book)
         candidates.append(c)
@@ -443,7 +477,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         # ---- 储蓄到账：plan 目标买得起就直接出高分候选 ----
         # 正常路径给不出它（平静期压分/无僵尸不出射手候选），必须显式生成，
         # 否则 merge 的"兑现升级"找不到候选、储蓄永远在等待。
-        if (plan and plan.get('slot') == slot.index
+        if (plan and plan.get('opening', True) and plan.get('slot') == slot.index
                 and (board.sun or 0) >= (plan.get('cost') or 10**9)):
             if plan.get('kind') == 'corn_rush':
                 # ★ 屋顶学说落点（用户硬约束）：2/4 路（row idx 1, rows-2），
@@ -454,33 +488,16 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 rad = coverage_lanes(book, tid)//2
                 planted = {p.row for p in board.plants
                            if p.type_id == tid and not p.asleep and p.hp != 0}
-                for r in sorted(allowed, key=lambda r: r in planted):
-                    cols = [c for c in rear_cols(board, book, r, type_id=tid)
-                            if board.can_plant(r, c, tid, book)]
+                for r in allowed:
+                    if r in planted:
+                        continue
+                    cols = [c for c, price in attack_placements(board, book, tid, r) if price <= sun]
                     if cols:
-                        candidates.append(Candidate(
-                            '', 'plant', r, cols[-1], slot.index, tid, 150,
+                        add(slot, r, cols[-1], 150,
                             'Opening doctrine: the three-lane shooter goes on lane '
                             '2/4 FIRST - two of them sweep every lane; this IS the '
                             'first-wave defence. Never plant it anywhere else.',
-                            tags, False,
-                            tuple(range(max(0, r-rad), min(board.rows, r+rad+1)))))
-                        break
-                continue
-            if not plan.get('opening', True):
-                # 中段储蓄大件（2026-09-30 屋顶审查）：此前复用女王块 —— 文案
-                # 硬编码"Sunflower Queen"、落点被限 (1,2,3)。大件按正常
-                # rear_cols 选列，文案按植物身份生成。
-                for r in sorted(range(board.rows),
-                                key=lambda r: (facts[r]['priority'], r)):
-                    cols = [c for c in rear_cols(board, book, r, type_id=tid)
-                            if board.can_plant(r, c, tid, book)]
-                    if cols:
-                        candidates.append(Candidate(
-                            '', 'plant', r, cols[-1], slot.index, tid, 120,
-                            f'Reserved upgrade is affordable: plant the {book.en(tid)} now '
-                            '(saved for its coverage/armor/control value).',
-                            tags, False))
+                            tuple(range(max(0, r-rad), min(board.rows, r+rad+1))))
                         break
                 continue
             # 用户 2026-09-26 硬约束（2026-09-29 泳池局加固）：女王**绝不**与
@@ -494,13 +511,14 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     not (2 in rear_cols(board,book,r) and board.can_plant(r,2,tid,book)),
                     facts[r]['priority'],abs(r-(board.rows-1)/2))):
                 cols = [c for c in rear_cols(board, book, r)
-                        if c in (1, 2, 3) and board.can_plant(r, c, tid, book)]
+                        if c in (1, 2, 3)
+                        and (price := complete_plant_cost(board, book, tid, r, c)) is not None
+                        and price <= sun]
                 if cols:
-                    candidates.append(Candidate(
-                        '', 'plant', r, min(cols,key=lambda c:abs(c-2)), slot.index, tid, 150,
+                    add(slot, r, min(cols,key=lambda c:abs(c-2)), 150,
                         'Opening save matured: plant the Sunflower Queen now '
                         '(producer + fighter + torch column); sunflowers follow behind her.',
-                        tags, False))
+                        list(range(board.rows)))
                     break
             continue
 
@@ -953,7 +971,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 continue
             upgrade = next((s for s in upgrades
                             if (book.cost(s.type_id) or 10**9) + 200 <= (board.sun or 0)
-                            and board.can_replace(behind,s.type_id,book)), None)
+                            and board.can_replace(behind,s.type_id,book)
+                            and replacement_safety_reason(board,book,behind,s.type_id,facts,intent='torch') is None), None)
             if upgrade is None or snow_blocked(board, r, behind.col):
                 continue
             candidates.append(Candidate(
@@ -967,6 +986,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                  f'confirm the top body and preserve its supporting platform.'),
                 book.tags(behind.type_id), False, (r,),
                 salvage=True, hp=behind.hp, replacement_type=upgrade.type_id, source_index=behind.index,
+                replacement_intent='torch',
             ))
 
     # -- 后期阵型改造（用户 2026-09-28 硬约束，优先级高；2026-09-30 屋顶放宽）---
@@ -996,7 +1016,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 continue
             upgrade = next((s for s in refit_cards
                             if (book.cost(s.type_id) or 10**9) + 400 <= (board.sun or 0)
-                            and board.can_replace(target, s.type_id, book)), None)
+                            and board.can_replace(target, s.type_id, book)
+                            and replacement_safety_reason(board,book,target,s.type_id,facts,intent='refit') is None), None)
             if upgrade is None:
                 continue
             candidates.append(Candidate(
@@ -1010,6 +1031,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 book.tags(target.type_id), False, (r,),
                 salvage=True, hp=target.hp, replacement_type=upgrade.type_id,
                 source_index=target.index,
+                replacement_intent='refit',
             ))
 
     # -- 拾回掉落卡（2026-09-26 新增）--------------------------------------
@@ -1302,10 +1324,8 @@ def action_invalid_reason(candidate, board, book):
         if board.snow_blocked(candidate.row,candidate.col): return 'confirmed ice trail'
         if not any(s.type_id==candidate.replacement_type and s.ready for s in board.slots):
             return 'replacement card changed or cooling'
-        cost = book.cost(candidate.replacement_type)
-        if cost is None or cost+ECON_RESERVE>(board.sun or 0): return 'insufficient reserved sun for replacement'
-        if board.zombies_in_lane(candidate.row): return 'upgrade lane no longer calm'
-        return None
+        return replacement_safety_reason(board,book,source,candidate.replacement_type,
+                                         intent=candidate.replacement_intent)
     if candidate.kind == 'shovel' and not candidate.salvage:
         source=next((p for p in board.plants if p.cell==(candidate.row,candidate.col)
                      and p.type_id==candidate.type_id),None)
@@ -1328,6 +1348,8 @@ def action_invalid_reason(candidate, board, book):
     if not board.can_plant(c.row,c.col,c.type_id,book): return 'occupied or unsupported cell'
     tid = c.supports_type if c.supports_type is not None else c.type_id
     tags = book.tags(tid)
+    tactical_reason = deployment_invalid_reason(board, book, tid, c.row)
+    if tactical_reason: return tactical_reason
     if c.supports_type is not None and not any(s.ready and s.type_id==tid for s in board.slots):
         return 'followup card changed or cooling'
     if (T_SHOOTER in tags and T_WALL not in tags and T_TRACKING not in tags

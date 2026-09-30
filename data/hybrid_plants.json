@@ -785,6 +785,86 @@
         "lobbed": true,
         "splash": true,
         "notes": "Lobbed mortar, splash on hit, butter chance. Wiki pvzhe 2026-09-30"
+      },
+      "field_sources": {
+        "cost": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "hp": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮"
+        },
+        "cooldown_s": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "role": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "tags": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "en": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "effect_en": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.dps": {
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29",
+          "derivation": "Arithmetic from the stated reference volley/cadence; emitted damage estimate, not measured hit DPS."
+        },
+        "combat.coverage": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮"
+        },
+        "combat.lobbed": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮"
+        },
+        "combat.splash": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/玉米卷迫击炮"
+        }
       }
     },
     "黄金西瓜投手": {
@@ -819,6 +899,90 @@
           "confidence": "user_confirmed",
           "source_url": "user tactic 2026-09-30 (roof 3-5 hard)",
           "note": "Prioritize rows 1&3; mortar (189) has no lane preference."
+        },
+        "cost": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
+        },
+        "hp": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "cooldown_s": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "role": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "tags": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "en": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "effect_en": {
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.dps": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
+        },
+        "combat.coverage": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
+        },
+        "combat.lobbed": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
+        },
+        "combat.armour_break_chance": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
+        },
+        "combat.charm_chance": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/黄金西瓜投手"
         }
       }
     },
@@ -845,6 +1009,85 @@
         "lobbed": true,
         "day_sleeper": true,
         "notes": "Close-range AoE lob; SLEEPS on day maps (mushroom trait). Wiki pvzhe 2026-09-30"
+      },
+      "field_sources": {
+        "cost": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "hp": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "cooldown_s": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "role": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "tags": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "en": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "effect_en": {
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.dps": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手"
+        },
+        "combat.coverage": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手"
+        },
+        "combat.lobbed": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手"
+        },
+        "combat.day_sleeper": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/忧郁菇投手"
+        }
       }
     },
     "三线玉米投手": {
@@ -858,18 +1101,125 @@
       ],
       "hp": 300,
       "cooldown_s": 7.5,
-      "effect_en": "Covers THREE lanes with corn (40 dps) and butter (40 dmg + 3s stun chance). Lobbed - explicitly ignores the roof slope angle.",
+      "effect_en": "Three forward lanes: each lane fires a 20-damage kernel or 40-damage butter every 2s. Kernel-only minimum is 10 emitted dps per lane (30 total across three lanes). Butter can stun for 3s; probability unverified. Lobbed shots ignore roof slope.",
       "effects": [
         "三行覆盖",
         "抛射无视屋顶坡度",
         "黄油定身"
       ],
       "combat": {
-        "dps": 40,
+        "dps": 30,
         "coverage": "3 lanes",
         "lobbed": true,
         "stun": true,
-        "notes": "Corn 40 dps + butter with 3s stun chance, covers 3 lanes, ignores the roof slope angle. Wiki pvzhe 2026-09-30"
+        "notes": "Conservative emitted output, not measured hit DPS. Butter probability is unknown; no guaranteed stun or extra damage.",
+        "per_lane_dps": 10,
+        "coverage_rows": 3,
+        "damage_basis": "kernel_only_minimum"
+      },
+      "field_sources": {
+        "cost": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "hp": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "cooldown_s": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "role": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "tags": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "en": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "effect_en": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.dps": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29",
+          "derivation": "Arithmetic from the stated reference volley/cadence; emitted damage estimate, not measured hit DPS."
+        },
+        "combat.coverage": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.lobbed": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手"
+        },
+        "combat.stun": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手"
+        },
+        "combat.per_lane_dps": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29",
+          "derivation": "Arithmetic from the stated reference volley/cadence; emitted damage estimate, not measured hit DPS."
+        },
+        "combat.coverage_rows": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29",
+          "derivation": "Arithmetic from the stated reference volley/cadence; emitted damage estimate, not measured hit DPS."
+        },
+        "combat.damage_basis": {
+          "source_url": "https://pvzhe.wiki/w/三线玉米投手",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29",
+          "derivation": "Arithmetic from the stated reference volley/cadence; emitted damage estimate, not measured hit DPS."
+        }
       }
     },
     "钢刺坚果王": {
@@ -895,6 +1245,92 @@
         "coverage": "own cell +/-1",
         "price_increment": 100,
         "notes": "Spikes pop vehicle tyres (anti ice-truck); resists 8 hammer/smash hits at 1001 each. Price +100 per copy on field. Wiki pvzhe 2026-09-30"
+      },
+      "field_sources": {
+        "cost": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王"
+        },
+        "hp": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "cooldown_s": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "role": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "tags": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "en": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "effect_en": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        },
+        "combat.crush_hits": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王"
+        },
+        "combat.crush_hp_loss": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王"
+        },
+        "combat.dps": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王"
+        },
+        "combat.coverage": {
+          "applicable_version": "classic-3.9.9",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "observed_at": "2026-09-30",
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王"
+        },
+        "combat.price_increment": {
+          "source_url": "https://pvzhe.wiki/w/钢刺坚果王",
+          "confidence": "classic_reference",
+          "version_status": "unverified",
+          "applicable_version": "classic-3.9.9",
+          "observed_at": "2026-09-29"
+        }
       }
     }
   }

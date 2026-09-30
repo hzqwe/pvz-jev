@@ -76,9 +76,15 @@ def replay(path,game_version=None):
     if game_version is not None:
         book.activate_catalog('classic',game_version)
     records=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
-    invalid=[];count=Counter(missing_reasons=0,overlong_descriptions=0);previous=None;previous_record=None
+    invalid=[];skipped=[];count=Counter(missing_reasons=0,overlong_descriptions=0);previous=None;previous_record=None
+    snapshots=0
     for i,record in enumerate(records):
+        if not record.get('board') and not record.get('state'):
+            skipped.append({'line': i + 1, 'reason': 'No board/state snapshot; historical action cannot be replayed.'})
+            previous=previous_record=None  # Never learn losses across an unknown action interval.
+            continue
         board=snapshot(record,book,legacy_names)
+        snapshots+=1
         if book.catalog is not None:
             for slot in board.slots:
                 book.bind_identity(slot.type_id)
@@ -106,7 +112,8 @@ def replay(path,game_version=None):
                     if reason:invalid.append({'line':i+1,'type':c.type_id,'cell':[c.row,c.col],'reason':reason})
         previous,previous_record=board,record
     return dict(game_version=book.catalog.game_version if book.catalog else None,
-                snapshots=len(records),**count,invalid_plant_candidates=invalid,
+                records=len(records),snapshots=snapshots,skipped_records=skipped,
+                **count,invalid_plant_candidates=invalid,
                 hard_runtime_crush_types=sorted(book.runtime_crush),
                 limitation='Current policy and plant book replay; legacy positions are rounded. No live Jev, input, or match outcome simulation.')
 

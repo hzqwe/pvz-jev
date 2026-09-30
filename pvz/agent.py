@@ -615,6 +615,14 @@ class PvZJevAgent:
                         self._snow_cells[(r, c)] = now + melt
         board.snow_cells = dict(self._snow_cells)
 
+    @staticmethod
+    def action_completed(record):
+        executed = record.get('executed') or {}
+        if 'completed' in executed:
+            return executed['completed'] is True
+        return (executed.get('placed') is True and
+                ('followup' not in record or (record.get('followup') or {}).get('completed') is True))
+
     def rapid_fill(self, board: BoardState, count: int = 2) -> None:
         """富余期快速补种（用户 2026-09-28 硬约束：种植速度要快）。
 
@@ -655,11 +663,19 @@ class PvZJevAgent:
                 return
             dec = Decision(candidate=pick, action_id=pick.cid, fallback=True,
                            notes=['Rapid fill: rich and calm - keep planting without waiting for the timer.'])
+            self._decision_sequence = getattr(self, '_decision_sequence', 0) + 1
+            battle_id = getattr(self, '_battle_id', 'unknown')
             rec2 = {'t': time.time(), 'iso': time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'rapid_fill': True}
+                    'rapid_fill': True, 'board': board_snapshot(b),
+                    'runtime': self.runtime_metadata(), 'battle_id': battle_id,
+                    'sequence': self._decision_sequence,
+                    'action_id': f'{battle_id}-a{self._decision_sequence}',
+                    'timing': {'snapshot_at': time.time()},
+                    'decision': {'action_id': pick.cid, 'chosen': pick.describe(self.book),
+                                 'fallback': True, 'hold': False}}
             self.execute(dec, rec2, b)
             self.log.append(rec2)
-            if (rec2.get('executed') or {}).get('placed') is not True:
+            if not self.action_completed(rec2):
                 return
 
     @staticmethod
@@ -831,6 +847,13 @@ class PvZJevAgent:
         self._blocked_cells = {cell:until for cell,until in getattr(self,'_blocked_cells',{}).items()
                                if until>time.time()}
         board.rejected_cells = dict(self._blocked_cells)
+        fault = getattr(self, '_geometry_error', None)
+        if isinstance(fault, dict):
+            from .geometry import geometry_signature
+            self.layout.configure_board(board)
+            if fault.get('geometry') == geometry_signature(board, self.layout):
+                for cell in fault.get('cells', ()):
+                    board.rejected_cells[cell] = time.time() + 86400
 
     def note_placement_failure(self,candidate,after):
         self._bad_cells[(candidate.type_id,candidate.row,candidate.col)] = time.time()
@@ -842,16 +865,12 @@ class PvZJevAgent:
 
     # -- 执行 -----------------------------------------------------------
     def execute(self, dec: Decision, record: dict, board: BoardState) -> None:
-        """把决定落地。分三步，每步都要有"确实生效了"的证据。
-
-        为什么不直接"点卡 -> 点格子"了事：杂交版的植物价格和原版完全不同，
-        任何硬编码的价格表都会错。价格错了，"买得起"的判断就错，点卡会被游戏
-        静默拒绝 —— 表现是**阳光没扣、植物没种上**，看起来就像"点击注入失效"，
-        极难查（这个坑实测踩了很久）。所以这里改成：
-          1. 先右键取消可能还举在手上的种子（清空状态，让后面的阳光差值干净）
-          2. 点卡，比较点卡前后的阳光 —— **掉了多少就是真实成本**，记进 PlantBook
-          3. 没掉 = 游戏拒绝了这张卡（太贵/冷却）→ 记下成本下界，这轮不点格子
-        """
+        """Verify fresh context, picked card, then the actual placement and followup."""
+        # Normal and fast-fill actions share the execution-time rescue path.
+        decision_record = record.setdefault('decision', {})
+        decision_record.setdefault('action_id', dec.action_id)
+        decision_record.setdefault('hold', dec.hold)
+        decision_record.setdefault('fallback', dec.fallback)
         assert self.clicker and self.layout
         record.setdefault('timing',{})['execution_started_at'] = time.time()
         # ★★ 兜底闸（2026-09-26 第二次修复）：**只在"时钟确实在走"时才注入点击。**
@@ -1020,24 +1039,13 @@ class PvZJevAgent:
 
         self.layout.configure_board(chk)
         record['executed_candidate']=asdict(cand)
-        geometry = (chk.scene,chk.rows,self.layout.client_w,self.layout.client_h,
-                    self.layout.grid_left,self.layout.grid_top,self.layout.cell_w,self.layout.row_height())
         # 屋顶坡度 per-row 修正（自学习，见 placement 校准块）
         dx = (self._roof_row_dx.get(cand.row, 0) if chk.scene == 4 else 0)
         x,y = self.layout.cell_center(cand.row,cand.col,dx)
-        # 种歪熔断带 45s TTL（2026-09-30 屋顶实测：一次误判瘫痪整局 ——
-        # seq16 起连续 10 轮 blocked_geometry，什么都不种）。熔断是止血，
-        # 不是判决：给自愈窗口让后续读数/校准重建信任。
-        fuse = self._geometry_error
-        if isinstance(fuse, tuple):
-            if time.time() - fuse[1] > 45.0:
-                self._geometry_error = None
-                fuse = None
-                getattr(self, 'log_event', lambda *a, **k: None)('geometry_fuse_cleared')
-            else:
-                fuse = fuse[0]
-        if (fuse is not None and fuse == geometry) or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
-            record['executed'] = {'kind':'blocked_geometry','note':'落点越界或已发现种歪；重新校准并重启后再种植'}
+        from .geometry import geometry_blocked
+        if geometry_blocked(self, chk, cand.row, cand.col) or not (0 <= x < self.layout.client_w and 0 <= y < self.layout.client_h):
+            record['executed'] = {'kind':'blocked_geometry','cell':[cand.row,cand.col],
+                                  'note':'落点越界或该位置已确认种歪；其余位置仍可行动'}
             return
         # 2026-09-27 泛化：4=屋顶、5=特殊场景加入白名单（此前屋顶被拒种，
         # agent 只捡阳光不防守 —— 用户实测）。未知 scene 仍然拒绝。
@@ -1217,24 +1225,17 @@ class PvZJevAgent:
         if chk.scene == 4 and misplaced and not placed:
             calibrated = self._calibrate_roof_offset(cand.row, cand.col, misplaced, mid, after)
             if calibrated:
-                self._geometry_error = None
+                # A bounded x shift is not proof that an earlier vertical or
+                # cross-lane miss was repaired. Keep existing confirmed faults.
                 self._bad_cells.pop((cand.type_id, cand.row, cand.col), None)
                 record.setdefault('warnings', []).append(
                     f'Limited roof correction on lane {cand.row + 1}: offset {self._roof_row_dx[cand.row]:+.0f} base px; slope geometry remains unverified.')
         if misplaced and not placed and not calibrated:
-            # ★ 阳光扣款 = 放置的铁证（点卡不扣、放置才扣，见 offsets 注释）。
-            #   2026-09-30 屋顶实测：连锁第一步（花盆 75）落偏一格 —— 钱已扣、
-            #   植物在场上，却被判"种歪"触发 _geometry_error 全局熔断，此后
-            #   连续 10 轮 blocked_geometry，什么都不种。扣了钱就只记告警、
-            #   不熔断（下一轮读数自会发现真实位置）。
-            charged = (sun0 is not None and getattr(after, 'sun', None) is not None
-                       and 0 < sun0 - after.sun)
-            if charged:
-                record.setdefault('warnings', []).append(
-                    f'Sun was charged ({sun0}->{after.sun}) though no new plant at the '
-                    'target cell: treating as a misplant, geometry fuse NOT blown.')
-            else:
-                self._geometry_error = (geometry, time.time())
+            from .geometry import record_geometry_failure
+            record_geometry_failure(self, after, cand.row, cand.col)
+            record.setdefault('warnings', []).append(
+                f'Confirmed misplant at {misplaced}; blocked only the intended cell '
+                f'{target}. Charged sun does not confirm the intended placement.')
         # 成本在**放置**这一刻才扣（实测 865 -> 740 = 125，正好是豌豆射手）。
         # 所以这里量的才是真实成本；顺便把"点卡不扣阳光"这件事变成证据留档。
         spent = None
@@ -1658,7 +1659,7 @@ class PvZJevAgent:
                     self.execute(dec, record, board)
                     # ★ 富余期快速补种（用户硬约束：种植速度要快）——
                     #   上一株成功且阳光≥400 时连续补种便宜的产阳光/防御卡。
-                    if (record.get('executed') or {}).get('placed') and not dec.hold:
+                    if self.action_completed(record) and not dec.hold:
                         self.rapid_fill(board)
                     if dec.fallback:
                         self.stats.fallbacks += 1

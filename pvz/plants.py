@@ -813,6 +813,11 @@ class PlantBook:
 
     def describe(self, type_id: int) -> dict:
         ent = self.kb_by_id.get(type_id)
+        unverified = bool(ent and any(
+            source.get('confidence') not in ('user_confirmed', 'runtime_confirmed', 'version_verified')
+            and not _confirmed(ent.raw, key)
+            for key, source in (ent.raw.get('field_sources') or {}).items()
+            if key.split('.')[0] in ('cost', 'hp', 'cooldown_s', 'combat')))
         reference = bool(ent and str(type_id) in self.domain_knowledge.get('plants', {})
                          and type_id not in self._catalog_profiles
                          and type_id not in self.bound_ids.values())
@@ -832,7 +837,7 @@ class PlantBook:
             "registered": self.is_known(type_id),
             "bound": type_id in self.kb_by_id,
             "knowledge_status": "mechanics_reference" if reference else "mechanics_present" if ent else "identity_only" if self.identity(type_id) else "unknown",
-            "source_confidence": 'classic_reference_unverified' if reference else None,
+            "source_confidence": 'classic_reference_unverified' if reference or unverified else None,
         }
 
     def unregistered_ids(self, ids) -> list[int]:

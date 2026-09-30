@@ -1,5 +1,7 @@
 """Shared, deterministic tactical facts. Scores are heuristics, not predicted DPS."""
 import time
+from dataclasses import replace
+from .board import Plant
 
 from .plants import T_WALL, T_SHOOTER, T_TRACKING, T_PRODUCER, T_TEMPORARY, T_TORCH
 
@@ -49,6 +51,61 @@ def coverage_lanes(book, type_id):
     if count is None and isinstance(profile.get('row_radius'), int):
         count = 2 * profile['row_radius'] + 1
     return count if isinstance(count, int) and count in (1, 3, 5) else 1
+
+
+def deployment_invalid_reason(board, book, type_id, row):
+    """Shared tactical constraints, including replacement and support followups."""
+    tags = book.tags(type_id)
+    combat = book.combat(type_id)
+    if (combat.get('day_sleeper') or combat.get('sleeps_by_day')) and board.scene in (0, 2, 4):
+        return 'plant sleeps on this daytime map'
+    if (T_SHOOTER in tags and T_TRACKING not in tags and T_TEMPORARY not in tags
+            and 'instant' not in tags and coverage_lanes(book, type_id) > 1
+            and book.range_cells(type_id) is None and row not in (1, board.rows - 2)):
+        return 'multi-lane shooter requires an interior coverage lane'
+    return None
+
+
+def support_slots(board, book, type_id, row, col):
+    """Ready supports whose simulated stack actually accepts the intended body."""
+    if (not board.needs_platform(row, type_id, book)
+            or (row, col) in board.occupancy()
+            or board.placement_blocked(row, col) or board.snow_blocked(row, col)):
+        return []
+    result = []
+    for s in board.slots:
+        if (not s.ready or not book.has_tag(s.type_id, 'platform')
+                or book.cost(s.type_id) is None
+                or not board.can_plant(row, col, s.type_id, book)):
+            continue
+        supported = replace(board, plants=list(board.plants) + [Plant(-1, row, col, s.type_id)])
+        if supported.can_plant(row, col, type_id, book):
+            result.append(s)
+    return sorted(result, key=lambda s: (book.cost(s.type_id), s.index))
+
+
+def complete_plant_cost(board, book, type_id, row, col):
+    cost = book.cost(type_id)
+    if cost is None or deployment_invalid_reason(board, book, type_id, row):
+        return None
+    if board.can_plant(row, col, type_id, book):
+        return cost
+    pads = support_slots(board, book, type_id, row, col)
+    return cost + book.cost(pads[0].type_id) if pads else None
+
+
+def attack_placements(board, book, type_id, row, *, require_targets=False):
+    """Deployable cells and full prices, respecting adjacent lane targets too."""
+    radius = coverage_lanes(book, type_id) // 2
+    targets = (list(board.zombies) if book.has_tag(type_id, T_TRACKING) else
+               [z for r in range(max(0, row-radius), min(board.rows, row+radius+1))
+                for z in board.zombies_in_lane(r)])
+    targets = [z for z in targets if not z.friendly]
+    if require_targets and not targets:
+        return []
+    return [(col, cost) for col in rear_cols(board, book, row, type_id=type_id)
+            if (not targets or any(can_hit(book, type_id, row, col, z) for z in targets))
+            and (cost := complete_plant_cost(board, book, type_id, row, col)) is not None]
 
 
 def lane_dps(book, type_id):
@@ -342,17 +399,24 @@ def saving_plan(board, book):
     if no_critical and not any(
             book.has_tag(p.type_id,T_TORCH) for p in board.plants):
         corn = min((s for s in board.slots
-                    if s.ready and coverage_lanes(book, s.type_id) > 1
+                    if s.ready and book.has_tag(s.type_id, T_SHOOTER)
+                    and not book.has_tag(s.type_id, T_TEMPORARY)
+                    and not book.has_tag(s.type_id, 'instant')
+                    and not deployment_invalid_reason(board, book, s.type_id, 1)
+                    and coverage_lanes(book, s.type_id) > 1
                     and book.range_cells(s.type_id) is None
                     and (book.cost(s.type_id) or 999) <= 300),
                    key=lambda s: (book.cost(s.type_id) or 999), default=None)
         if corn is not None:
             cost = book.cost(corn.type_id)
             allowed_rows = (1, board.rows - 2)
-            on_duty = sum(1 for p in board.plants
+            on_duty = {p.row for p in board.plants
                           if p.type_id == corn.type_id and not p.asleep
-                          and p.hp != 0 and p.row in allowed_rows)
-            if on_duty < 2:
+                          and p.hp != 0 and p.row in allowed_rows}
+            placements = [(r, c, price) for r in allowed_rows if r not in on_duty
+                          for c, price in attack_placements(board, book, corn.type_id, r)]
+            if placements:
+                cost = min(p[2] for p in placements)
                 return dict(type_id=corn.type_id, slot=corn.index,
                             plant=book.en(corn.type_id), cost=cost,
                             missing_sun=max(0, cost - (board.sun or 0)),
@@ -380,10 +444,11 @@ def saving_plan(board, book):
         if (T_SHOOTER not in tags or T_TEMPORARY in tags or
                 cost is None or cost < 300 or s.cooldown_left_frac > 0.5):
             continue
-        rows = [r for r in range(board.rows) if rear_cols(board, book, r, type_id=s.type_id) and
-                (T_TRACKING in tags or facts[r]['zombie_count']) and
-                (T_WALL not in tags or not facts[r]['blocking_walls'] or facts[r]['pressure']>0)]
-        if rows:
+        placements = [(r, c, price) for r in range(board.rows)
+                      if T_WALL not in tags or not facts[r]['blocking_walls'] or facts[r]['pressure']>0
+                      for c, price in attack_placements(board, book, s.type_id, r, require_targets=True)]
+        if placements:
+            cost = min(p[2] for p in placements)
             # 追踪卡储蓄优先（用户 2026-09-28：攻击手必须追踪优先）
             options.append((-upgrade_value(board,book,s.type_id)
                             - (30 if book.has_tag(s.type_id,T_TRACKING) else 0),

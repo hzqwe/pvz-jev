@@ -105,6 +105,29 @@ class TransactionTests(unittest.TestCase):
         self.assertTrue(any(s['step']=='followup_retargeted' for s in result['steps']))
         self.assertTrue(any(p.type_id==WALL and p.cell==(2,2) for p in g.state.plants))
         self.assertEqual(len([p for p in g.state.plants if p.type_id==PAD]),2)
+
+    def test_unrelated_geometry_fault_allows_defender_retarget(self):
+        from pvz.geometry import record_geometry_failure
+        from pvz.transactions import PlantTransaction
+        for recovered in (False, True):
+            with self.subTest(recovered=recovered):
+                g=FakeGame();g.state.sun=500
+                g.state.plants=[Plant(1,2,2,PAD),Plant(2,2,4,PAD)]
+                g.state.slots=[SeedSlot(0,WALL,0,1000)]
+                g.state.zombies=[Zombie(1,2,0,x=300,hp=1000)]
+                a=self.agent(g);a.layout.configure_board(g.state)
+                record_geometry_failure(a,g.state,3,4)
+                tx=PlantTransaction(a,g.read())
+                source=SimpleNamespace(type_id=WALL,cell=(2,4),row=2)
+                if recovered:
+                    tx.board.held_cursor=2;tx.board.held_type=WALL
+                    with patch.object(tx,'place_held') as place:
+                        tx.place_recovered(WALL,2,4,source)
+                        place.assert_called_once_with(WALL,2,2)
+                else:
+                    with patch.object(tx,'bank') as bank, patch('pvz.transactions.time.sleep'):
+                        tx.followup(WALL,2,4)
+                        bank.assert_called_once_with(WALL,2,2)
     def test_zombie_passes_destination_before_shovel_keeps_source(self):
         g=FakeGame();g.cross=True;g.state.zombies=[Zombie(0,2,0,x=650)]
         with patch('pvz.transactions.time.sleep'):
