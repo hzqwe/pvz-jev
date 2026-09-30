@@ -348,6 +348,17 @@ def lane_facts(board, row, book=None):
                             and book.zombie_flag(nearest_z.type_id, 'crush'))
     eat_dps = max([book.zombie_trait(z.type_id, 'eat_dps') or 100
                    for z in zs] or [100]) if book is not None else 100.0
+    live = [z for z in zs if z.x is not None and z.hp != 0]
+    lead = min(live, key=lambda z: z.x, default=None)
+    lead_dps = sum(target_dps(board, book, p.type_id, p.row, p.col, lead)
+                   for p in board.plants if not p.asleep and p.hp != 0
+                   and not book.has_tag(p.type_id, T_TEMPORARY)) if book and lead else 0.0
+    lead_hp = ((lead.hp if lead.hp is not None else 270) + (lead.armor_hp or 0)) if lead else None
+    kill_s = lead_hp / lead_dps if lead and lead_dps > 0 else None
+    walk_s = max(0, lead.x) / max(12, book.zombie_trait(lead.type_id, 'speed_px_s') or 0) if book and lead else None
+    # Walls delay loss; they do not supply lasting damage. Compare damage to the
+    # lead enemy with a conservative unblocked travel estimate, not plant count.
+    needs_fire = bool(lead and (lead_dps <= 0 or walk_s is not None and kill_s > walk_s))
     return dict(lane=row + 1, zombie_count=len(zs), nearest_zombie_x=nx,
                 nearest_closeness=level, plant_count=len(ps), threat_level=level,
                 priority=round(priority, 2), zombie_strength=round(power, 2),
@@ -355,7 +366,11 @@ def lane_facts(board, row, book=None):
                 blocking_walls=walls,
                 mower_available=mower, pressure=round(pressure, 2),
                 ranged_zombies=ranged, crush_zombies=crush, eat_dps=eat_dps,
-                nearest_is_crush=nearest_is_crush)
+                nearest_is_crush=nearest_is_crush,
+                lead_dps_estimate=round(lead_dps, 2),
+                lead_kill_s_estimate=round(kill_s, 1) if kill_s is not None else None,
+                unblocked_walk_s_estimate=round(walk_s, 1) if walk_s is not None else None,
+                needs_firepower=needs_fire)
 
 
 def saving_plan(board, book):

@@ -20,7 +20,7 @@ from .catalog import version_from_title
 from .knowledge import audit_book
 from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate
 from .serialize import COL_LABEL, build_state, render_text, board_snapshot
-from .tactics import cell_x
+from .tactics import cell_x, lane_facts
 from .transactions import run_transaction
 from .control import GameInputOwner, OwnedClicker, InputOwnershipError
 from .ui import Clicker, Layout, SunTracker, collect_suns, find_pause_resume, grab, memory_sun_positions
@@ -634,6 +634,12 @@ class PvZJevAgent:
             b = self.reader.read()
             if not b.ok or not getattr(self, '_responsive', False) or (b.sun or 0) < 400:
                 return
+            facts = [lane_facts(b, r, self.book) for r in range(b.rows)]
+            if any(f['threat_level'] == 'critical' or (f['needs_firepower'] and
+                   (f['threat_level'] == 'high' or
+                    f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] < 560))
+                   for f in facts):
+                return  # The main decision must rescue or repair the weak lane first.
             cs = generate_candidates(b, self.book)
             pick = None
             for c in cs:

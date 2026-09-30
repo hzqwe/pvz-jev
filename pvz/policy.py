@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import SimpleNamespace
 
 from .board import BoardState
@@ -51,6 +51,27 @@ def replacement_safety_reason(board, book, source, replacement_type, facts=None,
     facts = facts or [lane_facts(board, r, book) for r in range(board.rows)]
     if any(f['threat_level'] == 'critical' for f in facts):
         return 'upgrade would delay a critical lane rescue'
+    if intent == 'combat':
+        cost = book.cost(replacement_type)
+        if (not stable_sun_producer(book, source.type_id)
+                or book.has_tag(source.type_id, T_SHOOTER)
+                or book.has_tag(source.type_id, T_PLATFORM)
+                or (book.cost(source.type_id) or 10**9) > 200
+                or source.asleep or source.recently_eaten or source.hp is None or source.hp <= 0):
+            return 'combat replacement source is not a stable cheap producer'
+        if economy_summary(board, book)['producer_count'] < ECON_TARGET:
+            return 'combat replacement would dismantle the starting economy'
+        nearest = facts[source.row]['nearest_zombie_x']
+        if nearest is None or nearest - cell_x(source.col) < 160:
+            return 'enemy too close for the shovel-and-plant transaction'
+        if cost is None or cost < 300 or cost > (board.sun or 0):
+            return 'premium attacker is not fully funded'
+        lead = min((z for z in board.zombies_in_lane(source.row)
+                    if z.x is not None and z.hp != 0), key=lambda z: z.x, default=None)
+        if (not facts[source.row]['needs_firepower'] or lead is None
+                or target_dps(board, book, replacement_type, source.row, source.col, lead) < 10):
+            return 'replacement does not add reachable sustained firepower'
+        return None
     nearest = facts[source.row]['nearest_zombie_x']
     if nearest is not None and nearest <= 560:
         return 'enemy entered the replacement safety window'
@@ -230,6 +251,83 @@ def _free_cols(board: BoardState, occ, row: int, lo: int, hi: int) -> list[int]:
     return [c for c in range(max(0, lo), hi + 1) if (row, c) not in occ]
 
 
+def combat_repair_options(board, book, facts):
+    """One reachable premium improvement per weak lane, plus its near-term budget.
+
+    The reserve is for a concrete ready card at a legal cell. Never rely on a
+    shovel refund or remove an income plant before the full price is available.
+    """
+    if economy_summary(board, book)['producer_count'] < ECON_TARGET or any(
+            f['threat_level'] == 'critical' for f in facts):
+        return [], None
+    repairs, budgets = [], []
+    for r in sorted(range(board.rows), key=lambda r: facts[r]['nearest_zombie_x'] or 9999):
+        f = facts[r]
+        if not f['needs_firepower'] or not (f['threat_level'] == 'high'
+                or f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] < 560):
+            continue
+        lead = min((z for z in board.zombies_in_lane(r) if z.x is not None and z.hp != 0),
+                   key=lambda z: z.x, default=None)
+        if lead is None: continue
+        options = []
+        sources = [p for p in board.plants_in_lane(r)
+                   if stable_sun_producer(book, p.type_id)
+                   and not book.has_tag(p.type_id, T_SHOOTER)
+                   and not book.has_tag(p.type_id, T_PLATFORM)
+                   and (book.cost(p.type_id) or 10**9) <= 200]
+        for s in board.slots:
+            tid, cost = s.type_id, book.cost(s.type_id)
+            if (not s.ready or cost is None or cost < 300
+                    or not book.has_tag(tid, T_SHOOTER)
+                    or any(book.has_tag(tid, t) for t in (T_INSTANT, T_TEMPORARY))
+                    or deployment_invalid_reason(board, book, tid, r)):
+                continue
+            for col in rear_cols(board, book, r, type_id=tid):
+                price = complete_plant_cost(board, book, tid, r, col)
+                gain = target_dps(board, book, tid, r, col, lead)
+                if price is None or gain < 10: continue
+                if board.can_plant(r, col, tid, book):
+                    c = Candidate('', 'plant', r, col, s.index, tid, tags=book.tags(tid),
+                                  covers=(r,), replacement_intent='combat')
+                else:
+                    pads = support_slots(board, book, tid, r, col)
+                    if not pads: continue
+                    pad = pads[0]
+                    c = Candidate('', 'plant', r, col, pad.index, pad.type_id,
+                                  tags=book.tags(pad.type_id), supports_type=tid,
+                                  covers=(r,), replacement_intent='combat')
+                options.append((gain, price, c))
+            for p in sources:
+                if not board.can_replace(p, tid, book): continue
+                # Same source/threat checks as execution, with only the future
+                # price funded hypothetically for computing the saving target.
+                funded = replace(board, sun=max(board.sun or 0, cost))
+                if replacement_safety_reason(funded, book, p, tid, facts, intent='combat'):
+                    continue
+                gain = target_dps(board, book, tid, r, p.col, lead)
+                c = Candidate('', 'shovel', r, p.col, type_id=p.type_id,
+                              tags=book.tags(p.type_id), covers=(r,), salvage=True,
+                              hp=p.hp, source_index=p.index, replacement_type=tid,
+                              replacement_intent='combat')
+                options.append((gain, cost, c))
+        if options:
+            budgets.append(min(price for _, price, _ in options))
+            funded = [o for o in options if o[1] <= (board.sun or 0)]
+            if funded:
+                gain, price, c = max(funded, key=lambda o: (
+                    o[0], o[2].kind == 'plant', -o[1], -o[2].col))
+                tid = c.replacement_type if c.replacement_type is not None else (
+                    c.supports_type if c.supports_type is not None else c.type_id)
+                c.score = 350 + min(200, gain) + f['priority'] * .4
+                c.why = (f'Weak-lane firepower: lane {r+1} has only {f["lead_dps_estimate"]} '
+                         f'estimated dps against its lead enemy. Add {book.en(tid)} for '
+                         f'+{gain:.1f} reachable dps; full cost {price}. '
+                         + ('Shovel the cheap income plant and immediately replace it; preserve its platform.'
+                            if c.kind == 'shovel' else 'Fill sustained attack before more passive walls or income.'))
+                repairs.append(c)
+    return repairs, min(budgets) if budgets else None
+
+
 # ---------------------------------------------------------------- 候选生成
 def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     """Enumerate role-aware placements; keep distinct plants competing for a cell."""
@@ -249,6 +347,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     calm_fill = (calm or develop) and sun >= 600
     producers = economy_summary(board,book)['producer_count']
     plan = saving_plan(board, book)
+    fire_repairs, fire_budget = combat_repair_options(board, book, facts)
     candidates = []
 
     # 女王开局硬约束的配套逃生口（2026-09-26，对照基线修正）：储蓄期内出现
@@ -419,7 +518,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             for r in sorted(quiet, key=lambda r: facts[r]['priority']):
                 if facts[r]['threat_level'] == 'critical':
                     continue
-                cols = [c for c in range(0, 4)
+                cols = [c for c in rear_cols(board, book, r, producer=True, type_id=tid)
                         if (r, c) not in occ
                         and board.can_plant(r, c, tid, book)
                         and (nx_any is None or cell_x(c) + 35 < nx_any)
@@ -732,6 +831,8 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             # have already been evaluated above.
             if not stable_sun_producer(book, tid):
                 continue
+            if fire_budget is not None and producers >= ECON_TARGET and sun - cost < fire_budget:
+                continue  # Concrete weak-lane attack saving beats repeated income purchases.
             # 产阳光上限：常规 2株/行；阳光充裕的平静期（calm_fill）放宽到
             # 4株/行 —— 用户要求把前四列种满、不许发呆（多种向日葵不亏）。
             producer_cap = max(6, board.rows*2) + (board.rows*2 if calm_fill else 0)
@@ -1056,6 +1157,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 book.tags(d.type_id), False, (row,), drop_index=d.index,
             ))
 
+    candidates.extend(fire_repairs)
     # Keep rescue choices first, then rank useful alternatives. Per-type cap prevents flooding.
     candidates.sort(key=lambda c: (not c.emergency,-c.score,c.row,c.col))
     selected, seen, counts = [], set(), {}
@@ -1069,7 +1171,18 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             represented.add(capability)
         else:
             alternatives.append(c)
-    for c in first + alternatives:
+    # Rescue diversity precedes per-card caps: a larger cluster must not hide
+    # the same bomb's only placement reaching a closer house threat.
+    rescue_first = []
+    urgent_burst = choose_urgent_burst(candidates, board, book)
+    if urgent_burst is not None: rescue_first.append(urgent_burst)
+    for r in sorted((r for r in range(board.rows) if facts[r]['threat_level'] == 'critical'),
+                    key=lambda r: facts[r]['nearest_zombie_x'] or 9999):
+        c = choose_emergency(candidates, board, book, rows=(r,))
+        if c is not None: rescue_first.append(c)
+    # Funded repairs were built in proximity order. Preserve the nearest weak
+    # lane before the same card's distant high-strength placements consume its cap.
+    for c in rescue_first + fire_repairs + first + alternatives:
         key = candidate_key(c)
         capability = (c.kind,c.type_id,c.supports_type)
         if key in seen or counts.get(capability,0) >= MAX_PER_TYPE:
@@ -1146,10 +1259,15 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "when safe. A listed cheap recurring sun producer is permitted investment, not "
                 "wasteful spending: grow toward economy_policy.target_producers even with zombies "
                 "on the lawn, provided its rear cell is safe. Enemy presence alone does not justify "
-                "waiting or stopping economy. Complete an affordable opening defence first. Rescue near-house "
+                "waiting or stopping economy. Once starting income is established, repair pressured lanes "
+                "whose needs_firepower is true before adding income or passive walls. Check lead_dps_estimate "
+                "and whether the attack reaches the leading zombie: several walls alone cannot kill it. "
+                "Prefer an effective ash plant for the nearest urgent house threat, then a ready premium "
+                "attacker on the weak lane. Complete an affordable opening defence first. Rescue near-house "
                 "threats first, especially without a mower. Do not assume unknown mower status is safe. "
-                "Shovel options state whether they salvage sun or recover a reusable seed card; choose one only "
-                "when reclaiming it now clearly beats letting zombies destroy it. "
+                "Shovel options may salvage sun, recover a reusable wall, or replace cheap income with "
+                "a funded attacker. A combat replacement preserves its platform and must retain enough "
+                "distance to complete the operation; never remove income before its replacement is ready. "
                 "Be careful with long-cooldown one-shot plants "
                 "when the board is still calm."
             ),
@@ -1163,8 +1281,9 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "would leave the sun reserve too low for an imminent emergency. Honor saving_plan "
                 "when safe. A quiet board still needs economy and missing-lane defence; do not hoard "
                 "surplus sun indefinitely. Never hold if a listed rescue can address a near-house threat. "
-                "Never hold while a cheap sun producer (sunflower) is listed as an option: economy "
-                "growth IS the saving plan - sunflowers pay for the upgrade you are waiting for."
+                "Prefer listed safe cheap income while establishing economy, except when immediate rescue "
+                "or pressured weak-lane firepower needs the budget. Do not wait when a funded combat repair "
+                "or effective nearest-house rescue is available."
             ),
             "criteria": {"true": "yes - hold and save the sun", "false": "no - spend sun now"},
         },
@@ -1240,6 +1359,50 @@ def rescue_is_effective(candidate, board, book):
     return False
 
 
+def choose_emergency(candidates, board, book, *, rows=None):
+    """Closest addressable house threat first, then ash, control, and blockers."""
+    facts = [lane_facts(board, r, book) for r in range(board.rows)]
+    critical = sorted((r for r in (rows if rows is not None else range(board.rows))
+                       if facts[r]['threat_level'] == 'critical'),
+                      key=lambda r: facts[r]['nearest_zombie_x'] or 9999)
+    for r in critical:
+        choices = [c for c in candidates if c.emergency
+                   and r in c.covers and rescue_is_effective(replace(c, covers=(r,)), board, book)]
+        if not choices: continue
+        def rank(c):
+            tid = c.supports_type if c.supports_type is not None else c.type_id
+            ash = (book.has_tag(tid, T_INSTANT) or book.has_tag(tid, T_SPLASH3))
+            group = (1 if book.has_tag(tid, T_GLOBAL_FREEZE) else 0) if ash else 2
+            return group, -c.score
+        return min(choices, key=rank)
+    return next((c for c in candidates if c.emergency), None) if rows is None else None
+
+
+def choose_urgent_burst(candidates, board, book):
+    """Finish a nearby weak lane's lead threat before a slower permanent upgrade."""
+    facts = [lane_facts(board, r, book) for r in range(board.rows)]
+    rows = sorted((r for r, f in enumerate(facts) if f['needs_firepower']
+                   and f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] <= 320),
+                  key=lambda r: facts[r]['nearest_zombie_x'])
+    for r in rows:
+        lead = min((z for z in board.zombies_in_lane(r) if z.x is not None and z.hp != 0),
+                   key=lambda z: z.x, default=None)
+        if lead is None: continue
+        available = max(0, lead.x / max(12, book.zombie_trait(lead.type_id, 'speed_px_s') or 0) - 1)
+        choices = []
+        for c in candidates:
+            if c.kind != 'plant': continue
+            tid = c.supports_type if c.supports_type is not None else c.type_id
+            if book.has_tag(tid, T_GLOBAL_FREEZE): continue
+            if not (book.has_tag(tid, T_INSTANT) or book.has_tag(tid, T_SPLASH3)): continue
+            if (available > 1 + (1 if c.supports_type is not None else 0)
+                    and lead in burst_targets(c, board, book)
+                    and book.combat(tid).get('burst_damage', 0) >= (lead.hp or 270)+(lead.armor_hp or 0)):
+                choices.append(c)
+        if choices: return max(choices, key=lambda c: c.score)
+    return None
+
+
 def board_active(board) -> bool:
     """游戏真的在跑吗？—— 决策层唯一的"活体"判据。
 
@@ -1285,15 +1448,20 @@ def escalate_emergency(candidate, board, book, bad_cells=None):
     if board is None or not board.ok or not board_active(board):
         return None
     facts = [lane_facts(board, r, book) for r in range(board.rows)]
-    if candidate is not None and candidate.emergency and rescue_is_effective(candidate,board,book):
-        return None
     fresh = generate_candidates(board, book)
     esc = [c for c in fresh if c.emergency and c.kind in ("plant", "shovel")
            and not (bad_cells and c.kind == "plant"
                     and (c.type_id, c.row, c.col) in bad_cells)]
     if esc and any(f['threat_level']=='critical' for f in facts):
         esc.sort(key=lambda c: (-c.score, c.row, c.col))
-        return esc[0]
+        rescue = choose_emergency(esc, board, book)
+        if candidate is not None and rescue is not None and candidate_key(candidate) == candidate_key(rescue):
+            return None
+        return rescue
+    burst = choose_urgent_burst([c for c in fresh if not (bad_cells and c.kind == 'plant'
+                                and (c.type_id, c.row, c.col) in bad_cells)], board, book)
+    if burst is not None:
+        return None if candidate is not None and candidate_key(candidate) == candidate_key(burst) else burst
     recovery = next((c for c in fresh if c.crush_recovery), None)
     if recovery is not None and (candidate is None or candidate_key(candidate)!=candidate_key(recovery)):
         return recovery
@@ -1426,7 +1594,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
     plants = sorted((c for c in valid if c.kind in ('plant', 'shovel', 'pick')),
                     key=lambda c:(not c.emergency,-c.score))
     best = plants[0] if plants else wait
-    emergency = next((c for c in plants if c.emergency),None)
+    emergency = choose_emergency(plants, board, book)
     d = Decision()
     if resp is None or not resp.ok:
         d.fallback = True
@@ -1462,10 +1630,10 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             d.notes.append('Missing, stale or invalid action; revalidated fallback.')
         if hold and hold.noul is not None and hold.noul >= HOLD_THRESHOLD and not emergency:
             chosen = wait
-        if emergency and (chosen.kind == 'wait' or not chosen.emergency):
-            chosen = emergency
-            d.fallback = True
-            d.notes.append('Immediate house threat overrides waiting or unrelated spending.')
+    if emergency and candidate_key(chosen) != candidate_key(emergency):
+        chosen = emergency
+        d.fallback = True
+        d.notes.append('Closest addressable house threat first: prefer effective ash before control or blocking.')
     plan = saving_plan(board, book)
     # ★★ 零防线路禁等（2026-09-26 泳池局实战教训）：L6 僵尸 223px、零墙零射手、
     #    小推车状态未知，模型却选了 wait（conf 0.6），8 秒后僵尸进门。"危急"
@@ -1509,6 +1677,19 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             chosen = upgrade
             d.fallback = True
             d.notes.append('Saving target is affordable and ready; complete the upgrade instead of waiting indefinitely.')
+    urgent_burst = choose_urgent_burst(plants, board, book) if not emergency else None
+    if urgent_burst is not None:
+        chosen = urgent_burst
+        d.fallback = True
+        d.notes.append('Effective ash clears the nearest pressured weak lane before a slower firepower repair.')
+    repair = next((c for c in sorted(plants, key=lambda c: (
+                      lane_facts(board, c.row, book)['nearest_zombie_x'] or 9999, -c.score))
+                   if c.replacement_intent == 'combat'), None) if not emergency and not urgent_burst else None
+    if repair is not None and not any(lane_facts(board, r, book)['threat_level'] == 'critical'
+                                     for r in range(board.rows)):
+        chosen = repair
+        d.fallback = True
+        d.notes.append('Weak-lane sustained firepower takes priority over further income, passive walls or stronger-lane stacking.')
     # Early economy must also beat optional remote wall purchases, not just
     # model waits. Full-price platform+wall actions can consume the next income
     # purchase even when their defender's card alone is cheap.
@@ -1579,7 +1760,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             chosen=tidy
             d.notes.append('Move an idle rear reusable wall forward using verified recovery.')
     recovery = next((c for c in plants if c.crush_recovery),None)
-    if recovery is not None and not chosen.emergency and chosen is not recovery:
+    if recovery is not None and not chosen.emergency and urgent_burst is None and chosen is not recovery:
         chosen=recovery
         d.fallback=True
         d.notes.append('Confirmed crusher approaching reusable wall: recover before instant loss; house rescue retains priority.')

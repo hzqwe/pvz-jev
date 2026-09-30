@@ -192,7 +192,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         "economy_policy": {
             "target_producers": max(6, board.rows * 2),
             "priority": "Build recurring sun income in safe rear cells through manageable waves; enemy presence alone is not a reason to stop.",
-            "exceptions": "House rescue and an affordable opening defence come first; only listed legal cheap producer actions may bypass waiting."
+            "exceptions": "House rescue, opening defence and pressured weak-lane firepower come first. Walls do not replace sustained attack; save for a concrete premium repair when starting income is established."
         },
         "relationships": relationship_summary(board, book, limit=8),
         "domain_context": domain_context(board, book),
@@ -202,7 +202,7 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             "enemy_notes": playbook.get("enemy_notes_en") or [],
         },
         "saving_plan": saving_plan(board, book),
-        "assessment_note": "Pressure/support are heuristic estimates, not measured DPS or time-to-kill. Mower null means unknown.",
+        "assessment_note": "Pressure/support and lead DPS/kill/walk times are planning estimates, not simulation. Unblocked travel ignores walls and control; tracking fire is shared across all enemies. Mower null means unknown.",
         "empty_cell_count": len(board.empty_cells()),
         "unregistered_plant_ids": book.unregistered_ids(
             [p.type_id for p in board.plants] + [s.type_id for s in board.slots]
