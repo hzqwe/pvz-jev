@@ -1143,7 +1143,10 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "placed, and why the code thinks it is worth considering. Prefer the action "
                 "that best answers the most dangerous lane; prefer cheaper plants when the "
                 "sun reserve is small ONLY if that solves the actual danger. Follow saving_plan "
-                "when safe; avoid repeated cheap spending that delays its target. Rescue near-house "
+                "when safe. A listed cheap recurring sun producer is permitted investment, not "
+                "wasteful spending: grow toward economy_policy.target_producers even with zombies "
+                "on the lawn, provided its rear cell is safe. Enemy presence alone does not justify "
+                "waiting or stopping economy. Complete an affordable opening defence first. Rescue near-house "
                 "threats first, especially without a mower. Do not assume unknown mower status is safe. "
                 "Shovel options state whether they salvage sun or recover a reusable seed card; choose one only "
                 "when reclaiming it now clearly beats letting zombies destroy it. "
@@ -1375,6 +1378,37 @@ def action_is_current(candidate, board, book):
     return action_invalid_reason(candidate,board,book) is None
 
 
+def economy_growth_candidate(candidates, board, book):
+    """A safe cheap income purchase needs no arbitrary leftover-sun floor.
+
+    Only consider current legal candidates: their generation already enforces
+    opening reservations, terrain, support, cooldown and placement constraints.
+    Global pressure is not the safety of this particular rear cell.
+    """
+    target = max(6, board.rows * 2)
+    if economy_summary(board, book)['producer_count'] >= target:
+        return None
+    facts = [lane_facts(board, r, book) for r in range(board.rows)]
+    if any(f['threat_level'] == 'critical' for f in facts):
+        return None  # Preserve the existing house rescue / sacrificial stall path.
+    options = []
+    for c in candidates:
+        if c.kind != 'plant' or c.intercept:
+            continue
+        tid = c.supports_type if c.supports_type is not None else c.type_id
+        cost = book.cost(tid)
+        if not stable_sun_producer(book, tid) or cost is None or cost > 200:
+            continue
+        f = facts[c.row]
+        if (f['threat_level'] == 'high' and not f['blocking_walls']
+                and f['nearest_zombie_x'] is not None and f['nearest_zombie_x'] < 320):
+            continue
+        if action_invalid_reason(c, board, book) is None:
+            options.append(c)
+    return min(options, key=lambda c: (c.total_cost(book), facts[c.row]['priority'],
+                                      c.col, -c.score)) if options else None
+
+
 def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: PlantBook) -> Decision:
     active = board_active(board)
     fresh = {candidate_key(c): c for c in generate_candidates(board,book)} if board.ok and active else {}
@@ -1475,6 +1509,15 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             chosen = upgrade
             d.fallback = True
             d.notes.append('Saving target is affordable and ready; complete the upgrade instead of waiting indefinitely.')
+    if chosen.kind == 'wait':
+        growth = economy_growth_candidate(plants, board, book)
+        if growth is not None:
+            chosen = growth
+            d.fallback = True
+            count = economy_summary(board, book)['producer_count']
+            d.notes.append(f'Economy growth: {count}/{max(6,board.rows*2)} producers; '
+                           'safe rear income must not wait merely because zombies are present '
+                           'or an upgrade is being saved for. Complete support cost is affordable.')
     # Bounded development: fill missing economy/firepower/walls, never arbitrary spending.
     # Reuse freshly validated candidates; reserve applies even when the model says wait.
     if chosen.kind == 'wait' and not plan and plants:

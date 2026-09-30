@@ -189,6 +189,11 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
         "lanes": lanes,
         "seed_cards": seeds,
         "economy": economy_summary(board,book),
+        "economy_policy": {
+            "target_producers": max(6, board.rows * 2),
+            "priority": "Build recurring sun income in safe rear cells through manageable waves; enemy presence alone is not a reason to stop.",
+            "exceptions": "House rescue and an affordable opening defence come first; only listed legal cheap producer actions may bypass waiting."
+        },
         "relationships": relationship_summary(board, book, limit=8),
         "domain_context": domain_context(board, book),
         "mower_diagnostics": dict(getattr(board, 'mower_diagnostics', {}) or {}),
