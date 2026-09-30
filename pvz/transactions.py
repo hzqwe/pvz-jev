@@ -5,6 +5,7 @@ from .geometry import geometry_blocked, record_geometry_failure
 from .board import placement_delta
 from .tactics import cell_x,relocation_target,crusher_approaching
 from .serialize import board_snapshot
+from .plants import T_INSTANT, T_GLOBAL_FREEZE, T_SPLASH3
 
 class TransactionStopped(RuntimeError):
     pass
@@ -42,7 +43,16 @@ class PlantTransaction:
         if not b.can_plant(row,col,tid,self.agent.book):
             raise TransactionStopped('Destination no longer plantable')
         nx=min((z.x for z in b.zombies_in_lane(row) if z.x is not None),default=9999)
-        if cell_x(col)>nx+40:
+        area_effect = any(self.agent.book.has_tag(tid, tag)
+                          for tag in (T_INSTANT, T_GLOBAL_FREEZE, T_SPLASH3))
+        if area_effect:
+            # A blast can reach enemies behind its planted cell. Share policy's
+            # actual coverage check instead of applying a wall's intercept rule.
+            from .policy import Candidate, burst_targets
+            if not burst_targets(Candidate('', 'plant', row, col, type_id=tid),
+                                 b, self.agent.book):
+                raise TransactionStopped('No targets remain in effect range')
+        elif cell_x(col)>nx+40:
             raise TransactionStopped('Zombie has passed destination')
         self.agent.layout.configure_board(b)
         if geometry_blocked(self.agent, b, row, col):

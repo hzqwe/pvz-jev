@@ -1509,7 +1509,24 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             chosen = upgrade
             d.fallback = True
             d.notes.append('Saving target is affordable and ready; complete the upgrade instead of waiting indefinitely.')
-    if chosen.kind == 'wait':
+    # Early economy must also beat optional remote wall purchases, not just
+    # model waits. Full-price platform+wall actions can consume the next income
+    # purchase even when their defender's card alone is cheap.
+    effective_tid = chosen.supports_type if chosen.supports_type is not None else chosen.type_id
+    optional_wall = False
+    if (chosen.kind == 'plant' and not chosen.emergency and not chosen.intercept
+            and book.has_tag(effective_tid, T_WALL)
+            and not stable_sun_producer(book, effective_tid)
+            and economy_summary(board, book)['producer_count'] < ECON_TARGET
+            and not (plan and effective_tid == plan['type_id'])):
+        f = lane_facts(board, chosen.row, book)
+        optional_wall = (f['threat_level'] in ('none', 'low')
+                         and (f['nearest_zombie_x'] is None or f['nearest_zombie_x'] >= 560)
+                         and not f['ranged_zombies'] and not f['crush_zombies']
+                         and not any(book.has_tag(p.type_id, T_SHOOTER)
+                                     and (book.cost(p.type_id) or 0) >= 300
+                                     for p in board.plants_in_lane(chosen.row)))
+    if chosen.kind == 'wait' or optional_wall:
         growth = economy_growth_candidate(plants, board, book)
         if growth is not None:
             chosen = growth
@@ -1518,6 +1535,9 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             d.notes.append(f'Economy growth: {count}/{max(6,board.rows*2)} producers; '
                            'safe rear income must not wait merely because zombies are present '
                            'or an upgrade is being saved for. Complete support cost is affordable.')
+            if optional_wall:
+                d.notes.append('Thin economy: build recurring income before an optional distant wall; '
+                               'near threats, crushers and protection of expensive shooters retain priority.')
     # Bounded development: fill missing economy/firepower/walls, never arbitrary spending.
     # Reuse freshly validated candidates; reserve applies even when the model says wait.
     if chosen.kind == 'wait' and not plan and plants:

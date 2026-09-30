@@ -1,0 +1,4645 @@
+[
+  {
+    "source_log": "decisions_20260930_224554.jsonl",
+    "line": 9,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 180,
+      "game_clock": 3197,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 4,
+          "row": 3,
+          "type_id": 0,
+          "x": 658.992919921875,
+          "phase": 0,
+          "hp": 170,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "type_id": 2,
+          "x": 714.8302612304688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 280,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 0,
+          "x": 670.50634765625,
+          "phase": 0,
+          "hp": 110,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "type_id": 2,
+          "x": 684.6358642578125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 330,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 2,
+          "type_id": 2,
+          "x": 707.6401977539062,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 250,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 3199,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 3199,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 3199,
+          "cd_total": 5000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 3199,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 3199,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 3199,
+          "cd_total": 5000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "chosen": {
+      "cid": "A3",
+      "kind": "plant",
+      "row": 2,
+      "col": 5,
+      "slot": 2,
+      "type_id": 33,
+      "score": 45,
+      "why": "First place the platform (pad/pot) to support 钻石坚果 at this supported cell; Execute as a continuous pad-then-plant transaction; only the completed defender helps. Re-read and confirm both placements without another model call. Why this defender: Intercept on the house side of the zombie; shield the surviving rear plants.",
+      "tags": [
+        "platform",
+        "producer"
+      ],
+      "emergency": false,
+      "covers": [
+        2
+      ],
+      "supports_type": 233,
+      "relocate_to": null,
+      "salvage": false,
+      "crush_recovery": false,
+      "intercept": false,
+      "drop_index": null,
+      "replacement_type": null,
+      "replacement_intent": null,
+      "source_index": null,
+      "hp": null
+    }
+  },
+  {
+    "source_log": "decisions_20260930_224554.jsonl",
+    "line": 31,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 330,
+      "game_clock": 11059,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 1,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 6584,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3564,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 4,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 4,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3736,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 3,
+          "type_id": 0,
+          "x": 581.1090698242188,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "type_id": 0,
+          "x": 582.1740112304688,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 2,
+          "row": 1,
+          "type_id": 4,
+          "x": 230.5608367919922,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 626.720703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 290,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 1,
+          "type_id": 2,
+          "x": 317.96295166015625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 350,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 5,
+          "row": 1,
+          "type_id": 4,
+          "x": 664.5812377929688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1080,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 3,
+          "type_id": 2,
+          "x": 356.675537109375,
+          "phase": 0,
+          "hp": 100,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 0,
+          "type_id": 0,
+          "x": 677.7972412109375,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 0,
+          "type_id": 2,
+          "x": 150.10508728027344,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 238,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 641.594970703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1060,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "type_id": 2,
+          "x": 747.87890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 110,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 0,
+          "type_id": 0,
+          "x": 646.6880493164062,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 416,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 1276,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 2616,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 0,
+          "cd_total": 5000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "chosen": {
+      "cid": "A1",
+      "kind": "plant",
+      "row": 0,
+      "col": 2,
+      "slot": 2,
+      "type_id": 33,
+      "score": 1248.4888888888888,
+      "why": "Plant the platform (pad/pot) and immediately chain the defender onto it 阳光炸弹 at this supported cell; Execute as a continuous pad-then-plant transaction; only the completed defender helps. Re-read and confirm both placements without another model call. Why this defender: Local burst reaches 3 zombie(s); damage may not kill heavy armor. 3x3-grid burst: more zombies hit, more sun refunded.",
+      "tags": [
+        "platform",
+        "producer"
+      ],
+      "emergency": true,
+      "covers": [
+        0,
+        1
+      ],
+      "supports_type": 2,
+      "relocate_to": null,
+      "salvage": false,
+      "crush_recovery": false,
+      "intercept": false,
+      "drop_index": null,
+      "replacement_type": null,
+      "replacement_intent": null,
+      "source_index": null,
+      "hp": null
+    },
+    "followup_board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 320,
+      "game_clock": 11291,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": null,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 1,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 6552,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3564,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 4,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 4,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3736,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 3,
+          "type_id": 0,
+          "x": 581.1090698242188,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "type_id": 0,
+          "x": 573.5892333984375,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 2,
+          "row": 1,
+          "type_id": 4,
+          "x": 230.5608367919922,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 626.720703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 250,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 4,
+          "row": 1,
+          "type_id": 2,
+          "x": 307.92193603515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 270,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 5,
+          "row": 1,
+          "type_id": 4,
+          "x": 657.3694458007812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1080,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 6,
+          "row": 3,
+          "type_id": 2,
+          "x": 356.25897216796875,
+          "phase": 0,
+          "hp": 50,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 8,
+          "row": 0,
+          "type_id": 0,
+          "x": 667.4139404296875,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 9,
+          "row": 0,
+          "type_id": 2,
+          "x": 150.10508728027344,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 238,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 635.4172973632812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1060,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "type_id": 2,
+          "x": 747.87890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 70,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 12,
+          "row": 0,
+          "type_id": 0,
+          "x": 646.2086181640625,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 33,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 648,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 1508,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 2848,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 0,
+          "cd_total": 5000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "followup_error": "Zombie has passed destination"
+  },
+  {
+    "source_log": "decisions_20260930_224554.jsonl",
+    "line": 51,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 475,
+      "game_clock": 18139,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3372,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 4,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 2,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 3,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 3,
+          "col": 3,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2432,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 1404,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 32,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 2,
+          "type_id": 2,
+          "x": 613.5736083984375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "type_id": 0,
+          "x": 619.2494506835938,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 2,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.16673278808594,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 150,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.77503967285156,
+          "phase": 0,
+          "hp": 220,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "type_id": 2,
+          "x": 642.3243408203125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 4,
+          "x": 271.9538269042969,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 976,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.10728454589844,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "type_id": 0,
+          "x": 476.9878845214844,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 230.10511779785156,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 820,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 3,
+          "type_id": 4,
+          "x": 309.93109130859375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 780,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 4,
+          "type_id": 2,
+          "x": 475.76910400390625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 14,
+          "row": 2,
+          "type_id": 0,
+          "x": 638.2883911132812,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 15,
+          "row": 3,
+          "type_id": 0,
+          "x": 309.20245361328125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 17,
+          "row": 4,
+          "type_id": 0,
+          "x": 646.08984375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 18,
+          "row": 1,
+          "type_id": 2,
+          "x": 610.6085205078125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 344,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 19,
+          "row": 3,
+          "type_id": 2,
+          "x": 623.4841918945312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 20,
+          "row": 4,
+          "type_id": 2,
+          "x": 518.9324340820312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 21,
+          "row": 1,
+          "type_id": 2,
+          "x": 371.6734924316406,
+          "phase": 0,
+          "hp": 31,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 22,
+          "row": 2,
+          "type_id": 0,
+          "x": 609.1072387695312,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 23,
+          "row": 3,
+          "type_id": 0,
+          "x": 655.0646362304688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "type_id": 4,
+          "x": 631.677978515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 26,
+          "row": 1,
+          "type_id": 0,
+          "x": 643.0375366210938,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 7496,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 2926,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 2373,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 4349,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 939,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 6503,
+          "cd_total": 10000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "chosen": {
+      "cid": "A3",
+      "kind": "plant",
+      "row": 2,
+      "col": 6,
+      "slot": 2,
+      "type_id": 33,
+      "score": 487.2444444444444,
+      "why": "Plant the platform (pad/pot) and immediately chain the defender onto it 阳光炸弹 at this supported cell; Execute as a continuous pad-then-plant transaction; only the completed defender helps. Re-read and confirm both placements without another model call. Why this defender: Local burst reaches 9 zombie(s); damage may not kill heavy armor. 3x3-grid burst: more zombies hit, more sun refunded.",
+      "tags": [
+        "platform",
+        "producer"
+      ],
+      "emergency": false,
+      "covers": [],
+      "supports_type": 2,
+      "relocate_to": null,
+      "salvage": false,
+      "crush_recovery": false,
+      "intercept": false,
+      "drop_index": null,
+      "replacement_type": null,
+      "replacement_intent": null,
+      "source_index": null,
+      "hp": null
+    },
+    "followup_board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 425,
+      "game_clock": 18369,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": null,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3372,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 4,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 2,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "col": 6,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 3,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 3,
+          "col": 3,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 1972,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 484,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 32,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 2,
+          "type_id": 2,
+          "x": 576.3521728515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "type_id": 0,
+          "x": 590.9240112304688,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 2,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.16673278808594,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 130,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.77503967285156,
+          "phase": 0,
+          "hp": 220,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "type_id": 2,
+          "x": 607.884033203125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 4,
+          "x": 240.8662109375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 956,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 8,
+          "row": 4,
+          "type_id": 2,
+          "x": 230.10728454589844,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "type_id": 0,
+          "x": 452.93328857421875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 230.10511779785156,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 820,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 12,
+          "row": 3,
+          "type_id": 4,
+          "x": 309.93109130859375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 760,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 13,
+          "row": 4,
+          "type_id": 2,
+          "x": 445.28668212890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 14,
+          "row": 2,
+          "type_id": 0,
+          "x": 607.2135009765625,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 15,
+          "row": 3,
+          "type_id": 0,
+          "x": 309.20245361328125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 17,
+          "row": 4,
+          "type_id": 0,
+          "x": 609.500732421875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 18,
+          "row": 1,
+          "type_id": 2,
+          "x": 581.28564453125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 344,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 19,
+          "row": 3,
+          "type_id": 2,
+          "x": 587.5443115234375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 20,
+          "row": 4,
+          "type_id": 2,
+          "x": 468.41278076171875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 21,
+          "row": 1,
+          "type_id": 2,
+          "x": 339.85595703125,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 22,
+          "row": 2,
+          "type_id": 0,
+          "x": 569.2626953125,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 23,
+          "row": 3,
+          "type_id": 0,
+          "x": 620.2193603515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "type_id": 4,
+          "x": 606.9444580078125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 26,
+          "row": 1,
+          "type_id": 0,
+          "x": 608.5042724609375,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 33,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 7726,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 2603,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 4579,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 1169,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 6733,
+          "cd_total": 10000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "followup_error": "Zombie has passed destination"
+  },
+  {
+    "source_log": "decisions_20260930_224554.jsonl",
+    "line": 55,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 580,
+      "game_clock": 19621,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 180,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3372,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 2,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3064,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 3,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 48,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 32,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 2,
+          "type_id": 2,
+          "x": 397.2059631347656,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 162,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 2,
+          "row": 4,
+          "type_id": 2,
+          "x": 129.33702087402344,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 90,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 135.01507568359375,
+          "phase": 0,
+          "hp": 120,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "type_id": 2,
+          "x": 448.92584228515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 5,
+          "row": 4,
+          "type_id": 0,
+          "x": 881.8912353515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 4,
+          "x": 229.18655395507812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 776,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "type_id": 4,
+          "x": 899.6847534179688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 4,
+          "type_id": 2,
+          "x": 145.23829650878906,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 310,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "type_id": 0,
+          "x": 317.6976013183594,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 126.6241226196289,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 820,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 11,
+          "row": 4,
+          "type_id": 0,
+          "x": 884.87109375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 3,
+          "type_id": 4,
+          "x": 309.93109130859375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 580,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 4,
+          "type_id": 2,
+          "x": 300.7856750488281,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 15,
+          "row": 3,
+          "type_id": 0,
+          "x": 309.20245361328125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 16,
+          "row": 3,
+          "type_id": 4,
+          "x": 904.4418334960938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 17,
+          "row": 4,
+          "type_id": 0,
+          "x": 444.6627502441406,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 19,
+          "row": 3,
+          "type_id": 2,
+          "x": 398.5346374511719,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 20,
+          "row": 4,
+          "type_id": 2,
+          "x": 229.25961303710938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 21,
+          "row": 0,
+          "type_id": 2,
+          "x": 886.171875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 23,
+          "row": 3,
+          "type_id": 0,
+          "x": 454.5879821777344,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 24,
+          "row": 1,
+          "type_id": 2,
+          "x": 912.389892578125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "type_id": 4,
+          "x": 424.295654296875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 892,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 26,
+          "row": 1,
+          "type_id": 0,
+          "x": 461.8833923339844,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "type_id": 4,
+          "x": 881.2030029296875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 28,
+          "row": 1,
+          "type_id": 4,
+          "x": 900.0947265625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "type_id": 2,
+          "x": 896.5818481445312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 190,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 0,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 2421,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 7985,
+          "cd_total": 10000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "chosen": {
+      "cid": "A1",
+      "kind": "plant",
+      "row": 4,
+      "col": 1,
+      "slot": 2,
+      "type_id": 33,
+      "score": 1352.4444444444443,
+      "why": "Plant the platform (pad/pot) and immediately chain the defender onto it 阳光炸弹 at this supported cell; Execute as a continuous pad-then-plant transaction; only the completed defender helps. Re-read and confirm both placements without another model call. Why this defender: Local burst reaches 5 zombie(s); damage may not kill heavy armor. 3x3-grid burst: more zombies hit, more sun refunded.",
+      "tags": [
+        "platform",
+        "producer"
+      ],
+      "emergency": true,
+      "covers": [
+        4
+      ],
+      "supports_type": 2,
+      "relocate_to": null,
+      "salvage": false,
+      "crush_recovery": false,
+      "intercept": false,
+      "drop_index": null,
+      "replacement_type": null,
+      "replacement_intent": null,
+      "source_index": null,
+      "hp": null
+    },
+    "followup_board": {
+      "ok": true,
+      "reason": "",
+      "pid": 4200,
+      "board": 1830386344,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 555,
+      "game_clock": 19852,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": null,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 108,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 180,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3372,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 148,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 1,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3040,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 2,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3052,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 21,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 3,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 2,
+          "type_id": 2,
+          "x": 355.5530700683594,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 162,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 2,
+          "row": 4,
+          "type_id": 2,
+          "x": 99.75735473632812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 90,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 2,
+          "x": 100.3585205078125,
+          "phase": 0,
+          "hp": 120,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "type_id": 2,
+          "x": 418.26934814453125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 5,
+          "row": 4,
+          "type_id": 0,
+          "x": 825.2470092773438,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 4,
+          "x": 229.18655395507812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 736,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "type_id": 4,
+          "x": 819.3902587890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1074,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 8,
+          "row": 4,
+          "type_id": 2,
+          "x": 129.3401336669922,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 310,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "type_id": 0,
+          "x": 296.6892395019531,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "type_id": 4,
+          "x": 98.00763702392578,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 820,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 11,
+          "row": 4,
+          "type_id": 0,
+          "x": 831.2755737304688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 12,
+          "row": 3,
+          "type_id": 4,
+          "x": 308.17474365234375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 580,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 13,
+          "row": 4,
+          "type_id": 2,
+          "x": 276.5762023925781,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 15,
+          "row": 3,
+          "type_id": 0,
+          "x": 284.4335632324219,
+          "phase": 0,
+          "hp": 250,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 16,
+          "row": 3,
+          "type_id": 4,
+          "x": 821.6751098632812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 17,
+          "row": 4,
+          "type_id": 0,
+          "x": 406.68255615234375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 19,
+          "row": 3,
+          "type_id": 2,
+          "x": 365.5231628417969,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 20,
+          "row": 4,
+          "type_id": 2,
+          "x": 217.30712890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 350,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 21,
+          "row": 0,
+          "type_id": 2,
+          "x": 835.0250244140625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 198,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 23,
+          "row": 3,
+          "type_id": 0,
+          "x": 423.41943359375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 24,
+          "row": 1,
+          "type_id": 2,
+          "x": 831.6197509765625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 264,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "type_id": 4,
+          "x": 387.0299987792969,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 892,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "type_id": 4,
+          "x": 829.8717041015625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 874,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 28,
+          "row": 1,
+          "type_id": 4,
+          "x": 848.69775390625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": null
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "type_id": 2,
+          "x": 816.9785766601562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": null
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 32,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 0,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 233,
+          "cd_left": 2652,
+          "cd_total": 3000
+        },
+        {
+          "index": 10,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 11,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 12,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 13,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 14,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 15,
+          "type_id": 20,
+          "cd_left": 8216,
+          "cd_total": 10000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 1830510984,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    },
+    "followup_error": "Zombie has passed destination"
+  }
+]
