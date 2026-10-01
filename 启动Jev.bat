@@ -6,17 +6,17 @@ REM  Pure ASCII on purpose: every Chinese string is printed by
 REM  tools\launch.py, so a mismatched console codepage cannot
 REM  garble anything here.  Saved with CRLF line endings.
 REM
-REM  Only thing to edit if the project moves: PROJ below.
+REM  Project root follows this script, including paths with spaces.
 REM ==============================================================
 
 setlocal
 title PvZ x Jev
 
-set "PROJ=E:\jev\pvz-jev"
+set "PROJ=%~dp0"
 
-if not exist "%PROJ%\tools\launch.py" (
-    echo [X] Project not found at: %PROJ%
-    echo     Edit PROJ in this .bat to the correct path.
+if not exist "%PROJ%tools\launch.py" (
+    echo [X] Project not found at: "%PROJ%"
+    echo     Keep this script next to the tools folder in a complete checkout.
     echo.
     pause
     exit /b 1
@@ -46,7 +46,7 @@ if defined PY if not exist "%PY%" set "PY="
 if defined PY goto :py_ready
 
 REM 2) the portable interpreter bundled with this machine
-if exist "C:\Users\lenovo\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe" set "PY=C:\Users\lenovo\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe"
+if exist "%USERPROFILE%\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe" set "PY=%USERPROFILE%\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe"
 if defined PY goto :py_ready
 
 REM 3) whatever "python" resolves to on PATH
@@ -68,7 +68,7 @@ REM Handed to launch.py so it can show which interpreter is in use,
 REM instead of printing an ugly path line here before the banner.
 set "PvZJEV_PY=%PY%"
 
-"%PY%" "%PROJ%\tools\launch.py" %*
+"%PY%" "%PROJ%tools\launch.py" %*
 set "RC=%ERRORLEVEL%"
 
 echo.

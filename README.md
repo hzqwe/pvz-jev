@@ -11,7 +11,7 @@ Jev 是 TypeSafe 的 System One 决策模型，在本项目中负责候选行动
 [快速开始](#快速开始) · [命令行用法](#命令行用法) · [当前能力](#当前能力) · [日志与复盘](#日志与复盘) · [常见问题](#常见问题) · [开发与验证](#开发与验证)
 
 > 最近更新：富余阳光时持续补阵，优先补强弱路，前期经济按列种植。
-> 最新策略版本通过 477 项离线测试；测试和快照回放不代表实战胜率。
+> 当前版本通过 479 项离线测试；测试和快照回放不代表实战胜率。
 > [查看本次修复与证据](docs/continuous-formation-2026-10-01.md)
 
 ## 快速开始
@@ -63,8 +63,8 @@ python tools/launch.py
 停止方式：按 **Ctrl+C**、关闭控制台，或在项目 `out/` 目录新建名为 `STOP` 的文件。
 通过启动器再次运行会清除旧的停止标记。
 
-> `启动Jev.bat` 当前的 `PROJ` 路径是 `E:\jev\pvz-jev`。
-> 项目放到其他目录时，请修改该路径，或直接使用 `python tools/launch.py`。
+> `启动Jev.bat` 自动以自身所在目录为项目根目录，支持移动仓库和带空格的路径。
+> 请保留它与 `tools/` 的相对位置；也可以从项目根目录使用 `python tools/launch.py`。
 > 启动器会寻找可用 Python；若命令落到 WindowsApps 占位程序，请改用真实解释器的完整路径。
 
 ## 命令行用法
@@ -180,7 +180,7 @@ python tools/run_agent.py --report --log out/decisions_manual.jsonl --report-out
 | 泳池或屋顶种不下去 | 检查目标格的平台、支撑卡冷却，以及平台加植物的总阳光是否足够 |
 | 种歪或点到相邻卡 | 先核对窗口尺寸和布局；必要时重新测量并检查网格，不能把坐标错误当成植物涨价 |
 | 换卡组后植物身份不对 | 查看启动身份审计，确认版本目录和已有绑定；先运行知识审计，不要直接按卡槽顺序猜 ID |
-| 启动脚本找不到项目 | 修改 `.bat` 中的 `PROJ`，或从正确目录执行 `python tools/launch.py` |
+| 启动脚本找不到项目 | 确认下载了完整仓库，`.bat` 与 `tools/` 在同一层；或从项目根目录执行 `python tools/launch.py` |
 
 需要检查几何时，在活动关卡中运行：
 
@@ -206,6 +206,8 @@ python tools/overlay_grid.py
 | `data/hybrid_plants.json`、`data/plant_playbook.json` | 已登记植物档案和使用原则 |
 | `data/layout.json`、`data/plant_ids.json`、`data/plant_costs.json` | 布局、已有绑定和成本观测 |
 | `tools/`、`docs/` | 测试、诊断、离线回放、调查与修复记录 |
+
+分类入口：[工具与测试](tools/README.md) · [知识数据](data/README.md) · [文档索引](docs/README.md) · [维护约定](CONTRIBUTING.md)
 
 ```powershell
 # 全套离线回归，不请求 Jev、不操作游戏
