@@ -13,7 +13,7 @@ from dataclasses import asdict
 
 from .board import BoardState
 from .plants import PlantBook
-from .tactics import lane_facts, saving_plan, economy_summary
+from .tactics import lane_facts, saving_plan, economy_summary, standing_lane_dps
 from .relations import relationship_summary, domain_context
 
 SCENE_NAMES = {
@@ -195,6 +195,12 @@ def build_state(board: BoardState, book: PlantBook) -> dict:
             "exceptions": "House rescue, opening defence and pressured weak-lane firepower come first. Walls do not replace sustained attack; save for a concrete premium repair when starting income is established."
         },
         "relationships": relationship_summary(board, book, limit=8),
+        "formation_policy": {
+            "standing_dps_by_lane": [standing_lane_dps(board,r,book) for r in range(board.rows)],
+            "emergency_reserve_sun": 300,
+            "priority": "Keep improving safe permanent firepower and front protection with surplus sun, even if current defence is sufficient; prefer weaker lanes and expand supported middle cells beyond four rear columns.",
+            "note": "Emitted output estimate for future waves, not guaranteed hits. Tracking is divided across lanes; temporary/instant plants and pure walls add no sustained DPS."
+        },
         "domain_context": domain_context(board, book),
         "mower_diagnostics": dict(getattr(board, 'mower_diagnostics', {}) or {}),
         "doctrine": {

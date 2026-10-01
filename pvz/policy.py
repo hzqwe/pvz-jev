@@ -27,7 +27,7 @@ from .plants import (
     T_REFLECT, T_TEMPORARY, T_BURN_AURA, T_FREEZE_ON_DEATH, T_TORCH,
 )
 from .serialize import COL_LABEL, lane_threat
-from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes, deployment_invalid_reason, support_slots, complete_plant_cost, attack_placements
+from .tactics import cell_x, lane_facts, rear_cols, saving_plan, strength, upgrade_value, stall_window, relocation_target, attack_dps, crusher_approaching, torch_path, target_dps, can_hit, economy_summary, stable_sun_producer, coverage_lanes, deployment_invalid_reason, support_slots, complete_plant_cost, attack_placements, standing_lane_dps, lane_dps
 
 MAX_CANDIDATES = 18         # 2026-09-27：24 条长描述 ≈7KB/请求（每小时百万级
                             # token 额度消耗的主因）。救场优先的排序保证重要的
@@ -341,7 +341,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     # 平静期（场上没僵尸且家底够）：照常预置防线，别干等
     # —— 用户实测反馈：僵尸没出来就什么都不种不行，要保持战场整齐。
     calm = total == 0 and sun >= 500
-    develop = sun >= 1000 and all(f["threat_level"] not in ("high", "critical") for f in facts)
+    develop = sun >= 1000 and not emergency
     # 用户 2026-09-26：阳光充裕且不紧急时**把前四列种满，不许发呆** ——
     # 阵型成型后也要继续铺（多种向日葵/射手永远不亏）。给两边分支当开关。
     calm_fill = (calm or develop) and sun >= 600
@@ -739,8 +739,17 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 if nx is None:
                     # 平静期预置：这路已有射手但没有墙 → 在射手前方预放一面墙，
                     # 下一波来的时候防线是完整的（保持各路阵型整齐）。
-                    if (calm or develop) and facts[r]['shooter_support'] > 0 and not facts[r]['blocking_walls']:
-                        spot = next((c for c in (4,5,3) if (r,c) not in occ), None)
+                    if ((calm or develop) and facts[r]['shooter_support'] > 0
+                            and (not facts[r]['blocking_walls'] or develop and (
+                                facts[r]['blocking_walls'] < 2 or not rear_cols(board,book,r)))):
+                        front = max((p.col for p in board.plants_in_lane(r)
+                                     if not book.has_tag(p.type_id, T_PLATFORM)), default=-1)
+                        start = max(4, front + 1)
+                        if develop and not rear_cols(board,book,r) and start + 1 < board.cols:
+                            start += 1  # Advance protection with space for another attacker behind it.
+                        choices = (range(start, board.cols) if develop else (4,5,3))
+                        spot = next((c for c in choices if (r,c) not in occ
+                                     and not snow_blocked(board,r,c) and not board.placement_blocked(r,c)), None)
                         if spot is not None:
                             add(slot,r,spot,24,
                                 'Pre-building: a wall in front of this quiet lane\'s shooters '
@@ -753,7 +762,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                     # 形成双墙纵深；前面没空位就放弃本轮，不再退化成后排输出。
                     front_wall = max((p.col for p in board.plants_in_lane(r)
                                       if book.has_tag(p.type_id, T_WALL)), default=-1)
-                    ahead = [c for c in _free_cols(board,occ,r,front_wall+1,5)
+                    ahead = [c for c in _free_cols(board,occ,r,front_wall+1,board.cols-1 if develop else 5)
                              if cell_x(c) <= nx-10]
                     if ahead:
                         add(slot,r,max(ahead),55+facts[r]['priority']*0.6,
@@ -766,7 +775,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                                  if cell_x(p.col) <= nx + 40), default=None)
                 overlap = front_def is not None and nx - front_def <= 160
                 limit = nx + 40 if overlap else nx - 10
-                cols = [c for c in _free_cols(board,occ,r,0,5) if cell_x(c) <= limit]
+                cols = [c for c in _free_cols(board,occ,r,0,board.cols-1 if develop else 5) if cell_x(c) <= limit]
                 # 用户 2026-09-26：冰坚果等高血量墙尽量种第5列(E)及以上，
                 # 除非万不得已（僵尸太深、前排格全没）才允许更靠后的列。
                 cols = [c for c in cols if c >= 4] or cols
@@ -840,7 +849,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
                 continue
             def _lane_producer_count(r):
                 return sum(1 for p in board.plants_in_lane(r)
-                           if book.has_tag(p.type_id, T_PRODUCER)
+                           if stable_sun_producer(book, p.type_id)
                            and not p.asleep and p.hp != 0)
             # ★ 行均衡轮转（2026-09-30 屋顶战术，用户硬约束"积极种"）：
             #   旧行序按 min(rear_cols) 排 —— 屋顶各行都返回同样的列，等于
@@ -848,7 +857,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
             #   "向日葵种不到第二行"）。改成按**行内已种产阳光数**升序、行号
             #   次序轮转：缺的行先补，全场均匀铺开（priority 不参与 —— 受压
             #   行的向日葵由"贴脸才禁种"闸把关，不该被排序饿死）。
-            for r in sorted(quiet, key=lambda r: (_lane_producer_count(r), r)):
+            for r in sorted(quiet, key=lambda r: (
+                    min(rear_cols(board,book,r,producer=True,type_id=tid), default=board.cols),
+                    _lane_producer_count(r), r)):
                 cols = rear_cols(board,book,r,producer=True,type_id=tid)
                 if not cols or facts[r]['threat_level'] == 'critical':
                     continue
@@ -1182,7 +1193,9 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
         if c is not None: rescue_first.append(c)
     # Funded repairs were built in proximity order. Preserve the nearest weak
     # lane before the same card's distant high-strength placements consume its cap.
-    for c in rescue_first + fire_repairs + first + alternatives:
+    construction = formation_growth_candidate(candidates, board, book)
+    construction_first = [construction] if construction is not None else []
+    for c in rescue_first + fire_repairs + construction_first + first + alternatives:
         key = candidate_key(c)
         capability = (c.kind,c.type_id,c.supports_type)
         if key in seen or counts.get(capability,0) >= MAX_PER_TYPE:
@@ -1195,7 +1208,7 @@ def generate_candidates(board: BoardState, book: PlantBook) -> list[Candidate]:
     for i,c in enumerate(selected):
         c.cid = f'A{i+1}'
     why = (f"Save for {plan['plant']}: target {plan['cost']} sun, missing {plan['missing_sun']}."
-           if plan else 'No placement is clearly worth the sun right now.')
+           if plan else 'Wait only if no safe funded formation improvement is available; comfortable defence alone is not a reason to stop building.')
     selected.append(Candidate(f'A{len(selected)+1}','wait',why=why))
     return selected
 
@@ -1269,7 +1282,12 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "a funded attacker. A combat replacement preserves its platform and must retain enough "
                 "distance to complete the operation; never remove income before its replacement is ready. "
                 "Be careful with long-cooldown one-shot plants "
-                "when the board is still calm."
+                "when the board is still calm. Comfortable defence is not a completed formation: "
+                "with surplus sun continue safe permanent construction beyond the rear four columns. "
+                "Use formation_policy.standing_dps_by_lane to favour weaker lanes, accounting for "
+                "shared tracking and multi-lane fire. Do not stack the strongest lane while weaker "
+                "lanes have funded safe improvements. Keep an emergency reserve, and complete "
+                "platform-plus-body or ready replacement actions as one transaction."
             ),
             "criteria": action_opts,
         },
@@ -1283,7 +1301,9 @@ def build_questions(candidates: list[Candidate], board: BoardState, book: PlantB
                 "surplus sun indefinitely. Never hold if a listed rescue can address a near-house threat. "
                 "Prefer listed safe cheap income while establishing economy, except when immediate rescue "
                 "or pressured weak-lane firepower needs the budget. Do not wait when a funded combat repair "
-                "or effective nearest-house rescue is available."
+                "or effective nearest-house rescue is available. "
+                "Surplus sun should fund safe next-wave firepower and front protection even when "
+                "current enemies can already be killed; a filled rear four columns is not completion."
             ),
             "criteria": {"true": "yes - hold and save the sun", "false": "no - spend sun now"},
         },
@@ -1573,8 +1593,67 @@ def economy_growth_candidate(candidates, board, book):
             continue
         if action_invalid_reason(c, board, book) is None:
             options.append(c)
-    return min(options, key=lambda c: (c.total_cost(book), facts[c.row]['priority'],
-                                      c.col, -c.score)) if options else None
+    return min(options, key=lambda c: (c.total_cost(book), c.col,
+                                      facts[c.row]['priority'], -c.score)) if options else None
+
+
+def formation_growth_rank(c, board, book, facts, powers):
+    """Rank safe permanent investments by weak-lane improvement, not purchase price."""
+    tid = c.replacement_type if c.replacement_type is not None else (
+        c.supports_type if c.supports_type is not None else c.type_id)
+    tags = book.tags(tid)
+    if (c.kind not in ('plant', 'shovel') or c.emergency or c.intercept
+            or T_TEMPORARY in tags or T_INSTANT in tags
+            or c.kind == 'shovel' and c.replacement_type is None):
+        return None
+    cost = c.total_cost(book)
+    if cost is None or (board.sun or 0) - cost < ECON_RESERVE:
+        return None
+    if facts[c.row]['threat_level'] == 'critical':
+        return None
+    if c.replacement_type is not None:
+        # Construction must not dismantle the income floor or a valuable attacker.
+        if (not stable_sun_producer(book, c.type_id) or book.has_tag(c.type_id, T_SHOOTER)
+                or book.has_tag(c.type_id, T_PLATFORM)
+                or economy_summary(board,book)['producer_count'] <= ECON_TARGET):
+            return None
+    if T_SHOOTER in tags:
+        nx = facts[c.row]['nearest_zombie_x']
+        if T_WALL not in tags and nx is not None and nx - cell_x(c.col) < 160:
+            return None
+        cover = (list(range(board.rows)) if T_TRACKING in tags else
+                 list(range(max(0,c.row-coverage_lanes(book,tid)//2),
+                            min(board.rows,c.row+coverage_lanes(book,tid)//2+1))))
+        gain = attack_dps(book,tid)/board.rows if T_TRACKING in tags else lane_dps(book,tid)
+        if gain <= 0:
+            return None
+        # Shared damage benefits all covered lanes, but stacking a strong lane
+        # cannot beat a card that improves a substantially weaker one.
+        benefit = sum(gain/(40+powers[r]) for r in cover)
+        return (0, round(min(powers[r] for r in cover),1), -benefit,
+                c.replacement_type is not None, -facts[c.row]['priority'], cost, c.row, c.col)
+    if (T_WALL in tags and powers[c.row] > 0 and (
+            facts[c.row]['blocking_walls'] < 2 or not rear_cols(board,book,c.row))):
+        return (1, facts[c.row]['blocking_walls'], powers[c.row], False, cost, c.row, c.col)
+    if stable_sun_producer(book,tid):
+        return (2, 0, 0, False, cost, c.col, c.row)
+    return None
+
+
+def formation_growth_candidate(candidates, board, book):
+    """Continue supported construction despite comfortable defence or distant pressure."""
+    if (board.sun or 0) < 600 or saving_plan(board,book):
+        return None
+    facts = [lane_facts(board,r,book) for r in range(board.rows)]
+    if any(f['threat_level'] == 'critical' for f in facts):
+        return None
+    powers = [standing_lane_dps(board,r,book) for r in range(board.rows)]
+    options = []
+    for c in candidates:
+        rank = formation_growth_rank(c,board,book,facts,powers)
+        if rank is not None and action_invalid_reason(c,board,book) is None:
+            options.append((rank,c))
+    return min(options,key=lambda item:item[0])[1] if options else None
 
 
 def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: PlantBook) -> Decision:
@@ -1596,6 +1675,7 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
     best = plants[0] if plants else wait
     emergency = choose_emergency(plants, board, book)
     d = Decision()
+    timed_out = False
     if resp is None or not resp.ok:
         d.fallback = True
         err = (resp.error or '') if resp is not None else ''
@@ -1719,7 +1799,35 @@ def merge_decision(resp, candidates: list[Candidate], board: BoardState, book: P
             if optional_wall:
                 d.notes.append('Thin economy: build recurring income before an optional distant wall; '
                                'near threats, crushers and protection of expensive shooters retain priority.')
-    # Bounded development: fill missing economy/firepower/walls, never arbitrary spending.
+    # A comfortable lead kill estimate is not a completed next-wave formation.
+    # Do not let independent hold_sun or an unrelated high lane cancel safe growth.
+    construction = formation_growth_candidate(plants,board,book) if not timed_out and not urgent_burst and repair is None else None
+    if construction is not None:
+        redirect = chosen.kind == 'wait'
+        if ((board.sun or 0) >= 1000 and chosen.kind == 'plant'
+                and not chosen.emergency and not chosen.intercept):
+            facts = [lane_facts(board,r,book) for r in range(board.rows)]
+            powers = [standing_lane_dps(board,r,book) for r in range(board.rows)]
+            old_rank = formation_growth_rank(chosen,board,book,facts,powers)
+            new_rank = formation_growth_rank(construction,board,book,facts,powers)
+            f = facts[chosen.row]
+            chosen_tid = chosen.supports_type if chosen.supports_type is not None else chosen.type_id
+            active_shield = (book.has_tag(chosen_tid, T_WALL) and (
+                f['threat_level'] in ('high', 'critical') or f['ranged_zombies']
+                or f['crush_zombies'] or f['nearest_zombie_x'] is not None
+                and f['nearest_zombie_x'] < 560))
+            # Balancing future waves must not cancel a model-selected wall
+            # already needed to shield a nearby attacker from the current wave.
+            redirect = not active_shield and old_rank is not None and new_rank < old_rank
+        if redirect:
+            chosen = construction
+            d.fallback = True
+            d.notes.append(f'Continuous formation: lane {chosen.row+1}, '
+                           f'standing output {standing_lane_dps(board,chosen.row,book):g} DPS; '
+                           f'complete cost {chosen.total_cost(book)} sun. '
+                           'Rich and calm or safely protected: keep building beyond four columns, '
+                           'balance weak lanes and retain emergency sun.')
+    # Existing low-budget role completion remains useful before surplus construction.
     # Reuse freshly validated candidates; reserve applies even when the model says wait.
     if chosen.kind == 'wait' and not plan and plants:
         facts = [lane_facts(board, r, book) for r in range(board.rows)]

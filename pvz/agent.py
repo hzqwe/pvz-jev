@@ -18,7 +18,7 @@ from .jev import DecisionLog, JevClient
 from .plants import PlantBook, load_lineups, match_lineup
 from .catalog import version_from_title
 from .knowledge import audit_book
-from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate
+from .policy import Decision, build_questions, generate_candidates, merge_decision, action_is_current, action_invalid_reason, escalate_emergency, adapt_stale_candidate, formation_growth_candidate
 from .serialize import COL_LABEL, build_state, render_text, board_snapshot
 from .tactics import cell_x, lane_facts
 from .transactions import run_transaction
@@ -627,7 +627,8 @@ class PvZJevAgent:
         """富余期快速补种（用户 2026-09-28 硬约束：种植速度要快）。
 
         上一株种成功且阳光充裕、各路都不危急时，跳过 3s 决策计时器，
-        用确定性候选（不经 Jev）连续补种便宜的产阳光/防御卡，每轮最多
+        用确定性候选（不经 Jev）补种；富余期按主决策规则补强弱路，低预算
+        仍补便宜的产阳光/防御卡。每轮最多
         `count` 株。任何一步没有"种上了"的内存证据就立即停 —— 速度
         不以牺牲验证为代价。"""
         for _ in range(count):
@@ -641,8 +642,10 @@ class PvZJevAgent:
                    for f in facts):
                 return  # The main decision must rescue or repair the weak lane first.
             cs = generate_candidates(b, self.book)
-            pick = None
-            for c in cs:
+            pick = formation_growth_candidate(cs,b,self.book) if (b.sun or 0) >= 1000 else None
+            if pick is not None and pick.kind != 'plant':
+                return  # A verified refit belongs to the main decision, not a cheap filler.
+            for c in (() if pick is not None else cs):
                 if c.kind != 'plant' or c.score < 20:
                     continue
                 # pad-chain 候选（花盆/睡莲 → 墙/producer 连锁）按两步总价校验：
@@ -668,7 +671,8 @@ class PvZJevAgent:
             if pick is None:
                 return
             dec = Decision(candidate=pick, action_id=pick.cid, fallback=True,
-                           notes=['Rapid fill: rich and calm - keep planting without waiting for the timer.'])
+                           notes=[f'Rapid fill: lane {pick.row+1}, complete cost {pick.total_cost(self.book)} sun; '
+                                  'use safe formation growth and retain the emergency reserve.'])
             self._decision_sequence = getattr(self, '_decision_sequence', 0) + 1
             battle_id = getattr(self, '_battle_id', 'unknown')
             rec2 = {'t': time.time(), 'iso': time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -678,7 +682,7 @@ class PvZJevAgent:
                     'action_id': f'{battle_id}-a{self._decision_sequence}',
                     'timing': {'snapshot_at': time.time()},
                     'decision': {'action_id': pick.cid, 'chosen': pick.describe(self.book),
-                                 'fallback': True, 'hold': False}}
+                                 'fallback': True, 'hold': False, 'notes': dec.notes}}
             self.execute(dec, rec2, b)
             self.log.append(rec2)
             if not self.action_completed(rec2):

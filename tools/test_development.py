@@ -33,9 +33,8 @@ class DevelopmentTests(unittest.TestCase):
         self.assertTrue(self.hold(self.board([PEA],sun=150)).hold)
 
     def test_complete_lanes_can_wait(self):
-        # 用户 2026-09-26 修订“完整”的定义：前四列**真的种满**才允许等待；
-        # 只有一株/路的阵型在阳光充裕时要继续填（见 test_strategy_tips.RichFillTests）。
-        full=[Plant(r*4+i,r,i,SUN if i<2 else PEA) for r in range(5) for i in range(4)]
+        # 用户 2026-10-01：前四列填满仍须继续补阵；真正没有空位时可等。
+        full=[Plant(r*9+i,r,i,SUN if i<2 else PEA) for r in range(5) for i in range(9)]
         b=self.board([PEA],plants=full,sun=1500)
         self.assertTrue(self.hold(b).hold)
 

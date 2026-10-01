@@ -1,0 +1,5670 @@
+[
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 75,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 705,
+      "game_clock": 23769,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3724,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2056,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 4,
+          "col": 3,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 8000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 41,
+          "row": 3,
+          "col": 4,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 42,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 43,
+          "row": 3,
+          "col": 5,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 44,
+          "row": 0,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "col": 5,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 6464,
+          "max_hp": null,
+          "recently_eaten": true
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 48,
+          "row": 4,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 49,
+          "row": 4,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 0,
+          "type_id": 2,
+          "x": 470.5698547363281,
+          "phase": 0,
+          "hp": 108,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 4,
+          "x": 637.792724609375,
+          "phase": 0,
+          "hp": 226,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 0,
+          "type_id": 2,
+          "x": 470.12200927734375,
+          "phase": 0,
+          "hp": 46,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 0,
+          "type_id": 2,
+          "x": 520.8508911132812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 396,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 0,
+          "type_id": 2,
+          "x": 520.1184692382812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 84,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 3,
+          "type_id": 2,
+          "x": 774.0875854492188,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 11,
+          "row": 4,
+          "type_id": 0,
+          "x": 662.4507446289062,
+          "phase": 0,
+          "hp": 126,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 0,
+          "type_id": 2,
+          "x": 594.51220703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 58,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 1,
+          "type_id": 22,
+          "x": 649.8096923828125,
+          "phase": 67,
+          "hp": 850,
+          "armor_hp": 366,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 16,
+          "row": 2,
+          "type_id": 2,
+          "x": 725.5730590820312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 87,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 26,
+          "row": 1,
+          "type_id": 0,
+          "x": 708.9205932617188,
+          "phase": 0,
+          "hp": 140,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 2,
+          "type_id": 15,
+          "x": 554.3418579101562,
+          "phase": 15,
+          "hp": 467,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 28,
+          "row": 0,
+          "type_id": 2,
+          "x": 699.8184204101562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 162,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "type_id": 22,
+          "x": 649.76318359375,
+          "phase": 67,
+          "hp": 850,
+          "armor_hp": 458,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 30,
+          "row": 2,
+          "type_id": 15,
+          "x": 597.264404296875,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 35,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 31,
+          "row": 0,
+          "type_id": 2,
+          "x": 666.2131958007812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 110,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 32,
+          "row": 1,
+          "type_id": 4,
+          "x": 718.7608032226562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 970,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 1100,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 1785,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 433,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  },
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 90,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 1595,
+      "game_clock": 28652,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3404,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 0,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 850,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 0,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 75,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2056,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 4,
+          "col": 3,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 8000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 41,
+          "row": 3,
+          "col": 4,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 42,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 43,
+          "row": 3,
+          "col": 5,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 44,
+          "row": 0,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "col": 5,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2788,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 48,
+          "row": 4,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 49,
+          "row": 4,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 51,
+          "row": 1,
+          "col": 0,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 2,
+          "row": 2,
+          "type_id": 0,
+          "x": 824.456298828125,
+          "phase": 0,
+          "hp": 218,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "type_id": 22,
+          "x": 701.3515625,
+          "phase": 0,
+          "hp": 850,
+          "armor_hp": 1202,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 2,
+          "type_id": 2,
+          "x": 614.1614990234375,
+          "phase": 0,
+          "hp": 116,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 5,
+          "row": 3,
+          "type_id": 0,
+          "x": 676.8839111328125,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 7,
+          "row": 4,
+          "type_id": 2,
+          "x": 717.542236328125,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 2,
+          "type_id": 4,
+          "x": 814.4388427734375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "type_id": 2,
+          "x": 823.3604125976562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 2,
+          "type_id": 2,
+          "x": 588.9968872070312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 6,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "type_id": 2,
+          "x": 798.3995971679688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 210,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 4,
+          "type_id": 0,
+          "x": 798.8246459960938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "type_id": 2,
+          "x": 799.1109008789062,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 15,
+          "row": 3,
+          "type_id": 0,
+          "x": 803.59130859375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 17,
+          "row": 0,
+          "type_id": 2,
+          "x": 807.44091796875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 318,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 18,
+          "row": 2,
+          "type_id": 4,
+          "x": 814.94580078125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 19,
+          "row": 0,
+          "type_id": 22,
+          "x": 683.034423828125,
+          "phase": 0,
+          "hp": 850,
+          "armor_hp": 1270,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "type_id": 4,
+          "x": 784.579345703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 22,
+          "row": 0,
+          "type_id": 22,
+          "x": 649.9654541015625,
+          "phase": 67,
+          "hp": 482,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 23,
+          "row": 0,
+          "type_id": 4,
+          "x": 837.5015258789062,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1074,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 24,
+          "row": 3,
+          "type_id": 4,
+          "x": 679.8961181640625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 732,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 25,
+          "row": 2,
+          "type_id": 4,
+          "x": 576.9815673828125,
+          "phase": 0,
+          "hp": 178,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "type_id": 4,
+          "x": 607.1376342773438,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 2,
+          "type_id": 0,
+          "x": 793.01416015625,
+          "phase": 0,
+          "hp": 218,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 28,
+          "row": 0,
+          "type_id": 4,
+          "x": 799.26708984375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 3,
+          "type_id": 2,
+          "x": 680.6656494140625,
+          "phase": 0,
+          "hp": 173,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 30,
+          "row": 4,
+          "type_id": 15,
+          "x": 757.8042602539062,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 164,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 31,
+          "row": 0,
+          "type_id": 4,
+          "x": 651.8612670898438,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 254,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 32,
+          "row": 1,
+          "type_id": 15,
+          "x": 705.8748779296875,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 144,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 3966,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 1159,
+          "cd_total": 3000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 3019,
+          "cd_total": 10000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 0,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  },
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 100,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 3175,
+      "game_clock": 31735,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3404,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 0,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 475,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 0,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2056,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 4,
+          "col": 3,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 8000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 41,
+          "row": 3,
+          "col": 4,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 42,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 43,
+          "row": 3,
+          "col": 5,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 44,
+          "row": 0,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "col": 5,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2788,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 48,
+          "row": 4,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 49,
+          "row": 4,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 51,
+          "row": 1,
+          "col": 0,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 4,
+          "type_id": 0,
+          "x": 725.8601684570312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "type_id": 23,
+          "x": 767.560791015625,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 3412,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 4,
+          "x": 731.271240234375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 0,
+          "type_id": 4,
+          "x": 716.4398803710938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 5,
+          "row": 4,
+          "type_id": 0,
+          "x": 756.7996215820312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "type_id": 0,
+          "x": 712.898193359375,
+          "phase": 0,
+          "hp": 218,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 7,
+          "row": 0,
+          "type_id": 23,
+          "x": 620.1907958984375,
+          "phase": 69,
+          "hp": 793,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "type_id": 2,
+          "x": 725.0511474609375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 238,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "type_id": 23,
+          "x": 672.135986328125,
+          "phase": 0,
+          "hp": 2658,
+          "armor_hp": 710,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 10,
+          "row": 1,
+          "type_id": 4,
+          "x": 759.2119140625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 968,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 4,
+          "type_id": 2,
+          "x": 660.4769287109375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 233,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "type_id": 0,
+          "x": 756.523193359375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 14,
+          "row": 0,
+          "type_id": 2,
+          "x": 719.5606689453125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 15,
+          "row": 4,
+          "type_id": 4,
+          "x": 624.3721313476562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 495,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 18,
+          "row": 1,
+          "type_id": 0,
+          "x": 757.93017578125,
+          "phase": 0,
+          "hp": 190,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 21,
+          "row": 2,
+          "type_id": 2,
+          "x": 740.8226928710938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 318,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 23,
+          "row": 3,
+          "type_id": 23,
+          "x": 750.6973876953125,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 1992,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 24,
+          "row": 4,
+          "type_id": 4,
+          "x": 637.3191528320312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 329,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 2,
+          "type_id": 4,
+          "x": 686.902099609375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 219,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 28,
+          "row": 0,
+          "type_id": 2,
+          "x": 745.287841796875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "type_id": 0,
+          "x": 740.4207153320312,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 30,
+          "row": 0,
+          "type_id": 2,
+          "x": 626.8818359375,
+          "phase": 0,
+          "hp": 10,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 31,
+          "row": 3,
+          "type_id": 4,
+          "x": 662.952392578125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 640,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 33,
+          "row": 2,
+          "type_id": 4,
+          "x": 724.68212890625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "type_id": 4,
+          "x": 692.9546508789062,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 300,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 36,
+          "row": 0,
+          "type_id": 2,
+          "x": 639.2877197265625,
+          "phase": 0,
+          "hp": 256,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 38,
+          "row": 4,
+          "type_id": 0,
+          "x": 627.3543090820312,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 40,
+          "row": 2,
+          "type_id": 4,
+          "x": 714.5296020507812,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 41,
+          "row": 1,
+          "type_id": 0,
+          "x": 754.2354736328125,
+          "phase": 0,
+          "hp": 178,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 42,
+          "row": 0,
+          "type_id": 0,
+          "x": 758.2582397460938,
+          "phase": 0,
+          "hp": 192,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 6102,
+          "cd_total": 10000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 0,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  },
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 120,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 5315,
+      "game_clock": 38367,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 4,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3264,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 0,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 475,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 152,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 700,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "col": 0,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 8000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3925,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2056,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 4,
+          "col": 3,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 4,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 7616,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3840,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 41,
+          "row": 3,
+          "col": 4,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 42,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 43,
+          "row": 3,
+          "col": 5,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 44,
+          "row": 0,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "col": 5,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2788,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3712,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 48,
+          "row": 4,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 49,
+          "row": 4,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3688,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 50,
+          "row": 2,
+          "col": 7,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 51,
+          "row": 1,
+          "col": 0,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 75,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 53,
+          "row": 0,
+          "col": 6,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 54,
+          "row": 3,
+          "col": 6,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 0,
+          "row": 1,
+          "type_id": 23,
+          "x": 661.1328735351562,
+          "phase": 0,
+          "hp": 2013,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 1,
+          "row": 3,
+          "type_id": 23,
+          "x": 721.91552734375,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 2018,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 2,
+          "row": 0,
+          "type_id": 4,
+          "x": 632.1701049804688,
+          "phase": 0,
+          "hp": 32,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 4,
+          "row": 3,
+          "type_id": 4,
+          "x": 706.0518188476562,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 6,
+          "row": 0,
+          "type_id": 4,
+          "x": 652.89404296875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 482,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 8,
+          "row": 1,
+          "type_id": 23,
+          "x": 733.877197265625,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 1432,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 9,
+          "row": 0,
+          "type_id": 0,
+          "x": 698.0167846679688,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 11,
+          "row": 1,
+          "type_id": 4,
+          "x": 667.4157104492188,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 12,
+          "row": 4,
+          "type_id": 0,
+          "x": 754.9805297851562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "type_id": 2,
+          "x": 784.36181640625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 370,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 14,
+          "row": 0,
+          "type_id": 0,
+          "x": 776.4625244140625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 18,
+          "row": 0,
+          "type_id": 2,
+          "x": 633.219482421875,
+          "phase": 0,
+          "hp": 45,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "type_id": 4,
+          "x": 684.6275634765625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 325,
+          "friendly": true,
+          "stationary": null
+        },
+        {
+          "index": 23,
+          "row": 4,
+          "type_id": 2,
+          "x": 757.1049194335938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 330,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 24,
+          "row": 3,
+          "type_id": 23,
+          "x": 753.1392822265625,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 4048,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "type_id": 23,
+          "x": 615.536865234375,
+          "phase": 0,
+          "hp": 502,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 26,
+          "row": 4,
+          "type_id": 2,
+          "x": 630.3097534179688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 337,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "type_id": 15,
+          "x": 657.4202880859375,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 214,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 2,
+          "type_id": 4,
+          "x": 773.5985717773438,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 31,
+          "row": 2,
+          "type_id": 22,
+          "x": 687.2442626953125,
+          "phase": 0,
+          "hp": 850,
+          "armor_hp": 440,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 33,
+          "row": 4,
+          "type_id": 2,
+          "x": 681.3133544921875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 297,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 34,
+          "row": 4,
+          "type_id": 4,
+          "x": 607.7867431640625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1100,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 35,
+          "row": 4,
+          "type_id": 23,
+          "x": 523.0482788085938,
+          "phase": 0,
+          "hp": 568,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 36,
+          "row": 4,
+          "type_id": 22,
+          "x": 649.8468017578125,
+          "phase": 67,
+          "hp": 850,
+          "armor_hp": 385,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 38,
+          "row": 4,
+          "type_id": 23,
+          "x": 470.93243408203125,
+          "phase": 70,
+          "hp": 3000,
+          "armor_hp": 154,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 39,
+          "row": 4,
+          "type_id": 2,
+          "x": 642.5304565429688,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 250,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "type_id": 4,
+          "x": 698.0914306640625,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 41,
+          "row": 3,
+          "type_id": 0,
+          "x": 794.287353515625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 42,
+          "row": 1,
+          "type_id": 0,
+          "x": 745.5670166015625,
+          "phase": 0,
+          "hp": 244,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 43,
+          "row": 2,
+          "type_id": 23,
+          "x": 704.9996948242188,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "type_id": 22,
+          "x": 649.9132080078125,
+          "phase": 67,
+          "hp": 850,
+          "armor_hp": 66,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 46,
+          "row": 0,
+          "type_id": 0,
+          "x": 744.6058959960938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 47,
+          "row": 2,
+          "type_id": 22,
+          "x": 689.0747680664062,
+          "phase": 0,
+          "hp": 850,
+          "armor_hp": 595,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 48,
+          "row": 3,
+          "type_id": 0,
+          "x": 767.6109619140625,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 49,
+          "row": 1,
+          "type_id": 2,
+          "x": 692.9907836914062,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 50,
+          "row": 3,
+          "type_id": 4,
+          "x": 713.4999389648438,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 52,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 52,
+          "row": 4,
+          "type_id": 2,
+          "x": 638.4364013671875,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 337,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 53,
+          "row": 4,
+          "type_id": 4,
+          "x": 568.577880859375,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 1060,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 55,
+          "row": 4,
+          "type_id": 15,
+          "x": 643.1890258789062,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 337,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 56,
+          "row": 1,
+          "type_id": 23,
+          "x": 719.822509765625,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 1380,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 57,
+          "row": 0,
+          "type_id": 15,
+          "x": 644.2357177734375,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 214,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 58,
+          "row": 2,
+          "type_id": 2,
+          "x": 753.4893188476562,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 344,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 59,
+          "row": 4,
+          "type_id": 15,
+          "x": 644.59912109375,
+          "phase": 15,
+          "hp": 500,
+          "armor_hp": 337,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 60,
+          "row": 1,
+          "type_id": 2,
+          "x": 666.75439453125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 142,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 61,
+          "row": 3,
+          "type_id": 0,
+          "x": 762.7423095703125,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 62,
+          "row": 0,
+          "type_id": 0,
+          "x": 763.0023803710938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 4164,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 3899,
+          "cd_total": 8000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 3143,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 2000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 3566,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 2429,
+          "cd_total": 10000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 908,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  },
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 140,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 5660,
+      "game_clock": 44399,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 0,
+          "col": 0,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 8000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3264,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 4,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3196,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 152,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 4,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 175,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 3,
+          "col": 0,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 7850,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2275,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 1872,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 2,
+          "col": 6,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 976,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3772,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 244,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 44,
+          "row": 0,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 45,
+          "row": 0,
+          "col": 5,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2788,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3712,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 50,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 53,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 54,
+          "row": 3,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 3,
+          "row": 4,
+          "type_id": 23,
+          "x": 372.5625915527344,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 13,
+          "row": 0,
+          "type_id": 2,
+          "x": 672.39697265625,
+          "phase": 0,
+          "hp": 38,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 21,
+          "row": 1,
+          "type_id": 4,
+          "x": 614.8994750976562,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 22,
+          "row": 0,
+          "type_id": 4,
+          "x": 622.5702514648438,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "type_id": 4,
+          "x": 628.1559448242188,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 362,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 29,
+          "row": 0,
+          "type_id": 4,
+          "x": 645.9613647460938,
+          "phase": 0,
+          "hp": 270,
+          "armor_hp": 488,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 35,
+          "row": 0,
+          "type_id": 23,
+          "x": 633.5430908203125,
+          "phase": 0,
+          "hp": 3000,
+          "armor_hp": 1692,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 44,
+          "row": 1,
+          "type_id": 2,
+          "x": 683.3958129882812,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 49,
+          "row": 1,
+          "type_id": 2,
+          "x": 681.4273071289062,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 55,
+          "row": 0,
+          "type_id": 23,
+          "x": 546.2404174804688,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 58,
+          "row": 4,
+          "type_id": 23,
+          "x": 426.08636474609375,
+          "phase": 0,
+          "hp": 1639,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 60,
+          "row": 4,
+          "type_id": 23,
+          "x": 734.03271484375,
+          "phase": 0,
+          "hp": 2929,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 66,
+          "row": 3,
+          "type_id": 4,
+          "x": 727.1710205078125,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 73,
+          "row": 3,
+          "type_id": 4,
+          "x": 734.2709350585938,
+          "phase": 1,
+          "hp": 0,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        },
+        {
+          "index": 76,
+          "row": 0,
+          "type_id": 22,
+          "x": 649.7938232421875,
+          "phase": 67,
+          "hp": 426,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 3056,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 1111,
+          "cd_total": 8000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 283,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 733,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 200,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 115,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 1466,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 428,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 8461,
+          "cd_total": 10000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 2678,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  },
+  {
+    "source": "decisions_20261001_011228.jsonl",
+    "line": 150,
+    "board": {
+      "ok": true,
+      "reason": "",
+      "pid": 14720,
+      "board": 2080915360,
+      "ui": 3,
+      "scene": 4,
+      "level": 0,
+      "sun": 5180,
+      "game_clock": 46940,
+      "rows": 5,
+      "cols": 9,
+      "clock_advancing": true,
+      "spawn_total": null,
+      "spawn_spawned": null,
+      "spawn_upcoming": null,
+      "cursor": {
+        "holding": false,
+        "kind": 0,
+        "slot": -1,
+        "type_id": -1
+      },
+      "plants": [
+        {
+          "index": 0,
+          "row": 0,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 0,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 1,
+          "row": 1,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 2,
+          "row": 2,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 3,
+          "row": 3,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 4,
+          "row": 4,
+          "col": 0,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 225,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 5,
+          "row": 0,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 6,
+          "row": 1,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 7,
+          "row": 2,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "col": 1,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 7050,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 10,
+          "row": 0,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 11,
+          "row": 2,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 12,
+          "row": 2,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 13,
+          "row": 3,
+          "col": 2,
+          "type_id": 66,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 14,
+          "row": 4,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 15,
+          "row": 2,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3264,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 16,
+          "row": 4,
+          "col": 1,
+          "type_id": 183,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3088,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 17,
+          "row": 3,
+          "col": 2,
+          "type_id": 34,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 152,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 18,
+          "row": 4,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 19,
+          "row": 2,
+          "col": 0,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 175,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 20,
+          "row": 2,
+          "col": 6,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 7050,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 21,
+          "row": 4,
+          "col": 0,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 2275,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 22,
+          "row": 3,
+          "col": 1,
+          "type_id": 189,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 23,
+          "row": 1,
+          "col": 1,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 24,
+          "row": 0,
+          "col": 1,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 1000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 25,
+          "row": 0,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 132,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 26,
+          "row": 0,
+          "col": 4,
+          "type_id": 161,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 1872,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 27,
+          "row": 0,
+          "col": 2,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 28,
+          "row": 2,
+          "col": 1,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 29,
+          "row": 4,
+          "col": 3,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3880,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 30,
+          "row": 2,
+          "col": 6,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 31,
+          "row": 3,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 32,
+          "row": 4,
+          "col": 2,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 33,
+          "row": 3,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 34,
+          "row": 3,
+          "col": 3,
+          "type_id": 147,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 976,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 35,
+          "row": 2,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 36,
+          "row": 2,
+          "col": 4,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3772,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 37,
+          "row": 2,
+          "col": 2,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 38,
+          "row": 2,
+          "col": 3,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 39,
+          "row": 2,
+          "col": 3,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 244,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 40,
+          "row": 3,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 41,
+          "row": 4,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 46,
+          "row": 1,
+          "col": 5,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 47,
+          "row": 1,
+          "col": 5,
+          "type_id": 39,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 3712,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 50,
+          "row": 1,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 51,
+          "row": 0,
+          "col": 0,
+          "type_id": 9,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 53,
+          "row": 3,
+          "col": 4,
+          "type_id": 33,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 300,
+          "max_hp": null,
+          "recently_eaten": false
+        },
+        {
+          "index": 54,
+          "row": 3,
+          "col": 5,
+          "type_id": 233,
+          "imitater": -1,
+          "asleep": false,
+          "hp": 4000,
+          "max_hp": null,
+          "recently_eaten": false
+        }
+      ],
+      "zombies": [
+        {
+          "index": 35,
+          "row": 0,
+          "type_id": 23,
+          "x": 470.80438232421875,
+          "phase": 69,
+          "hp": 558,
+          "armor_hp": 0,
+          "friendly": false,
+          "stationary": false
+        }
+      ],
+      "slots": [
+        {
+          "index": 0,
+          "type_id": 2,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 1,
+          "type_id": 14,
+          "cd_left": 3652,
+          "cd_total": 8000
+        },
+        {
+          "index": 2,
+          "type_id": 33,
+          "cd_left": 0,
+          "cd_total": 300
+        },
+        {
+          "index": 3,
+          "type_id": 34,
+          "cd_left": 0,
+          "cd_total": 750
+        },
+        {
+          "index": 4,
+          "type_id": 106,
+          "cd_left": 3274,
+          "cd_total": 8000
+        },
+        {
+          "index": 5,
+          "type_id": 39,
+          "cd_left": 2741,
+          "cd_total": 3000
+        },
+        {
+          "index": 6,
+          "type_id": 9,
+          "cd_left": 439,
+          "cd_total": 750
+        },
+        {
+          "index": 7,
+          "type_id": 183,
+          "cd_left": 0,
+          "cd_total": 3000
+        },
+        {
+          "index": 8,
+          "type_id": 161,
+          "cd_left": 2969,
+          "cd_total": 5000
+        },
+        {
+          "index": 9,
+          "type_id": 160,
+          "cd_left": 0,
+          "cd_total": 5000
+        },
+        {
+          "index": 10,
+          "type_id": 155,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 11,
+          "type_id": 147,
+          "cd_left": 2057,
+          "cd_total": 3000
+        },
+        {
+          "index": 12,
+          "type_id": 286,
+          "cd_left": 0,
+          "cd_total": 0
+        },
+        {
+          "index": 13,
+          "type_id": 189,
+          "cd_left": 0,
+          "cd_total": 1500
+        },
+        {
+          "index": 14,
+          "type_id": 20,
+          "cd_left": 831,
+          "cd_total": 10000
+        },
+        {
+          "index": 15,
+          "type_id": 233,
+          "cd_left": 1889,
+          "cd_total": 3000
+        }
+      ],
+      "dropped_seeds": [],
+      "row_types": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+      },
+      "mowers": {},
+      "mower_diagnostics": {
+        "validated": false,
+        "reason": "invalid_pool_header",
+        "base": 2101116936,
+        "capacity": 0,
+        "count": 0,
+        "objects_seen": 0,
+        "live_objects": 0
+      },
+      "snow_cells": [],
+      "rejected_cells": []
+    }
+  }
+]

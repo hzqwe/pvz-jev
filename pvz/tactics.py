@@ -269,13 +269,18 @@ def upgrade_value(board, book, type_id, row=None, col=None):
 
 
 def rear_cols(board, book, row, producer=False, *, type_id=None):
-    """Only empty squares behind the first wall and ahead of no passed zombie."""
+    """Safe empty cells behind protection; an old rear wall is not a field boundary."""
     ps = board.plants_in_lane(row)
-    wall = min((p.col for p in ps if book.has_tag(p.type_id, T_WALL)), default=board.cols)
+    walls = [p.col for p in ps if book.has_tag(p.type_id, T_WALL) and p.hp != 0]
+    # Multiple defensive layers still protect cells behind the outermost layer.
+    # Income stays in the rear; attackers may use the middle of the formation.
+    wall = (min(walls) if producer else max(walls)) if walls else board.cols
     nx = min((z.x for z in board.zombies_in_lane(row) if z.x is not None), default=9999)
-    hi = min(3 if producer else 5, wall - 1)
+    rich = (board.sun or 0) >= 1000
+    hi = min(3 if producer else board.cols - 2 if rich and walls else 5, wall - 1)
     occ = board.top_occupancy(book)
-    cols = [c for c in range(hi + 1) if (row, c) not in occ and cell_x(c) + 35 < nx
+    cols = [c for c in range(hi + 1) if (row, c) not in occ
+            and cell_x(c) + (160 if rich and not producer and c >= 4 else 35) < nx
             and not board.snow_blocked(row,c) and not board.placement_blocked(row,c)]
     if type_id is not None:
         placement = board.placement_profile(type_id,book)
@@ -292,6 +297,24 @@ def rear_cols(board, book, row, producer=False, *, type_id=None):
                    and book.cost(s.type_id) <= (board.sun or 0) for s in board.slots):
             return []
     return cols
+
+
+def standing_lane_dps(board, row, book):
+    """Potential recurring output for the next wave, independent of today's lead.
+
+    Tracking output is shared evenly across lanes, never credited at full power
+    to each lane. This is emitted firepower, not a hit-rate or battle simulation.
+    """
+    output = 0.0
+    for p in board.plants:
+        if (p.asleep or p.hp == 0 or not book.has_tag(p.type_id, T_SHOOTER)
+                or book.has_tag(p.type_id, T_TEMPORARY) or book.has_tag(p.type_id, 'instant')):
+            continue
+        if book.has_tag(p.type_id, T_TRACKING):
+            output += attack_dps(book, p.type_id) / board.rows
+        elif abs(p.row - row) <= coverage_lanes(book, p.type_id) // 2:
+            output += lane_dps(book, p.type_id)
+    return round(output, 2)
 
 
 def lane_facts(board, row, book=None):
